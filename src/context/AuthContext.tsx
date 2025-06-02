@@ -70,19 +70,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      // Clear local state first to ensure UI updates immediately
-      setSession(null);
-      setUser(null);
-      
-      // Attempt to sign out from Supabase
+      // First attempt to sign out from Supabase while we still have the session
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.warn('Error during sign out:', error.message);
-        // Even if there's an error, we've already cleared the local state
       }
     } catch (error) {
       console.warn('Error during sign out:', error);
-      // Local state is already cleared, so the user will still be logged out
+    } finally {
+      // Clear local state after the sign out attempt, regardless of the outcome
+      setSession(null);
+      setUser(null);
     }
   };
 
