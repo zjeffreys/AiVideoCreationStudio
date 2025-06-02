@@ -70,8 +70,8 @@ export const SignUp = () => {
       <div className="flex flex-col items-center justify-center w-full max-w-md space-y-8 p-8">
         <div className="flex flex-col items-center space-y-2 text-center">
           <div className="rounded-full bg-green-100 p-3">
-            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg className="h-6 w-6 text-green-600\" fill="none\" viewBox="0 0 24 24\" stroke="currentColor">
+              <path strokeLinecap="round\" strokeLinejoin="round\" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <h1 className="text-2xl font-bold">Registration successful</h1>
@@ -159,7 +159,7 @@ export const SignUp = () => {
           {googleLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+            <svg className="mr-2 h-4 w-4\" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
