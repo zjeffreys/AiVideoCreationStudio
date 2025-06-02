@@ -69,7 +69,7 @@ function App() {
           </Route>
           
           {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/\" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
