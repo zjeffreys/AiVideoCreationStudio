@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           access_type: 'offline',
           prompt: 'consent',
         },
-        redirectTo: 'https://astonishing-lily-bc916b.netlify.app/dashboard',
+        redirectTo: window.location.origin,
       },
     });
     if (error) throw error;
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email, 
       password,
       options: {
-        emailRedirectTo: 'https://astonishing-lily-bc916b.netlify.app/dashboard',
+        emailRedirectTo: window.location.origin,
       },
     });
     if (error) throw error;
