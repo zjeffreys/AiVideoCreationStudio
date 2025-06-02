@@ -1,0 +1,147 @@
+import React from 'react';
+import { 
+  Play, 
+  Pencil, 
+  Download, 
+  Trash, 
+  Clock, 
+  CheckCircle,
+  Loader 
+} from 'lucide-react';
+import { cn } from '../../utils/cn';
+import { Video } from '../../types';
+import { Button } from '../ui/Button';
+
+type VideoCardProps = {
+  video: Video;
+  onEdit: (video: Video) => void;
+  onDelete: (id: string) => void;
+};
+
+export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete }) => {
+  const getStatusIcon = () => {
+    switch (video.status) {
+      case 'draft':
+        return <Clock className="h-5 w-5 text-slate-500" />;
+      case 'processing':
+        return <Loader className="h-5 w-5 text-blue-500 animate-spin" />;
+      case 'complete':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusText = () => {
+    switch (video.status) {
+      case 'draft':
+        return 'Draft';
+      case 'processing':
+        return 'Processing';
+      case 'complete':
+        return 'Complete';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (video.status) {
+      case 'draft':
+        return 'bg-slate-100 text-slate-700';
+      case 'processing':
+        return 'bg-blue-100 text-blue-700';
+      case 'complete':
+        return 'bg-green-100 text-green-700';
+      default:
+        return '';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  };
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+        <img
+          src={video.thumbnail_url || 'https://via.placeholder.com/640x360?text=No+Thumbnail'}
+          alt={video.title}
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          {video.status === 'complete' && (
+            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition-transform hover:scale-110">
+              <Play className="h-6 w-6" />
+            </button>
+          )}
+          {video.status === 'processing' && (
+            <div className="rounded-md bg-black/50 px-3 py-1 text-sm font-medium text-white">
+              Processing...
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900 line-clamp-1">{video.title}</h3>
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium', getStatusColor())}>
+            {getStatusIcon()}
+            {getStatusText()}
+          </span>
+        </div>
+        
+        <p className="mb-4 text-sm text-slate-500 line-clamp-2">
+          {video.description || 'No description provided.'}
+        </p>
+        
+        <div className="mb-4 text-xs text-slate-400">
+          Created on {formatDate(video.created_at)}
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={video.status === 'complete' ? 'primary' : 'ghost'}
+            disabled={video.status !== 'complete'}
+            leftIcon={<Play className="h-4 w-4" />}
+          >
+            Play
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<Pencil className="h-4 w-4" />}
+            onClick={() => onEdit(video)}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={video.status !== 'complete'}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
+            Download
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            leftIcon={<Trash className="h-4 w-4" />}
+            onClick={() => onDelete(video.id)}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
