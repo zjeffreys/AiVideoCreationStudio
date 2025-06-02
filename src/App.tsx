@@ -26,6 +26,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Auth callback handler
+const AuthCallback = () => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return null;
+  
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -34,6 +47,9 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          
+          {/* Auth callback route */}
+          <Route path="/" element={<AuthCallback />} />
           
           {/* Protected routes */}
           <Route
@@ -44,7 +60,6 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard\" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="videos" element={<Videos />} />
             <Route path="characters" element={<Characters />} />
@@ -54,7 +69,7 @@ function App() {
           </Route>
           
           {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/\" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
