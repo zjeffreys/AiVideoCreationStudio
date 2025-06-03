@@ -28,7 +28,7 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5905709/pexels-photo-5905709.jpeg')] bg-cover bg-center bg-no-repeat opacity-10"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
             <div className="mb-8 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
@@ -180,7 +180,7 @@ export const LandingPage = () => {
 
       {/* How It Works */}
       <div className="relative overflow-hidden bg-slate-50 py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183153/pexels-photo-3183153.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/4778611/pexels-photo-4778611.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
@@ -238,7 +238,7 @@ export const LandingPage = () => {
 
       {/* Benefits Section */}
       <div className="relative overflow-hidden py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183132/pexels-photo-3183132.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5212703/pexels-photo-5212703.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
@@ -291,7 +291,7 @@ export const LandingPage = () => {
 
       {/* Testimonials */}
       <div className="relative overflow-hidden bg-slate-50 py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5905502/pexels-photo-5905502.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
@@ -362,36 +362,30 @@ export const LandingPage = () => {
               </span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Choose the Perfect Plan for Your Needs
+              Professional Tools for Professional Educators
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Simple, transparent pricing that grows with you. No hidden fees.
+              Invest in your teaching with our powerful AI video creation platform.
             </p>
           </div>
 
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
+          <div className="mt-16 grid gap-8 lg:grid-cols-2">
             {[
               {
-                name: "Starter",
-                price: "Free",
-                description: "Perfect for trying out our platform",
-                features: [
-                  "5 videos per month",
-                  "Basic AI characters",
-                  "720p video quality",
-                  "Community support"
-                ]
-              },
-              {
                 name: "Professional",
-                price: "$29",
-                description: "Most popular for educators",
+                price: "$100",
+                description: "Perfect for individual educators",
                 features: [
-                  "Unlimited videos",
+                  "Unlimited video creation",
+                  "Full HD 1080p quality",
                   "Custom AI characters",
-                  "1080p video quality",
-                  "Priority support",
-                  "Advanced analytics"
+                  "Advanced script generation",
+                  "Priority rendering",
+                  "Premium voice options",
+                  "Analytics dashboard",
+                  "Priority email support",
+                  "Access to template library",
+                  "Regular feature updates"
                 ]
               },
               {
@@ -399,15 +393,20 @@ export const LandingPage = () => {
                 price: "Custom",
                 description: "For institutions and organizations",
                 features: [
+                  "Everything in Professional",
                   "Custom video limits",
-                  "Custom branding",
                   "4K video quality",
-                  "Dedicated support",
-                  "API access"
+                  "Custom branding",
+                  "Team collaboration",
+                  "API access",
+                  "Dedicated account manager",
+                  "Custom integration support",
+                  "Training sessions",
+                  "SLA guarantees"
                 ]
               }
             ].map((plan, index) => (
-              <div key={index} className={`rounded-2xl border ${index === 1 ? 'border-purple-200 bg-purple-50' : 'border-slate-200 bg-white'} p-8 shadow-sm`}>
+              <div key={index} className={`rounded-2xl border ${index === 0 ? 'border-purple-200 bg-purple-50' : 'border-slate-200 bg-white'} p-8 shadow-sm`}>
                 <h3 className="text-xl font-semibold text-slate-900">{plan.name}</h3>
                 <div className="mt-4 flex items-baseline">
                   <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
@@ -424,10 +423,10 @@ export const LandingPage = () => {
                 </ul>
                 <Button
                   className="mt-8"
-                  variant={index === 1 ? 'default' : 'outline'}
+                  variant={index === 0 ? 'default' : 'outline'}
                   fullWidth
                 >
-                  {index === 2 ? 'Contact Sales' : 'Get Started'}
+                  {index === 1 ? 'Contact Sales' : 'Get Started'}
                 </Button>
               </div>
             ))}
@@ -437,7 +436,7 @@ export const LandingPage = () => {
 
       {/* CTA Section */}
       <div className="relative overflow-hidden bg-purple-600 py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5212339/pexels-photo-5212339.jpeg')] bg-cover bg-center bg-no-repeat opacity-10"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
