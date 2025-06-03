@@ -13,6 +13,7 @@ export const Dashboard = () => {
   const [musicStyles, setMusicStyles] = useState<MusicStyle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -66,6 +67,11 @@ export const Dashboard = () => {
     }
   }, [user]);
 
+  const handleVideoCreated = () => {
+    fetchData();
+    setShowCreateForm(false);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
@@ -91,12 +97,40 @@ export const Dashboard = () => {
         <>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-              <h2 className="mb-4 text-xl font-semibold text-slate-900">Create New Video</h2>
-              <CreateVideoForm 
-                characters={characters} 
-                musicStyles={musicStyles} 
-                onVideoCreated={fetchData} 
-              />
+              {showCreateForm ? (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-slate-900">Create New Video</h2>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowCreateForm(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                  <CreateVideoForm 
+                    characters={characters} 
+                    musicStyles={musicStyles} 
+                    onVideoCreated={handleVideoCreated} 
+                  />
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="mb-4 rounded-full bg-purple-100 p-3">
+                    <PlusCircle className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <h2 className="mb-2 text-xl font-semibold text-slate-900">Create a New Video</h2>
+                  <p className="mb-6 text-slate-500">
+                    Start creating your next educational video with AI assistance
+                  </p>
+                  <Button
+                    onClick={() => setShowCreateForm(true)}
+                    leftIcon={<PlusCircle className="h-5 w-5" />}
+                  >
+                    Create New Video
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
