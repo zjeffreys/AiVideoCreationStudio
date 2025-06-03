@@ -289,7 +289,41 @@ export const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-slate-900 py-12 text-slate-400">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase text-white">Product</h3>
+              <ul className="space-y-2">
+                <li><Link to="/features" className="hover:text-white">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
+                <li><Link to="/templates" className="hover:text-white">Templates</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase text-white">Company</h3>
+              <ul className="space-y-2">
+                <li><Link to="/about" className="hover:text-white">About</Link></li>
+                <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
+                <li><Link to="/blog" className="hover:text-white">Blog</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase text-white">Support</h3>
+              <ul className="space-y-2">
+                <li><Link to="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="/api" className="hover:text-white">API</Link></li>
+                <li><Link to="/status" className="hover:text-white">Status</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-4 text-sm font-semibold uppercase text-white">Legal</h3>
+              <ul className="space-y-2">
+                <li><Link to="/privacy" className="hover:text-white">Privacy</Link></li>
+                <li><Link to="/terms" className="hover:text-white">Terms</Link></li>
+                <li><Link to="/security" className="hover:text-white">Security</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 border-t border-slate-800 pt-8 text-center">
             <p>&copy; {new Date().getFullYear()} All rights reserved.</p>
           </div>
         </div>
