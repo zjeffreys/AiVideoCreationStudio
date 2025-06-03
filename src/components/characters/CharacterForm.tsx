@@ -60,8 +60,33 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
 
   const isEditing = !!character;
 
+  const uploadAvatar = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${user!.id}/${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('character-avatars')
+      .upload(filePath, file, {
+        upsert: true,
+        onUploadProgress: (progress) => {
+          setUploadProgress((progress.loaded / progress.total) * 100);
+        }
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('character-avatars')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const generateDescription = async () => {
-    if (!avatarPreview) {
+    if (!avatarFile && !avatarPreview) {
       setError('Please upload an image first');
       return;
     }
@@ -70,6 +95,12 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     setError(null);
 
     try {
+      // If we have a new file, upload it first to get a public URL
+      let imageUrl = avatarPreview;
+      if (avatarFile) {
+        imageUrl = await uploadAvatar(avatarFile);
+      }
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -92,7 +123,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
                 },
                 {
                   type: 'image_url',
-                  image_url: avatarPreview
+                  image_url: imageUrl
                 }
               ]
             }
@@ -117,31 +148,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const uploadAvatar = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${user!.id}/${fileName}`;
-
-    const { error: uploadError, data } = await supabase.storage
-      .from('character-avatars')
-      .upload(filePath, file, {
-        upsert: true,
-        onUploadProgress: (progress) => {
-          setUploadProgress((progress.loaded / progress.total) * 100);
-        }
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('character-avatars')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
