@@ -34,12 +34,12 @@ export const CreateVideoForm: React.FC<Props> = ({
   });
 
   const [script, setScript] = useState<VideoScript>({
-    segments: Array(3).fill({
+    segments: [{
       text: '',
       sceneDescription: '',
       charactersInScene: [],
       speakerCharacterId: undefined,
-    }),
+    }],
     style: '',
     musicId: '',
   });
@@ -103,7 +103,7 @@ export const CreateVideoForm: React.FC<Props> = ({
     }
   };
 
-  const generateSceneDescription = async (index: number) => {
+  const generateSceneDescription = async (index: number, userInput: string = '') => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
       setError('OpenAI API key is required for scene generation');
       return;
@@ -128,7 +128,9 @@ export const CreateVideoForm: React.FC<Props> = ({
             },
             {
               role: 'user',
-              content: `Create a scene description for an educational video about "${goals.title}". The scene should be engaging and appropriate for the target audience: "${goals.targetAudience}"`
+              content: `Create a scene description for an educational video about "${goals.title}". ${
+                userInput ? `The scene should incorporate these elements: ${userInput}. ` : ''
+              }Make it engaging and appropriate for the target audience: "${goals.targetAudience}"`
             }
           ],
           temperature: 0.7,
@@ -229,6 +231,21 @@ export const CreateVideoForm: React.FC<Props> = ({
       }
       setIsSubmitting(false);
     }
+  };
+
+  const addNewSegment = () => {
+    setScript({
+      ...script,
+      segments: [
+        ...script.segments,
+        {
+          text: '',
+          sceneDescription: '',
+          charactersInScene: [],
+          speakerCharacterId: undefined,
+        }
+      ]
+    });
   };
 
   const renderStepContent = () => {
@@ -334,34 +351,34 @@ export const CreateVideoForm: React.FC<Props> = ({
 
                   <div className="space-y-4">
                     <div>
-                      <div className="flex items-center justify-between">
+                      <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-900">
-                          Scene Description
+                          Scene Elements (Optional)
                         </label>
+                        <Textarea
+                          placeholder="Describe key elements you want in this scene (e.g., 'classroom setting with whiteboard, students sitting in groups')"
+                          value={segment.sceneDescription}
+                          onChange={(e) => {
+                            const newSegments = [...script.segments];
+                            newSegments[index] = {
+                              ...segment,
+                              sceneDescription: e.target.value,
+                            };
+                            setScript({ ...script, segments: newSegments });
+                          }}
+                          fullWidth
+                        />
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => generateSceneDescription(index)}
+                          onClick={() => generateSceneDescription(index, segment.sceneDescription)}
                           isLoading={isEnhancing}
                           loadingText="Generating..."
                           leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
                         >
-                          Generate Scene
+                          Generate Scene Description
                         </Button>
                       </div>
-                      <Textarea
-                        value={segment.sceneDescription}
-                        onChange={(e) => {
-                          const newSegments = [...script.segments];
-                          newSegments[index] = {
-                            ...segment,
-                            sceneDescription: e.target.value,
-                          };
-                          setScript({ ...script, segments: newSegments });
-                        }}
-                        placeholder="Describe the scene setting and what's happening (e.g., 'In a modern classroom, a teacher stands next to an interactive whiteboard showing a diagram of the water cycle.')"
-                        fullWidth
-                      />
                     </div>
 
                     <div>
@@ -465,6 +482,16 @@ export const CreateVideoForm: React.FC<Props> = ({
                   </div>
                 </div>
               ))}
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addNewSegment}
+                fullWidth
+                leftIcon={<PlusCircle className="h-4 w-4" />}
+              >
+                Add Another Segment
+              </Button>
             </div>
             
             <div className="space-y-4">
