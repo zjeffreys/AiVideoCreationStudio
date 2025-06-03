@@ -3,14 +3,16 @@ import { Mic2, Play, Pause, Search } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Voice } from '../types';
-import { listVoices } from '../lib/elevenlabs';
+import { listVoices, generatePreview } from '../lib/elevenlabs';
 
 export const Voices = () => {
+  const { user } = useAuth();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,6 @@ export const Voices = () => {
   }, []);
 
   useEffect(() => {
-    // Cleanup audio on unmount
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -48,30 +49,56 @@ export const Voices = () => {
     e.preventDefault();
   };
 
-  const togglePlayVoice = (voice: Voice) => {
-    if (!voice.preview_url) {
-      console.error('No preview URL available for this voice');
-      return;
-    }
+  const togglePlayVoice = async (voice: Voice) => {
+    try {
+      if (playingVoiceId === voice.id) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setPlayingVoiceId(null);
+        return;
+      }
 
-    if (playingVoiceId === voice.id) {
+      setIsGenerating(true);
+      setPlayingVoiceId(voice.id);
+
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current = null;
+      }
+
+      // Generate new preview if no preview URL exists
+      if (!voice.preview_url) {
+        const audioBuffer = await generatePreview(voice.id);
+        const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        
+        audio.addEventListener('ended', () => {
+          setPlayingVoiceId(null);
+          URL.revokeObjectURL(url);
+        });
+        
+        audioRef.current = audio;
+        audio.play();
+      } else {
+        // Use existing preview URL
+        const audio = new Audio(voice.preview_url);
+        audio.addEventListener('ended', () => {
+          setPlayingVoiceId(null);
+        });
+        audioRef.current = audio;
+        audio.play();
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to play voice preview');
       }
       setPlayingVoiceId(null);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      const audio = new Audio(voice.preview_url);
-      audio.addEventListener('ended', () => {
-        setPlayingVoiceId(null);
-      });
-      audio.play();
-      audioRef.current = audio;
-      setPlayingVoiceId(voice.id);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -154,39 +181,24 @@ export const Voices = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => togglePlayVoice(voice)}
+                isLoading={isGenerating && playingVoiceId === voice.id}
+                loadingText="Loading..."
                 leftIcon={
-                  playingVoiceId === voice.id ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
+                  !isGenerating && (
+                    playingVoiceId === voice.id ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )
                   )
                 }
-                disabled={!voice.preview_url}
               >
-                {playingVoiceId === voice.id ? 'Pause' : 'Preview'}
+                {playingVoiceId === voice.id && !isGenerating ? 'Pause' : 'Preview'}
               </Button>
             </div>
           ))}
         </div>
       )}
-      
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">About Voice Technology</h2>
-        <p className="text-slate-600">
-          Our platform uses ElevenLabs' state-of-the-art voice synthesis technology to create natural-sounding
-          voices for your educational videos. Each voice has been carefully designed to deliver clear,
-          engaging narration for your content.
-        </p>
-        <div className="mt-4">
-          <h3 className="text-lg font-medium text-slate-900">Voice Best Practices</h3>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-slate-600">
-            <li>Choose voices that match your character's personality and teaching style</li>
-            <li>Select appropriate accents based on your target audience</li>
-            <li>Use consistent voices across related video series for better recognition</li>
-            <li>Consider the age and subject matter when selecting voice types</li>
-          </ul>
-        </div>
-      </div>
     </div>
   );
 };

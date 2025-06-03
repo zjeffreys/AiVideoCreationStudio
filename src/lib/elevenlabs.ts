@@ -11,6 +11,8 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
+const PREVIEW_TEXT = "Hello! I'm excited to help teach your students in an engaging way.";
+
 export const listVoices = async (): Promise<Voice[]> => {
   try {
     const { voices } = await elevenlabs.voices.getAll();
@@ -24,6 +26,20 @@ export const listVoices = async (): Promise<Voice[]> => {
     }));
   } catch (error) {
     console.error('Error fetching voices:', error);
+    throw error;
+  }
+};
+
+export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => {
+  try {
+    const audioBuffer = await elevenlabs.generate({
+      text: PREVIEW_TEXT,
+      voice_id: voiceId,
+      model_id: 'eleven_monolingual_v1'
+    });
+    return audioBuffer;
+  } catch (error) {
+    console.error('Error generating preview:', error);
     throw error;
   }
 };
