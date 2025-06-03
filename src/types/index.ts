@@ -40,3 +40,23 @@ export type Voice = {
   gender?: 'male' | 'female' | 'neutral';
   accent?: string;
 };
+
+export type VideoCreationStep = 'goals' | 'characters' | 'script' | 'review';
+
+export interface VideoGoals {
+  title: string;
+  description: string;
+  targetAudience: string;
+  learningObjectives: string[];
+  duration: number;
+}
+
+export interface VideoScript {
+  segments: {
+    text: string;
+    character?: string;
+    duration?: number;
+  }[];
+  style?: string;
+  musicId?: string;
+}
