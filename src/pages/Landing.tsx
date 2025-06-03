@@ -89,20 +89,20 @@ export const LandingPage = () => {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">50K+</div>
-              <div className="mt-2 text-sm text-slate-600">Active Users</div>
+              <div className="text-4xl font-bold text-purple-600">85%</div>
+              <div className="mt-2 text-sm text-slate-600">Improved Information Retention</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">100K+</div>
-              <div className="mt-2 text-sm text-slate-600">Videos Created</div>
+              <div className="text-4xl font-bold text-purple-600">2x</div>
+              <div className="mt-2 text-sm text-slate-600">Faster Learning Progress</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">98%</div>
-              <div className="mt-2 text-sm text-slate-600">Satisfaction Rate</div>
+              <div className="text-4xl font-bold text-purple-600">40%</div>
+              <div className="mt-2 text-sm text-slate-600">Higher Student Engagement</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">4.9/5</div>
-              <div className="mt-2 text-sm text-slate-600">Average Rating</div>
+              <div className="text-4xl font-bold text-purple-600">75%</div>
+              <div className="mt-2 text-sm text-slate-600">Time Saved Creating Content</div>
             </div>
           </div>
         </div>
