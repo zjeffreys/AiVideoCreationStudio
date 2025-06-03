@@ -87,20 +87,20 @@ export const LandingPage = () => {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">24/7</div>
-              <div className="mt-2 text-sm text-slate-600">AI Availability</div>
+              <div className="text-4xl font-bold text-purple-600">50K+</div>
+              <div className="mt-2 text-sm text-slate-600">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">100%</div>
-              <div className="mt-2 text-sm text-slate-600">Cloud-Based</div>
+              <div className="text-4xl font-bold text-purple-600">100K+</div>
+              <div className="mt-2 text-sm text-slate-600">Videos Created</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">HD+</div>
-              <div className="mt-2 text-sm text-slate-600">Video Quality</div>
+              <div className="text-4xl font-bold text-purple-600">98%</div>
+              <div className="mt-2 text-sm text-slate-600">Satisfaction Rate</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">1-Click</div>
-              <div className="mt-2 text-sm text-slate-600">Export</div>
+              <div className="text-4xl font-bold text-purple-600">4.9/5</div>
+              <div className="mt-2 text-sm text-slate-600">Average Rating</div>
             </div>
           </div>
         </div>
@@ -560,5 +560,3 @@ export const LandingPage = () => {
     </div>
   );
 };
-
-export { LandingPage }
