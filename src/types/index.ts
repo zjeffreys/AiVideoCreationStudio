@@ -55,6 +55,7 @@ export interface VideoGoals {
 export interface VideoScript {
   segments: {
     text: string;
+    sceneDescription: string;
     charactersInScene: string[];
     speakerCharacterId?: string;
     duration?: number;

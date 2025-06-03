@@ -34,11 +34,12 @@ export const CreateVideoForm: React.FC<Props> = ({
   });
 
   const [script, setScript] = useState<VideoScript>({
-    segments: [{
+    segments: Array(3).fill({
       text: '',
+      sceneDescription: '',
       charactersInScene: [],
-      speakerCharacterId: undefined
-    }],
+      speakerCharacterId: undefined,
+    }),
     style: '',
     musicId: '',
   });
@@ -102,6 +103,62 @@ export const CreateVideoForm: React.FC<Props> = ({
     }
   };
 
+  const generateSceneDescription = async (index: number) => {
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setError('OpenAI API key is required for scene generation');
+      return;
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at writing engaging scene descriptions for educational videos. Create a brief but vivid description of the scene setting and action.'
+            },
+            {
+              role: 'user',
+              content: `Create a scene description for an educational video about "${goals.title}". The scene should be engaging and appropriate for the target audience: "${goals.targetAudience}"`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate scene description');
+      }
+
+      const data = await response.json();
+      const newDescription = data.choices[0].message.content;
+
+      const newSegments = [...script.segments];
+      newSegments[index] = {
+        ...newSegments[index],
+        sceneDescription: newDescription,
+      };
+      setScript({ ...script, segments: newSegments });
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to generate scene description');
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const handleGoalsSubmit = async () => {
     if (!goals.title || !goals.description) {
       setError('Please fill in all required fields');
@@ -111,8 +168,8 @@ export const CreateVideoForm: React.FC<Props> = ({
   };
 
   const handleScriptSubmit = () => {
-    if (script.segments.some(segment => !segment.text || !segment.speakerCharacterId)) {
-      setError('Please fill in all script segments and select a speaking character for each');
+    if (script.segments.some(segment => !segment.text || !segment.speakerCharacterId || !segment.sceneDescription)) {
+      setError('Please fill in all script segments, including scene descriptions and speaking characters');
       return;
     }
     setCurrentStep('review');
@@ -277,6 +334,37 @@ export const CreateVideoForm: React.FC<Props> = ({
 
                   <div className="space-y-4">
                     <div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-900">
+                          Scene Description
+                        </label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generateSceneDescription(index)}
+                          isLoading={isEnhancing}
+                          loadingText="Generating..."
+                          leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                        >
+                          Generate Scene
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={segment.sceneDescription}
+                        onChange={(e) => {
+                          const newSegments = [...script.segments];
+                          newSegments[index] = {
+                            ...segment,
+                            sceneDescription: e.target.value,
+                          };
+                          setScript({ ...script, segments: newSegments });
+                        }}
+                        placeholder="Describe the scene setting and what's happening (e.g., 'In a modern classroom, a teacher stands next to an interactive whiteboard showing a diagram of the water cycle.')"
+                        fullWidth
+                      />
+                    </div>
+
+                    <div>
                       <label className="mb-2 block text-sm font-medium text-slate-900">
                         Characters in Scene (Max 3)
                       </label>
@@ -377,19 +465,6 @@ export const CreateVideoForm: React.FC<Props> = ({
                   </div>
                 </div>
               ))}
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setScript({
-                  ...script,
-                  segments: [...script.segments, { text: '', charactersInScene: [], speakerCharacterId: undefined }]
-                })}
-                fullWidth
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Segment
-              </Button>
             </div>
             
             <div className="space-y-4">
@@ -433,7 +508,7 @@ export const CreateVideoForm: React.FC<Props> = ({
             
             <div className="rounded-lg border border-slate-200 p-4">
               <h3 className="mb-2 text-lg font-medium text-slate-900">Script</h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {script.segments.map((segment, index) => {
                   const speaker = characters.find(c => c.id === segment.speakerCharacterId);
                   const sceneCharacters = segment.charactersInScene
@@ -441,8 +516,17 @@ export const CreateVideoForm: React.FC<Props> = ({
                     .filter((c): c is Character => c !== undefined);
                   
                   return (
-                    <div key={index} className="border-l-2 border-purple-200 pl-4">
-                      <div className="mb-2 flex flex-wrap gap-2">
+                    <div key={index} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-slate-900">Scene {index + 1}</h4>
+                        <span className="text-sm text-slate-500">~6 seconds</span>
+                      </div>
+                      
+                      <div className="rounded-lg bg-slate-50 p-3">
+                        <p className="text-sm text-slate-600">{segment.sceneDescription}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
                         {sceneCharacters.map(character => (
                           <span
                             key={character.id}
@@ -457,7 +541,10 @@ export const CreateVideoForm: React.FC<Props> = ({
                           </span>
                         ))}
                       </div>
-                      <p className="text-slate-900">{segment.text}</p>
+
+                      <div className="border-l-2 border-purple-200 pl-4">
+                        <p className="text-slate-900">{segment.text}</p>
+                      </div>
                     </div>
                   );
                 })}
