@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { User, Mic2, Upload, X } from 'lucide-react';
+import { User, Mic2, Upload, X, Wand2 } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -29,6 +29,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   const [avatarPreview, setAvatarPreview] = useState(character?.avatar_url || '');
   const [voiceId, setVoiceId] = useState(character?.voice_id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -58,6 +59,65 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   });
 
   const isEditing = !!character;
+
+  const generateDescription = async () => {
+    if (!avatarPreview) {
+      setError('Please upload an image first');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4-vision-preview',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at analyzing images and creating engaging character descriptions for educational content. Focus on personality traits, teaching style, and potential subject expertise based on the character\'s appearance.'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Generate a personality description for this character who will be teaching in educational videos. Focus on their likely teaching style, personality traits, and areas of expertise based on their appearance. Keep it concise but engaging.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: avatarPreview
+                }
+              ]
+            }
+          ],
+          max_tokens: 150
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const data = await response.json();
+      const generatedDescription = data.choices[0].message.content;
+      setPersonality(generatedDescription);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to generate description');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const uploadAvatar = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
@@ -170,14 +230,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         fullWidth
       />
       
-      <Textarea
-        label="Personality"
-        value={personality}
-        onChange={(e) => setPersonality(e.target.value)}
-        placeholder="Describe the character's personality, traits, and teaching style"
-        fullWidth
-      />
-      
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-900">
           Character Avatar
@@ -230,6 +282,32 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-slate-900">
+            Personality
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={generateDescription}
+            isLoading={isGenerating}
+            loadingText="Generating..."
+            leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
+            disabled={!avatarPreview || isGenerating}
+          >
+            Generate from Image
+          </Button>
+        </div>
+        <Textarea
+          value={personality}
+          onChange={(e) => setPersonality(e.target.value)}
+          placeholder="Describe the character's personality, traits, and teaching style"
+          fullWidth
+        />
       </div>
       
       <Select
