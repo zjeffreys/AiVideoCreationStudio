@@ -67,6 +67,16 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
     }).format(date);
   };
 
+  const handlePlayClick = () => {
+    if (video.status !== 'complete') {
+      return;
+    }
+    // Handle video playback
+    if (video.video_url) {
+      window.open(video.video_url, '_blank');
+    }
+  };
+
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
@@ -77,13 +87,19 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
         />
         <div className="absolute inset-0 flex items-center justify-center">
           {video.status === 'complete' && (
-            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition-transform hover:scale-110">
+            <button 
+              onClick={handlePlayClick}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition-transform hover:scale-110"
+            >
               <Play className="h-6 w-6" />
             </button>
           )}
           {video.status === 'processing' && (
-            <div className="rounded-md bg-black/50 px-3 py-1 text-sm font-medium text-white">
-              Processing...
+            <div className="rounded-md bg-black/50 px-4 py-2 text-sm font-medium text-white">
+              <div className="flex items-center gap-2">
+                <Loader className="h-4 w-4 animate-spin" />
+                Processing...
+              </div>
             </div>
           )}
         </div>
@@ -112,8 +128,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
             variant={video.status === 'complete' ? 'primary' : 'ghost'}
             disabled={video.status !== 'complete'}
             leftIcon={<Play className="h-4 w-4" />}
+            onClick={handlePlayClick}
           >
-            Play
+            {video.status === 'processing' ? 'Processing...' : 'Play'}
           </Button>
           <Button
             size="sm"
