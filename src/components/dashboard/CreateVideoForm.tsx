@@ -33,10 +33,12 @@ export const CreateVideoForm: React.FC<Props> = ({
     duration: 120,
   });
 
-  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
-
   const [script, setScript] = useState<VideoScript>({
-    segments: [{ text: '', character: undefined }],
+    segments: [{
+      text: '',
+      charactersInScene: [],
+      speakerCharacterId: undefined
+    }],
     style: '',
     musicId: '',
   });
@@ -105,20 +107,12 @@ export const CreateVideoForm: React.FC<Props> = ({
       setError('Please fill in all required fields');
       return;
     }
-    setCurrentStep('characters');
-  };
-
-  const handleCharactersSubmit = () => {
-    if (selectedCharacters.length === 0) {
-      setError('Please select at least one character');
-      return;
-    }
     setCurrentStep('script');
   };
 
   const handleScriptSubmit = () => {
-    if (script.segments.some(segment => !segment.text)) {
-      setError('Please fill in all script segments');
+    if (script.segments.some(segment => !segment.text || !segment.speakerCharacterId)) {
+      setError('Please fill in all script segments and select a speaking character for each');
       return;
     }
     setCurrentStep('review');
@@ -135,7 +129,6 @@ export const CreateVideoForm: React.FC<Props> = ({
           user_id: user!.id,
           title: goals.title,
           description: goals.description,
-          characters: selectedCharacters,
           status: 'processing',
         })
         .select()
@@ -160,7 +153,7 @@ export const CreateVideoForm: React.FC<Props> = ({
         start_time: index * 6,
         end_time: (index + 1) * 6,
         text: segment.text,
-        character_id: segment.character,
+        character_id: segment.speakerCharacterId,
         status: 'pending',
       }));
 
@@ -266,60 +259,6 @@ export const CreateVideoForm: React.FC<Props> = ({
           </div>
         );
 
-      case 'characters':
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-slate-900">Select Characters</h3>
-              <p className="text-sm text-slate-500">
-                Choose the characters that will appear in your video
-              </p>
-              
-              <div className="grid gap-4 sm:grid-cols-2">
-                {characters.map((character) => (
-                  <div
-                    key={character.id}
-                    className={`cursor-pointer rounded-lg border p-4 transition-colors ${
-                      selectedCharacters.includes(character.id)
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-slate-200 hover:border-purple-200'
-                    }`}
-                    onClick={() => {
-                      setSelectedCharacters(
-                        selectedCharacters.includes(character.id)
-                          ? selectedCharacters.filter(id => id !== character.id)
-                          : [...selectedCharacters, character.id]
-                      );
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      {character.avatar_url ? (
-                        <img
-                          src={character.avatar_url}
-                          alt={character.name}
-                          className="h-10 w-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
-                          <span className="text-lg font-medium text-purple-700">
-                            {character.name[0]}
-                          </span>
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-medium text-slate-900">{character.name}</h4>
-                        {character.personality && (
-                          <p className="text-sm text-slate-500">{character.personality}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
       case 'script':
         return (
           <div className="space-y-6">
@@ -335,38 +274,107 @@ export const CreateVideoForm: React.FC<Props> = ({
                     <h4 className="font-medium text-slate-900">Segment {index + 1}</h4>
                     <span className="text-sm text-slate-500">~6 seconds</span>
                   </div>
-                  
-                  <Select
-                    label="Character"
-                    options={[
-                      { value: '', label: 'Select character' },
-                      ...characters
-                        .filter(char => selectedCharacters.includes(char.id))
-                        .map(char => ({
-                          value: char.id,
-                          label: char.name,
-                        }))
-                    ]}
-                    value={segment.character || ''}
-                    onChange={(value) => {
-                      const newSegments = [...script.segments];
-                      newSegments[index] = { ...segment, character: value };
-                      setScript({ ...script, segments: newSegments });
-                    }}
-                    fullWidth
-                  />
-                  
-                  <Textarea
-                    label="Script"
-                    value={segment.text}
-                    onChange={(e) => {
-                      const newSegments = [...script.segments];
-                      newSegments[index] = { ...segment, text: e.target.value };
-                      setScript({ ...script, segments: newSegments });
-                    }}
-                    placeholder="What should the character say in this segment?"
-                    fullWidth
-                  />
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-900">
+                        Characters in Scene (Max 3)
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                        {characters.map(character => (
+                          <div
+                            key={character.id}
+                            onClick={() => {
+                              const isSelected = segment.charactersInScene.includes(character.id);
+                              let newCharacters = [...segment.charactersInScene];
+                              
+                              if (isSelected) {
+                                newCharacters = newCharacters.filter(id => id !== character.id);
+                                if (segment.speakerCharacterId === character.id) {
+                                  segment.speakerCharacterId = undefined;
+                                }
+                              } else if (newCharacters.length < 3) {
+                                newCharacters.push(character.id);
+                              }
+                              
+                              const newSegments = [...script.segments];
+                              newSegments[index] = {
+                                ...segment,
+                                charactersInScene: newCharacters,
+                              };
+                              setScript({ ...script, segments: newSegments });
+                            }}
+                            className={`cursor-pointer rounded-lg border p-2 transition-colors ${
+                              segment.charactersInScene.includes(character.id)
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-slate-200 hover:border-purple-200'
+                            } ${segment.charactersInScene.length >= 3 && !segment.charactersInScene.includes(character.id)
+                              ? 'opacity-50 cursor-not-allowed'
+                              : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {character.avatar_url ? (
+                                <img
+                                  src={character.avatar_url}
+                                  alt={character.name}
+                                  className="h-8 w-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
+                                  <span className="text-sm font-medium text-purple-700">
+                                    {character.name[0]}
+                                  </span>
+                                </div>
+                              )}
+                              <span className="text-sm font-medium text-slate-900">
+                                {character.name}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Select
+                      label="Speaking Character"
+                      options={[
+                        { value: '', label: 'Select speaking character' },
+                        ...segment.charactersInScene.map(charId => {
+                          const character = characters.find(c => c.id === charId);
+                          return {
+                            value: charId,
+                            label: character?.name || '',
+                          };
+                        })
+                      ]}
+                      value={segment.speakerCharacterId || ''}
+                      onChange={(value) => {
+                        const newSegments = [...script.segments];
+                        newSegments[index] = {
+                          ...segment,
+                          speakerCharacterId: value,
+                        };
+                        setScript({ ...script, segments: newSegments });
+                      }}
+                      fullWidth
+                    />
+                    
+                    <Textarea
+                      label="Script"
+                      value={segment.text}
+                      onChange={(e) => {
+                        const newSegments = [...script.segments];
+                        newSegments[index] = {
+                          ...segment,
+                          text: e.target.value,
+                        };
+                        setScript({ ...script, segments: newSegments });
+                      }}
+                      placeholder="What should the character say in this segment?"
+                      fullWidth
+                    />
+                  </div>
                 </div>
               ))}
               
@@ -375,7 +383,7 @@ export const CreateVideoForm: React.FC<Props> = ({
                 variant="outline"
                 onClick={() => setScript({
                   ...script,
-                  segments: [...script.segments, { text: '', character: undefined }]
+                  segments: [...script.segments, { text: '', charactersInScene: [], speakerCharacterId: undefined }]
                 })}
                 fullWidth
               >
@@ -424,32 +432,31 @@ export const CreateVideoForm: React.FC<Props> = ({
             </div>
             
             <div className="rounded-lg border border-slate-200 p-4">
-              <h3 className="mb-2 text-lg font-medium text-slate-900">Characters</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedCharacters.map(charId => {
-                  const character = characters.find(c => c.id === charId);
-                  return character ? (
-                    <span
-                      key={charId}
-                      className="rounded-full bg-purple-100 px-3 py-1 text-sm text-purple-900"
-                    >
-                      {character.name}
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            </div>
-            
-            <div className="rounded-lg border border-slate-200 p-4">
               <h3 className="mb-2 text-lg font-medium text-slate-900">Script</h3>
               <div className="space-y-4">
                 {script.segments.map((segment, index) => {
-                  const character = characters.find(c => c.id === segment.character);
+                  const speaker = characters.find(c => c.id === segment.speakerCharacterId);
+                  const sceneCharacters = segment.charactersInScene
+                    .map(id => characters.find(c => c.id === id))
+                    .filter((c): c is Character => c !== undefined);
+                  
                   return (
                     <div key={index} className="border-l-2 border-purple-200 pl-4">
-                      <p className="text-sm font-medium text-purple-900">
-                        {character ? character.name : 'No character selected'}
-                      </p>
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {sceneCharacters.map(character => (
+                          <span
+                            key={character.id}
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                              character.id === segment.speakerCharacterId
+                                ? 'bg-purple-100 text-purple-900'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {character.name}
+                            {character.id === segment.speakerCharacterId && ' (Speaking)'}
+                          </span>
+                        ))}
+                      </div>
                       <p className="text-slate-900">{segment.text}</p>
                     </div>
                   );
@@ -472,23 +479,23 @@ export const CreateVideoForm: React.FC<Props> = ({
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {['goals', 'characters', 'script', 'review'].map((step, index) => (
+            {['goals', 'script', 'review'].map((step, index) => (
               <React.Fragment key={step}>
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${
                     currentStep === step
                       ? 'bg-purple-600 text-white'
-                      : index < ['goals', 'characters', 'script', 'review'].indexOf(currentStep)
+                      : index < ['goals', 'script', 'review'].indexOf(currentStep)
                       ? 'bg-purple-100 text-purple-700'
                       : 'bg-slate-100 text-slate-400'
                   }`}
                 >
                   {index + 1}
                 </div>
-                {index < 3 && (
+                {index < 2 && (
                   <div
                     className={`h-0.5 w-8 ${
-                      index < ['goals', 'characters', 'script'].indexOf(currentStep)
+                      index < ['goals', 'script'].indexOf(currentStep)
                         ? 'bg-purple-200'
                         : 'bg-slate-200'
                     }`}
@@ -498,7 +505,7 @@ export const CreateVideoForm: React.FC<Props> = ({
             ))}
           </div>
           <div className="text-sm font-medium text-slate-500">
-            Step {['goals', 'characters', 'script', 'review'].indexOf(currentStep) + 1} of 4
+            Step {['goals', 'script', 'review'].indexOf(currentStep) + 1} of 3
           </div>
         </div>
       </div>
@@ -514,8 +521,7 @@ export const CreateVideoForm: React.FC<Props> = ({
               setError(null);
               setCurrentStep(prev => {
                 switch (prev) {
-                  case 'characters': return 'goals';
-                  case 'script': return 'characters';
+                  case 'script': return 'goals';
                   case 'review': return 'script';
                   default: return prev;
                 }
@@ -533,7 +539,6 @@ export const CreateVideoForm: React.FC<Props> = ({
             setError(null);
             switch (currentStep) {
               case 'goals': return handleGoalsSubmit();
-              case 'characters': return handleCharactersSubmit();
               case 'script': return handleScriptSubmit();
               case 'review': return handleFinalSubmit();
             }

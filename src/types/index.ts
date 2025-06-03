@@ -20,6 +20,7 @@ export type Video = {
 export type Character = {
   id: string;
   name: string;
+  description?: string;
   personality?: string;
   avatar_url?: string;
   voice_id?: string;
@@ -41,7 +42,7 @@ export type Voice = {
   accent?: string;
 };
 
-export type VideoCreationStep = 'goals' | 'characters' | 'script' | 'review';
+export type VideoCreationStep = 'goals' | 'script' | 'review';
 
 export interface VideoGoals {
   title: string;
@@ -54,7 +55,8 @@ export interface VideoGoals {
 export interface VideoScript {
   segments: {
     text: string;
-    character?: string;
+    charactersInScene: string[];
+    speakerCharacterId?: string;
     duration?: number;
   }[];
   style?: string;
