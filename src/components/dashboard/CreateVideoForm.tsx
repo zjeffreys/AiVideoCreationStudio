@@ -5,7 +5,6 @@ import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
-import { enhanceDescription } from '../../lib/openai';
 import { useAuth } from '../../context/AuthContext';
 import { Character, MusicStyle, VideoCreationStep, VideoGoals, VideoScript } from '../../types';
 
@@ -42,7 +41,12 @@ export const CreateVideoForm: React.FC<Props> = ({
     musicId: '',
   });
 
-  const handleEnhanceDescription = async () => {
+  const enhanceDescription = async () => {
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setError('OpenAI API key is required for description enhancement. Please add it to your environment variables.');
+      return;
+    }
+
     if (!goals.description.trim()) {
       setError('Please enter a description before enhancing');
       return;
@@ -52,10 +56,38 @@ export const CreateVideoForm: React.FC<Props> = ({
     setError(null);
 
     try {
-      const enhancedDescription = await enhanceDescription(goals.description);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at writing engaging educational video descriptions. Enhance the given description to be more detailed, engaging, and SEO-friendly while maintaining the original intent.'
+            },
+            {
+              role: 'user',
+              content: `Please enhance this educational video description: "${goals.description}"`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const enhancedDescription = data.choices[0].message.content;
+
       setGoals(prev => ({
         ...prev,
-        description: enhancedDescription,
+        description: enhancedDescription.replace(/^["']|["']$/g, ''),
       }));
     } catch (error) {
       if (error instanceof Error) {
@@ -174,20 +206,20 @@ export const CreateVideoForm: React.FC<Props> = ({
                 required
                 fullWidth
               />
-              <div className="mt-2 flex items-center justify-end gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-slate-500">
                   Pro tip: Write a basic description and click "Enhance" to make it more engaging
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleEnhanceDescription}
+                  onClick={enhanceDescription}
                   isLoading={isEnhancing}
                   loadingText="Enhancing..."
                   leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
                   disabled={!goals.description || isEnhancing}
                 >
-                  Enhance
+                  Enhance Description
                 </Button>
               </div>
             </div>
