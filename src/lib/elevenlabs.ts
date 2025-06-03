@@ -1,4 +1,4 @@
-import { Voice, VoiceSettings } from '@elevenlabs/sdk';
+import { Voice, VoiceSettings } from 'elevenlabs';
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
