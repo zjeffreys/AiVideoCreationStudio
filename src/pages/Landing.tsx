@@ -33,7 +33,9 @@ export const LandingPage = () => {
           <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
             <div className="mb-8 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
               <span className="text-sm font-medium text-purple-800">
-                Professional Quality • Dedicated Support
+                
+🚀 AI-Powered Education
+
               </span>
             </div>
             <h1 className="mb-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl md:text-7xl">
