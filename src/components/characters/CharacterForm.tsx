@@ -24,6 +24,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
 }) => {
   const { user } = useAuth();
   const [name, setName] = useState(character?.name || '');
+  const [description, setDescription] = useState('');
   const [personality, setPersonality] = useState(character?.personality || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(character?.avatar_url || '');
@@ -85,9 +86,9 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     return publicUrl;
   };
 
-  const generateDescription = async () => {
-    if (!name) {
-      setError('Please enter a character name first');
+  const generatePersonality = async () => {
+    if (!description) {
+      setError('Please enter a character description first');
       return;
     }
 
@@ -106,11 +107,11 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           messages: [
             {
               role: 'system',
-              content: 'You are an expert at creating engaging character descriptions for educational content. Focus on personality traits, teaching style, and potential subject expertise.'
+              content: 'You are an expert at creating engaging character personalities for educational content. Focus on teaching style, communication approach, and behavioral traits.'
             },
             {
               role: 'user',
-              content: `Create a personality description for an educational character named "${name}". Include their likely teaching style, personality traits, and potential areas of expertise. Keep it concise but engaging, focusing on what makes them an effective educator.`
+              content: `Based on this character description: "${description}", create a personality profile that includes their teaching style, how they interact with students, and their unique behavioral traits. Keep it concise but engaging.`
             }
           ],
           max_tokens: 150,
@@ -119,17 +120,17 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate description');
+        throw new Error('Failed to generate personality');
       }
 
       const data = await response.json();
-      const generatedDescription = data.choices[0].message.content;
-      setPersonality(generatedDescription);
+      const generatedPersonality = data.choices[0].message.content;
+      setPersonality(generatedPersonality);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('Failed to generate description');
+        setError('Failed to generate personality');
       }
     } finally {
       setIsGenerating(false);
@@ -155,7 +156,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       }
 
       if (isEditing) {
-        // Update existing character
         const { error } = await supabase
           .from('characters')
           .update({
@@ -168,7 +168,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           
         if (error) throw error;
       } else {
-        // Create new character
         const { error } = await supabase
           .from('characters')
           .insert({
@@ -277,27 +276,39 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       </div>
 
       <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-900">
+          Character Description
+        </label>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe who this character is, their background, and their role in education"
+          fullWidth
+        />
+      </div>
+
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium text-slate-900">
-            Personality
+            Personality & Teaching Style
           </label>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={generateDescription}
+            onClick={generatePersonality}
             isLoading={isGenerating}
             loadingText="Generating..."
             leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
-            disabled={!name || isGenerating}
+            disabled={!description || isGenerating}
           >
-            Generate Description
+            Generate Personality
           </Button>
         </div>
         <Textarea
           value={personality}
           onChange={(e) => setPersonality(e.target.value)}
-          placeholder="Describe the character's personality, traits, and teaching style"
+          placeholder="Define the character's personality traits, teaching approach, and how they interact with students"
           fullWidth
         />
       </div>
