@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mic2 } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { User, Mic2, Upload, X } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -24,12 +25,64 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   const { user } = useAuth();
   const [name, setName] = useState(character?.name || '');
   const [personality, setPersonality] = useState(character?.personality || '');
-  const [avatarUrl, setAvatarUrl] = useState(character?.avatar_url || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState(character?.avatar_url || '');
   const [voiceId, setVoiceId] = useState(character?.voice_id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
+    },
+    maxSize: 5242880, // 5MB
+    multiple: false,
+    onDrop: async (acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
+      }
+    },
+    onDropRejected: (fileRejections) => {
+      const error = fileRejections[0]?.errors[0];
+      if (error) {
+        if (error.code === 'file-too-large') {
+          setError('Image must be less than 5MB');
+        } else {
+          setError('Please upload a valid image file');
+        }
+      }
+    }
+  });
 
   const isEditing = !!character;
+
+  const uploadAvatar = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${user!.id}/${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('character-avatars')
+      .upload(filePath, file, {
+        upsert: true,
+        onUploadProgress: (progress) => {
+          setUploadProgress((progress.loaded / progress.total) * 100);
+        }
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('character-avatars')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +96,12 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     setIsSubmitting(true);
     
     try {
+      let avatarUrl = character?.avatar_url;
+
+      if (avatarFile) {
+        avatarUrl = await uploadAvatar(avatarFile);
+      }
+
       if (isEditing) {
         // Update existing character
         const { error } = await supabase
@@ -50,7 +109,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           .update({
             name,
             personality,
-            avatar_url: avatarUrl || null,
+            avatar_url: avatarUrl,
             voice_id: voiceId || null,
           })
           .eq('id', character.id);
@@ -64,7 +123,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
             user_id: user!.id,
             name,
             personality,
-            avatar_url: avatarUrl || null,
+            avatar_url: avatarUrl,
             voice_id: voiceId || null,
           });
           
@@ -80,7 +139,13 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
       }
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
+  };
+
+  const removeAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview('');
   };
 
   const voiceOptions = voices.map(voice => ({
@@ -113,30 +178,59 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         fullWidth
       />
       
-      <Input
-        label="Avatar URL"
-        value={avatarUrl}
-        onChange={(e) => setAvatarUrl(e.target.value)}
-        placeholder="https://example.com/avatar.jpg"
-        fullWidth
-      />
-      
-      {avatarUrl && (
-        <div className="flex items-center space-x-4">
-          <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200">
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-900">
+          Character Avatar
+        </label>
+        
+        {avatarPreview ? (
+          <div className="relative inline-block">
             <img
-              src={avatarUrl}
+              src={avatarPreview}
               alt="Avatar preview"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                // If image fails to load, replace with placeholder
-                e.currentTarget.src = 'https://via.placeholder.com/150?text=Invalid+URL';
-              }}
+              className="h-32 w-32 rounded-lg object-cover"
             />
+            <button
+              type="button"
+              onClick={removeAvatar}
+              className="absolute -right-2 -top-2 rounded-full bg-red-100 p-1 text-red-600 hover:bg-red-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <p className="text-sm text-slate-500">Avatar preview</p>
-        </div>
-      )}
+        ) : (
+          <div
+            {...getRootProps()}
+            className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors ${
+              isDragActive
+                ? 'border-purple-400 bg-purple-50'
+                : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+            }`}
+          >
+            <input {...getInputProps()} />
+            <Upload className="mb-2 h-8 w-8 text-slate-400" />
+            <p className="text-sm text-slate-600">
+              {isDragActive
+                ? 'Drop the image here'
+                : 'Drag & drop an image here, or click to select'}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Maximum file size: 5MB
+            </p>
+          </div>
+        )}
+
+        {uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="mt-2">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full bg-purple-600 transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
       
       <Select
         label="Voice"
