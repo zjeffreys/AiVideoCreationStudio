@@ -12,7 +12,8 @@ import {
   Clock,
   Star,
   CheckCircle2,
-  Zap
+  Zap,
+  Play
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
