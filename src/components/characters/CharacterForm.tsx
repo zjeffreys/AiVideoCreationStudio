@@ -24,13 +24,11 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
 }) => {
   const { user } = useAuth();
   const [name, setName] = useState(character?.name || '');
-  const [description, setDescription] = useState('');
   const [personality, setPersonality] = useState(character?.personality || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(character?.avatar_url || '');
   const [voiceId, setVoiceId] = useState(character?.voice_id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -86,57 +84,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     return publicUrl;
   };
 
-  const generateDescription = async () => {
-    if (!name) {
-      setError('Please enter a character name first');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert at creating educational character descriptions. Focus on background, expertise, and role in education.'
-            },
-            {
-              role: 'user',
-              content: `Create a detailed description for an educational character named "${name}". Include their background, expertise, and role in education. Keep it concise but informative.`
-            }
-          ],
-          max_tokens: 150,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate description');
-      }
-
-      const data = await response.json();
-      const generatedDescription = data.choices[0].message.content;
-      setDescription(generatedDescription);
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Failed to generate description');
-      }
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -160,7 +107,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           .from('characters')
           .update({
             name,
-            description,
             personality,
             avatar_url: avatarUrl,
             voice_id: voiceId || null,
@@ -174,7 +120,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           .insert({
             user_id: user!.id,
             name,
-            description,
             personality,
             avatar_url: avatarUrl,
             voice_id: voiceId || null,
@@ -275,32 +220,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
             </div>
           </div>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-900">
-            Character Description
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={generateDescription}
-            isLoading={isGenerating}
-            loadingText="Generating..."
-            leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
-            disabled={!name || isGenerating}
-          >
-            Generate Description
-          </Button>
-        </div>
-        <Textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe who this character is, their background, expertise, and role in education"
-          fullWidth
-        />
       </div>
 
       <div className="space-y-2">
