@@ -48,7 +48,7 @@ function App() {
     <Router>
       <Routes>
         {/* Landing page for non-authenticated users */}
-        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard\" replace />} />
         
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -76,7 +76,7 @@ function App() {
         </Route>
         
         {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/\" replace />} />
       </Routes>
     </Router>
   );
