@@ -4,6 +4,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Voice } from '../types';
 import { listVoices, generatePreview } from '../lib/elevenlabs';
+import { useAuth } from '../context/AuthContext';
 
 export const Voices = () => {
   const { user } = useAuth();
