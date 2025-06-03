@@ -13,7 +13,13 @@ import {
   Star,
   CheckCircle2,
   Zap,
-  Play
+  Play,
+  Lightbulb,
+  Layers,
+  Settings,
+  BarChart,
+  MessageSquare,
+  Heart
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
@@ -22,7 +28,7 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
             <div className="mb-8 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
@@ -173,8 +179,9 @@ export const LandingPage = () => {
       </div>
 
       {/* How It Works */}
-      <div className="bg-slate-50 py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden bg-slate-50 py-24">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183153/pexels-photo-3183153.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
               <span className="text-sm font-medium text-purple-800">
@@ -229,9 +236,63 @@ export const LandingPage = () => {
         </div>
       </div>
 
+      {/* Benefits Section */}
+      <div className="relative overflow-hidden py-24">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183132/pexels-photo-3183132.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                Why Choose Us
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Benefits That Make a Difference
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Discover how our platform can transform your teaching experience and enhance student engagement.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: <Clock className="h-6 w-6" />,
+                title: "Save Time",
+                description: "Create professional videos in minutes instead of hours or days."
+              },
+              {
+                icon: <Lightbulb className="h-6 w-6" />,
+                title: "Boost Engagement",
+                description: "Keep students engaged with interactive and visually appealing content."
+              },
+              {
+                icon: <BarChart className="h-6 w-6" />,
+                title: "Track Progress",
+                description: "Monitor student engagement and learning outcomes with analytics."
+              },
+              {
+                icon: <Heart className="h-6 w-6" />,
+                title: "Student Success",
+                description: "Help students learn better with personalized, engaging content."
+              }
+            ].map((benefit, index) => (
+              <div key={index} className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600">
+                  {benefit.icon}
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900">{benefit.title}</h3>
+                <p className="text-slate-600">{benefit.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Testimonials */}
-      <div className="py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden bg-slate-50 py-24">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-5"></div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
               <span className="text-sm font-medium text-purple-800">
@@ -291,9 +352,92 @@ export const LandingPage = () => {
         </div>
       </div>
 
+      {/* Pricing Section */}
+      <div className="py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                Pricing Plans
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Choose the Perfect Plan for Your Needs
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Simple, transparent pricing that grows with you. No hidden fees.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 lg:grid-cols-3">
+            {[
+              {
+                name: "Starter",
+                price: "Free",
+                description: "Perfect for trying out our platform",
+                features: [
+                  "5 videos per month",
+                  "Basic AI characters",
+                  "720p video quality",
+                  "Community support"
+                ]
+              },
+              {
+                name: "Professional",
+                price: "$29",
+                description: "Most popular for educators",
+                features: [
+                  "Unlimited videos",
+                  "Custom AI characters",
+                  "1080p video quality",
+                  "Priority support",
+                  "Advanced analytics"
+                ]
+              },
+              {
+                name: "Enterprise",
+                price: "Custom",
+                description: "For institutions and organizations",
+                features: [
+                  "Custom video limits",
+                  "Custom branding",
+                  "4K video quality",
+                  "Dedicated support",
+                  "API access"
+                ]
+              }
+            ].map((plan, index) => (
+              <div key={index} className={`rounded-2xl border ${index === 1 ? 'border-purple-200 bg-purple-50' : 'border-slate-200 bg-white'} p-8 shadow-sm`}>
+                <h3 className="text-xl font-semibold text-slate-900">{plan.name}</h3>
+                <div className="mt-4 flex items-baseline">
+                  <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
+                  {plan.price !== "Custom" && <span className="ml-1 text-slate-600">/month</span>}
+                </div>
+                <p className="mt-2 text-slate-600">{plan.description}</p>
+                <ul className="mt-6 space-y-4">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <span className="text-slate-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="mt-8"
+                  variant={index === 1 ? 'default' : 'outline'}
+                  fullWidth
+                >
+                  {index === 2 ? 'Contact Sales' : 'Get Started'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* CTA Section */}
       <div className="relative overflow-hidden bg-purple-600 py-24">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183183/pexels-photo-3183183.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
