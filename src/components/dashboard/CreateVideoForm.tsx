@@ -42,6 +42,16 @@ export const CreateVideoForm: React.FC<Props> = ({
   });
 
   const enhanceDescription = async () => {
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setError('OpenAI API key is required for description enhancement. Please add it to your environment variables.');
+      return;
+    }
+
+    if (!goals.description.trim()) {
+      setError('Please enter a description before enhancing');
+      return;
+    }
+
     setIsEnhancing(true);
     setError(null);
 
@@ -69,7 +79,7 @@ export const CreateVideoForm: React.FC<Props> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to enhance description');
+        throw new Error(`API error: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -80,7 +90,11 @@ export const CreateVideoForm: React.FC<Props> = ({
         description: enhancedDescription.replace(/^["']|["']$/g, ''),
       }));
     } catch (error) {
-      setError('Failed to enhance description. Please try again.');
+      if (error instanceof Error) {
+        setError(`Failed to enhance description: ${error.message}`);
+      } else {
+        setError('Failed to enhance description. Please try again.');
+      }
     } finally {
       setIsEnhancing(false);
     }
