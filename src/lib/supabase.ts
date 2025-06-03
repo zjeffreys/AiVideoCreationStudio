@@ -8,15 +8,4 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please connect to Supabase.');
 }
 
-export const supabase = createClient<Database>(
-  supabaseUrl, 
-  supabaseAnonKey,
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-      flowType: 'implicit',
-    },
-  }
-);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
