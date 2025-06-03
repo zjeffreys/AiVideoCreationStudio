@@ -48,7 +48,7 @@ export const LandingPage = () => {
               </span>
             </h1>
             <p className="mb-12 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Create stunning educational content with our professional AI platform. Generate high-quality videos with custom characters, engaging animations, and natural voices.
+              Create stunning educational content in minutes, not hours. Our AI-powered platform helps you generate professional videos with custom characters, engaging animations, and natural voices.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link to="/signup">
