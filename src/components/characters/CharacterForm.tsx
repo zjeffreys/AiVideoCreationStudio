@@ -86,8 +86,8 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   };
 
   const generateDescription = async () => {
-    if (!avatarFile && !avatarPreview) {
-      setError('Please upload an image first');
+    if (!name) {
+      setError('Please enter a character name first');
       return;
     }
 
@@ -95,12 +95,6 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     setError(null);
 
     try {
-      // If we have a new file, upload it first to get a public URL
-      let imageUrl = avatarPreview;
-      if (avatarFile) {
-        imageUrl = await uploadAvatar(avatarFile);
-      }
-
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -108,27 +102,19 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-vision-preview',
+          model: 'gpt-4',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert at analyzing images and creating engaging character descriptions for educational content. Focus on personality traits, teaching style, and potential subject expertise based on the character\'s appearance.'
+              content: 'You are an expert at creating engaging character descriptions for educational content. Focus on personality traits, teaching style, and potential subject expertise.'
             },
             {
               role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Generate a personality description for this character who will be teaching in educational videos. Focus on their likely teaching style, personality traits, and areas of expertise based on their appearance. Keep it concise but engaging.'
-                },
-                {
-                  type: 'image_url',
-                  image_url: imageUrl
-                }
-              ]
+              content: `Create a personality description for an educational character named "${name}". Include their likely teaching style, personality traits, and potential areas of expertise. Keep it concise but engaging, focusing on what makes them an effective educator.`
             }
           ],
-          max_tokens: 150
+          max_tokens: 150,
+          temperature: 0.7
         })
       });
 
@@ -303,9 +289,9 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
             isLoading={isGenerating}
             loadingText="Generating..."
             leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
-            disabled={!avatarPreview || isGenerating}
+            disabled={!name || isGenerating}
           >
-            Generate from Image
+            Generate Description
           </Button>
         </div>
         <Textarea
