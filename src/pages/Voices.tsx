@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mic2, Play, Pause, Search } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Voice } from '../types';
+import { listVoices } from '../lib/elevenlabs';
 
 export const Voices = () => {
   const [voices, setVoices] = useState<Voice[]>([]);
@@ -10,80 +11,21 @@ export const Voices = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const fetchVoices = async () => {
-      // In a real app, you would fetch voices from your API or Supabase
-      // Here we'll simulate an API call with a timeout
       setLoading(true);
-      
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const mockVoices: Voice[] = [
-          { 
-            id: 'v1', 
-            name: 'Male Teacher (US)', 
-            gender: 'male', 
-            accent: 'American',
-            preview_url: 'https://example.com/audio/v1.mp3'
-          },
-          { 
-            id: 'v2', 
-            name: 'Female Instructor (US)', 
-            gender: 'female', 
-            accent: 'American',
-            preview_url: 'https://example.com/audio/v2.mp3'
-          },
-          { 
-            id: 'v3', 
-            name: 'Male Professor (UK)', 
-            gender: 'male', 
-            accent: 'British',
-            preview_url: 'https://example.com/audio/v3.mp3'
-          },
-          { 
-            id: 'v4', 
-            name: 'Female Narrator (AU)', 
-            gender: 'female', 
-            accent: 'Australian',
-            preview_url: 'https://example.com/audio/v4.mp3'
-          },
-          { 
-            id: 'v5', 
-            name: 'Child Voice', 
-            gender: 'neutral', 
-            accent: 'American',
-            preview_url: 'https://example.com/audio/v5.mp3'
-          },
-          { 
-            id: 'v6', 
-            name: 'Male News Anchor', 
-            gender: 'male', 
-            accent: 'American',
-            preview_url: 'https://example.com/audio/v6.mp3'
-          },
-          { 
-            id: 'v7', 
-            name: 'Female Scientist', 
-            gender: 'female', 
-            accent: 'British',
-            preview_url: 'https://example.com/audio/v7.mp3'
-          },
-          { 
-            id: 'v8', 
-            name: 'Elderly Storyteller', 
-            gender: 'male', 
-            accent: 'Scottish',
-            preview_url: 'https://example.com/audio/v8.mp3'
-          },
-        ];
-        
-        setVoices(mockVoices);
+        const voicesData = await listVoices();
+        setVoices(voicesData);
         setError(null);
       } catch (error) {
-        setError('Failed to load voices. Please try again later.');
+        if (error instanceof Error) {
+          setError(error.message);
+        } else {
+          setError('Failed to load voices. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
@@ -92,17 +34,44 @@ export const Voices = () => {
     fetchVoices();
   }, []);
 
+  useEffect(() => {
+    // Cleanup audio on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Filter voices locally based on search query
   };
 
-  const togglePlayVoice = (voiceId: string) => {
-    // In a real app, this would trigger audio playback
-    if (playingVoiceId === voiceId) {
+  const togglePlayVoice = (voice: Voice) => {
+    if (!voice.preview_url) {
+      console.error('No preview URL available for this voice');
+      return;
+    }
+
+    if (playingVoiceId === voice.id) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       setPlayingVoiceId(null);
     } else {
-      setPlayingVoiceId(voiceId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      const audio = new Audio(voice.preview_url);
+      audio.addEventListener('ended', () => {
+        setPlayingVoiceId(null);
+      });
+      audio.play();
+      audioRef.current = audio;
+      setPlayingVoiceId(voice.id);
     }
   };
 
@@ -176,12 +145,15 @@ export const Voices = () => {
                     </span>
                   )}
                 </div>
+                {voice.description && (
+                  <p className="mt-2 text-sm text-slate-600">{voice.description}</p>
+                )}
               </div>
               
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => togglePlayVoice(voice.id)}
+                onClick={() => togglePlayVoice(voice)}
                 leftIcon={
                   playingVoiceId === voice.id ? (
                     <Pause className="h-4 w-4" />
@@ -189,6 +161,7 @@ export const Voices = () => {
                     <Play className="h-4 w-4" />
                   )
                 }
+                disabled={!voice.preview_url}
               >
                 {playingVoiceId === voice.id ? 'Pause' : 'Preview'}
               </Button>
