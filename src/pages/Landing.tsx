@@ -1,40 +1,113 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Video, Wand2, Users, Music, Shield } from 'lucide-react';
+import { 
+  ArrowRight, 
+  Video, 
+  Wand2, 
+  Users, 
+  Music, 
+  Shield, 
+  Brain,
+  Sparkles,
+  Clock,
+  Star,
+  CheckCircle2,
+  Zap
+} from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center py-16 text-center">
-          <h1 className="mb-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
-            Create Educational Videos
-            <span className="block text-purple-600">with AI Assistance</span>
-          </h1>
-          <p className="mb-8 max-w-2xl text-lg text-slate-600">
-            Transform your teaching materials into engaging video content. Our AI-powered platform helps you create professional educational videos with custom characters, voices, and animations.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link to="/signup">
-              <Button size="lg" leftIcon={<ArrowRight className="h-5 w-5" />}>
-                Get Started Free
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="outline">
-                Sign In
-              </Button>
-            </Link>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
+            <div className="mb-8 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                🚀 AI-Powered Education
+              </span>
+            </div>
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl md:text-7xl">
+              Transform Your Teaching with
+              <span className="relative mt-2 block text-purple-600">
+                AI-Generated Videos
+                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 338 12" fill="none">
+                  <path d="M1 5.26C47.65 4.4 94.29 4.35 140.94 5.11c43.86 0.72 87.71 1.45 131.57 2.17 21.44 0.35 42.88 0.7 64.31 1.06" stroke="#C084FC" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </span>
+            </h1>
+            <p className="mb-12 max-w-2xl text-lg leading-relaxed text-slate-600">
+              Create stunning educational content in minutes, not hours. Our AI-powered platform helps you generate professional videos with custom characters, engaging animations, and natural voices.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link to="/signup">
+                <Button 
+                  size="lg" 
+                  className="group h-14 px-8 text-lg"
+                  leftIcon={<Sparkles className="h-5 w-5 transition-transform group-hover:scale-110" />}
+                >
+                  Start Creating for Free
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="h-14 px-8 text-lg"
+                >
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+            <div className="mt-12 flex items-center justify-center gap-8 text-slate-600">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span>No Credit Card Required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span>14-Day Free Trial</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="border-y border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-purple-600">50K+</div>
+              <div className="mt-2 text-sm text-slate-600">Active Users</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-purple-600">100K+</div>
+              <div className="mt-2 text-sm text-slate-600">Videos Created</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-purple-600">98%</div>
+              <div className="mt-2 text-sm text-slate-600">Satisfaction Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-purple-600">4.9/5</div>
+              <div className="mt-2 text-sm text-slate-600">Average Rating</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="bg-white py-24">
+      <div className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
+            <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                Powerful Features
+              </span>
+            </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               Everything You Need to Create Amazing Educational Content
             </h2>
@@ -45,76 +118,182 @@ export const LandingPage = () => {
 
           <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* AI Video Generation */}
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 inline-flex rounded-lg bg-purple-100 p-3 text-purple-600">
+            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 ring-8 ring-purple-50">
                 <Video className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">
+              <h3 className="mb-3 text-xl font-semibold text-slate-900">
                 AI Video Generation
               </h3>
               <p className="text-slate-600">
                 Transform your scripts into professional videos with our advanced AI technology. Add animations, transitions, and visual effects automatically.
               </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-600">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
             </div>
 
             {/* Smart Script Writing */}
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 inline-flex rounded-lg bg-purple-100 p-3 text-purple-600">
-                <Wand2 className="h-6 w-6" />
+            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 ring-8 ring-purple-50">
+                <Brain className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">
+              <h3 className="mb-3 text-xl font-semibold text-slate-900">
                 Smart Script Writing
               </h3>
               <p className="text-slate-600">
                 Get AI assistance in writing and optimizing your educational scripts. Ensure clear, engaging, and effective content delivery.
               </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-600">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
             </div>
 
             {/* Custom Characters */}
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 inline-flex rounded-lg bg-purple-100 p-3 text-purple-600">
+            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 ring-8 ring-purple-50">
                 <Users className="h-6 w-6" />
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">
+              <h3 className="mb-3 text-xl font-semibold text-slate-900">
                 Custom Characters
               </h3>
               <p className="text-slate-600">
                 Create and customize teaching characters with unique personalities, voices, and appearances to make your content more engaging.
               </p>
-            </div>
-
-            {/* Background Music */}
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 inline-flex rounded-lg bg-purple-100 p-3 text-purple-600">
-                <Music className="h-6 w-6" />
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-600">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">
-                Background Music
-              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div className="bg-slate-50 py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                Simple Process
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Create Videos in 3 Simple Steps
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              Our streamlined process makes it easy to create professional educational videos in minutes.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 lg:grid-cols-3">
+            <div className="relative text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-2xl font-bold text-white">
+                  1
+                </div>
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-slate-900">Write Your Script</h3>
               <p className="text-slate-600">
-                Choose from our library of royalty-free music tracks to enhance your videos with the perfect background ambiance.
+                Enter your content or use our AI to help generate an engaging educational script.
               </p>
             </div>
 
-            {/* Secure Platform */}
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
-              <div className="mb-4 inline-flex rounded-lg bg-purple-100 p-3 text-purple-600">
-                <Shield className="h-6 w-6" />
+            <div className="relative text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-2xl font-bold text-white">
+                  2
+                </div>
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">
-                Secure Platform
-              </h3>
+              <h3 className="mb-2 text-xl font-semibold text-slate-900">Choose Your Style</h3>
               <p className="text-slate-600">
-                Your content is safe with us. Enjoy secure storage, backup, and sharing features for all your educational videos.
+                Select characters, voices, and visual style to match your content.
+              </p>
+            </div>
+
+            <div className="relative text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-2xl font-bold text-white">
+                  3
+                </div>
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-slate-900">Generate & Share</h3>
+              <p className="text-slate-600">
+                Let our AI create your video and share it with your students.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="bg-purple-600 py-24">
+      {/* Testimonials */}
+      <div className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
+              <span className="text-sm font-medium text-purple-800">
+                Testimonials
+              </span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              Loved by Educators Worldwide
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+              See what teachers and instructors are saying about our platform.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                name: "Sarah Johnson",
+                role: "High School Teacher",
+                image: "https://images.pexels.com/photos/733872/pexels-photo-733872.jpeg?auto=compress&cs=tinysrgb&w=120",
+                quote: "This platform has revolutionized how I create content for my students. The AI-generated videos are engaging and save me hours of work."
+              },
+              {
+                name: "Michael Chen",
+                role: "University Professor",
+                image: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=120",
+                quote: "The quality of the generated videos is impressive. My students love the interactive characters and clear explanations."
+              },
+              {
+                name: "Emily Rodriguez",
+                role: "Online Course Creator",
+                image: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=120",
+                quote: "This tool has helped me scale my online course production. The AI script writing feature is particularly helpful."
+              }
+            ].map((testimonial, index) => (
+              <div key={index} className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="h-12 w-12 rounded-full object-cover"
+                  />
+                  <div>
+                    <div className="font-semibold text-slate-900">{testimonial.name}</div>
+                    <div className="text-sm text-slate-600">{testimonial.role}</div>
+                  </div>
+                </div>
+                <div className="mt-6 flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-current text-yellow-400" />
+                  ))}
+                </div>
+                <p className="mt-4 text-slate-600">"{testimonial.quote}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="relative overflow-hidden bg-purple-600 py-24">
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3183183/pexels-photo-3183183.jpeg?auto=compress&cs=tinysrgb&w=1920')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Ready to Transform Your Teaching?
@@ -122,15 +301,24 @@ export const LandingPage = () => {
             <p className="mx-auto mb-8 max-w-2xl text-lg text-purple-100">
               Join thousands of educators who are already creating engaging video content with our AI-powered platform.
             </p>
-            <Link to="/signup">
-              <Button
-                size="lg"
-                className="bg-white text-purple-600 hover:bg-purple-50"
-                leftIcon={<ArrowRight className="h-5 w-5" />}
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Link to="/signup">
+                <Button
+                  size="lg"
+                  className="group h-14 bg-white px-8 text-lg text-purple-600 hover:bg-purple-50"
+                  leftIcon={<Zap className="h-5 w-5 transition-transform group-hover:scale-110" />}
+                >
+                  Get Started Free
+                </Button>
+              </Link>
+              <a 
+                href="#watch-demo" 
+                className="inline-flex items-center gap-2 text-purple-100 hover:text-white"
               >
-                Get Started Free
-              </Button>
-            </Link>
+                <Play className="h-5 w-5" />
+                Watch Demo
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -152,6 +340,11 @@ export const LandingPage = () => {
                     Pricing
                   </Link>
                 </li>
+                <li>
+                  <Link to="/templates" className="hover:text-white">
+                    Templates
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -165,6 +358,11 @@ export const LandingPage = () => {
                 <li>
                   <Link to="/contact" className="hover:text-white">
                     Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/careers" className="hover:text-white">
+                    Careers
                   </Link>
                 </li>
               </ul>
@@ -182,6 +380,11 @@ export const LandingPage = () => {
                     Help Center
                   </Link>
                 </li>
+                <li>
+                  <Link to="/community" className="hover:text-white">
+                    Community
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -195,6 +398,11 @@ export const LandingPage = () => {
                 <li>
                   <Link to="/terms" className="hover:text-white">
                     Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/security" className="hover:text-white">
+                    Security
                   </Link>
                 </li>
               </ul>
