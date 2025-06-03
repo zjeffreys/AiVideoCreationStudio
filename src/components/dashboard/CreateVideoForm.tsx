@@ -25,19 +25,16 @@ export const CreateVideoForm: React.FC<Props> = ({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Goals step state
   const [goals, setGoals] = useState<VideoGoals>({
     title: '',
     description: '',
     targetAudience: '',
     learningObjectives: [''],
-    duration: 120, // 2 minutes default
+    duration: 120,
   });
 
-  // Characters step state
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
 
-  // Script step state
   const [script, setScript] = useState<VideoScript>({
     segments: [{ text: '', character: undefined }],
     style: '',
@@ -80,7 +77,7 @@ export const CreateVideoForm: React.FC<Props> = ({
 
       setGoals(prev => ({
         ...prev,
-        description: enhancedDescription.replace(/^["']|["']$/g, ''), // Remove quotes if present
+        description: enhancedDescription.replace(/^["']|["']$/g, ''),
       }));
     } catch (error) {
       setError('Failed to enhance description. Please try again.');
@@ -118,7 +115,6 @@ export const CreateVideoForm: React.FC<Props> = ({
     setIsSubmitting(true);
     
     try {
-      // First insert the video data
       const { data: videoData, error: videoError } = await supabase
         .from('videos')
         .insert({
@@ -133,7 +129,6 @@ export const CreateVideoForm: React.FC<Props> = ({
       
       if (videoError) throw videoError;
 
-      // Then create the video script
       const { error: scriptError } = await supabase
         .from('video_scripts')
         .insert({
@@ -146,10 +141,9 @@ export const CreateVideoForm: React.FC<Props> = ({
       
       if (scriptError) throw scriptError;
 
-      // Create video segments
       const segments = script.segments.map((segment, index) => ({
         video_id: videoData.id,
-        start_time: index * 6, // Each segment is roughly 6 seconds
+        start_time: index * 6,
         end_time: (index + 1) * 6,
         text: segment.text,
         character_id: segment.character,
@@ -191,30 +185,29 @@ export const CreateVideoForm: React.FC<Props> = ({
               <label className="text-sm font-medium text-slate-900">
                 Description
               </label>
-              <div className="relative">
-                <Textarea
-                  value={goals.description}
-                  onChange={(e) => setGoals({ ...goals, description: e.target.value })}
-                  placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
-                  required
-                  fullWidth
-                />
+              <Textarea
+                value={goals.description}
+                onChange={(e) => setGoals({ ...goals, description: e.target.value })}
+                placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
+                required
+                fullWidth
+              />
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-500">
+                  Pro tip: Write a basic description and click "Enhance" to make it more engaging
+                </p>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="absolute right-2 top-2"
                   onClick={enhanceDescription}
                   isLoading={isEnhancing}
                   loadingText="Enhancing..."
                   leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
                   disabled={!goals.description || isEnhancing}
                 >
-                  Enhance
+                  Enhance Description
                 </Button>
               </div>
-              <p className="text-xs text-slate-500">
-                Pro tip: Write a basic description and click "Enhance" to make it more engaging
-              </p>
             </div>
             
             <Input
