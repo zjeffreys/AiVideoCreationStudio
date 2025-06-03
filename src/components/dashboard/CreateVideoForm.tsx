@@ -44,6 +44,78 @@ export const CreateVideoForm: React.FC<Props> = ({
     musicId: '',
   });
 
+  const generateScript = async (index: number) => {
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setError('OpenAI API key is required for script generation');
+      return;
+    }
+
+    const segment = script.segments[index];
+    if (!segment.charactersInScene.length || !segment.speakerCharacterId) {
+      setError('Please select characters and a speaking character first');
+      return;
+    }
+
+    const speaker = characters.find(c => c.id === segment.speakerCharacterId);
+    if (!speaker) {
+      setError('Selected speaking character not found');
+      return;
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at writing educational video scripts. Create engaging dialogue that teaches the subject matter effectively.'
+            },
+            {
+              role: 'user',
+              content: `Write a 6-second script segment for an educational video about "${goals.title}". 
+              The scene description is: "${segment.sceneDescription}"
+              Speaking character is: ${speaker.name} (${speaker.description || speaker.personality || 'No description'})
+              Target audience: ${goals.targetAudience}
+              Keep the dialogue concise and natural, suitable for a 6-second delivery.`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate script');
+      }
+
+      const data = await response.json();
+      const generatedScript = data.choices[0].message.content;
+
+      const newSegments = [...script.segments];
+      newSegments[index] = {
+        ...newSegments[index],
+        text: generatedScript,
+      };
+      setScript({ ...script, segments: newSegments });
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to generate script');
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const enhanceDescription = async () => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
       setError('OpenAI API key is required for description enhancement. Please add it to your environment variables.');
@@ -465,8 +537,22 @@ export const CreateVideoForm: React.FC<Props> = ({
                       fullWidth
                     />
                     
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-sm font-medium text-slate-900">Script</label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateScript(index)}
+                        isLoading={isEnhancing}
+                        loadingText="Generating..."
+                        leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                        disabled={!segment.charactersInScene.length || !segment.speakerCharacterId || isEnhancing}
+                      >
+                        Generate Script
+                      </Button>
+                    </div>
+                    
                     <Textarea
-                      label="Script"
                       value={segment.text}
                       onChange={(e) => {
                         const newSegments = [...script.segments];
