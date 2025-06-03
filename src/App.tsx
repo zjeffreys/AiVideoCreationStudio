@@ -7,19 +7,17 @@ import { LoginPage } from './pages/Login';
 import { SignUpPage } from './pages/SignUp';
 import { Dashboard } from './pages/Dashboard';
 import { Videos } from './pages/Videos';
+import { VideoDetails } from './pages/VideoDetails';
 import { Characters } from './pages/Characters';
 import { Voices } from './pages/Voices';
 import { MusicPage } from './pages/Music';
 import { Settings } from './pages/Settings';
 
-// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Show nothing while checking authentication
   if (loading) return null;
   
-  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -27,7 +25,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Auth callback handler
 const AuthCallback = () => {
   const { user, loading } = useAuth();
   
@@ -51,7 +48,7 @@ function App() {
     <Router>
       <Routes>
         {/* Landing page for non-authenticated users */}
-        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard\" replace />} />
+        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
         
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -71,6 +68,7 @@ function App() {
         >
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="videos" element={<Videos />} />
+          <Route path="videos/:id" element={<VideoDetails />} />
           <Route path="characters" element={<Characters />} />
           <Route path="voices" element={<Voices />} />
           <Route path="music" element={<MusicPage />} />
@@ -78,7 +76,7 @@ function App() {
         </Route>
         
         {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/\" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Play, 
   Pencil, 
@@ -6,7 +7,8 @@ import {
   Trash, 
   Clock, 
   CheckCircle,
-  Loader 
+  Loader,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Video } from '../../types';
@@ -19,6 +21,8 @@ type VideoCardProps = {
 };
 
 export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete }) => {
+  const navigate = useNavigate();
+
   const getStatusIcon = () => {
     switch (video.status) {
       case 'draft':
@@ -67,14 +71,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
     }).format(date);
   };
 
-  const handlePlayClick = () => {
-    if (video.status !== 'complete') {
-      return;
-    }
-    // Handle video playback
-    if (video.video_url) {
-      window.open(video.video_url, '_blank');
-    }
+  const handleViewDetails = () => {
+    navigate(`/videos/${video.id}`);
   };
 
   return (
@@ -88,7 +86,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
         <div className="absolute inset-0 flex items-center justify-center">
           {video.status === 'complete' && (
             <button 
-              onClick={handlePlayClick}
+              onClick={handleViewDetails}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg transition-transform hover:scale-110"
             >
               <Play className="h-6 w-6" />
@@ -125,12 +123,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
-            variant={video.status === 'complete' ? 'primary' : 'ghost'}
-            disabled={video.status !== 'complete'}
-            leftIcon={<Play className="h-4 w-4" />}
-            onClick={handlePlayClick}
+            onClick={handleViewDetails}
+            leftIcon={<ArrowRight className="h-4 w-4" />}
           >
-            {video.status === 'processing' ? 'Processing...' : 'Play'}
+            View Details
           </Button>
           <Button
             size="sm"
@@ -139,14 +135,6 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
             onClick={() => onEdit(video)}
           >
             Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={video.status !== 'complete'}
-            leftIcon={<Download className="h-4 w-4" />}
-          >
-            Download
           </Button>
           <Button
             size="sm"
