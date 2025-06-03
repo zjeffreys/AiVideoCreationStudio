@@ -1,4 +1,4 @@
-import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import type { Voice } from '../types';
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
@@ -7,7 +7,7 @@ if (!ELEVENLABS_API_KEY) {
   throw new Error('Missing ElevenLabs API key');
 }
 
-const elevenlabs = new ElevenLabs({
+const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
