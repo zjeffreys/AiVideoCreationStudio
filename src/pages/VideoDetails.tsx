@@ -1,25 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Download, Loader2, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Play, Download, Loader2, CheckCircle2, Clock, AlertCircle, Film, Wand2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Video, Character } from '../types';
+
+interface VideoSegment {
+  id: string;
+  video_id: string;
+  start_time: number;
+  end_time: number;
+  text: string;
+  character_id: string;
+  voice_id: string | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  segment_url: string | null;
+  created_at: string;
+}
 
 export const VideoDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
+  const [segments, setSegments] = useState<VideoSegment[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const fetchVideoDetails = async () => {
       if (!id) return;
       
       try {
+        // Fetch video details
         const { data: videoData, error: videoError } = await supabase
           .from('videos')
           .select('*')
@@ -36,7 +53,17 @@ export const VideoDetails = () => {
 
         setVideo(videoData);
 
-        // Fetch characters if the video has them
+        // Fetch video segments
+        const { data: segmentsData, error: segmentsError } = await supabase
+          .from('video_segments')
+          .select('*')
+          .eq('video_id', id)
+          .order('start_time');
+
+        if (segmentsError) throw segmentsError;
+        setSegments(segmentsData || []);
+
+        // Fetch characters
         if (videoData.characters && videoData.characters.length > 0) {
           const { data: charactersData, error: charactersError } = await supabase
             .from('characters')
@@ -60,42 +87,86 @@ export const VideoDetails = () => {
     fetchVideoDetails();
   }, [id, user]);
 
-  const getStatusIcon = () => {
-    switch (video?.status) {
-      case 'draft':
-        return <Clock className="h-5 w-5 text-slate-500" />;
+  const getSegmentStatus = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return { icon: <Clock className="h-5 w-5 text-slate-500" />, text: 'Pending', color: 'bg-slate-100 text-slate-700' };
       case 'processing':
-        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
-      case 'complete':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return { icon: <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />, text: 'Processing', color: 'bg-blue-100 text-blue-700' };
+      case 'completed':
+        return { icon: <CheckCircle2 className="h-5 w-5 text-green-500" />, text: 'Complete', color: 'bg-green-100 text-green-700' };
+      case 'failed':
+        return { icon: <AlertCircle className="h-5 w-5 text-red-500" />, text: 'Failed', color: 'bg-red-100 text-red-700' };
       default:
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return { icon: <AlertCircle className="h-5 w-5 text-slate-500" />, text: 'Unknown', color: 'bg-slate-100 text-slate-700' };
     }
   };
 
-  const getStatusText = () => {
-    switch (video?.status) {
-      case 'draft':
-        return 'Draft';
-      case 'processing':
-        return 'Processing';
-      case 'complete':
-        return 'Complete';
-      default:
-        return 'Unknown';
-    }
+  const handleSegmentSelect = (segmentId: string) => {
+    setSelectedSegments(prev => {
+      if (prev.includes(segmentId)) {
+        return prev.filter(id => id !== segmentId);
+      } else {
+        return [...prev, segmentId];
+      }
+    });
   };
 
-  const getStatusColor = () => {
-    switch (video?.status) {
-      case 'draft':
-        return 'bg-slate-100 text-slate-700';
-      case 'processing':
-        return 'bg-blue-100 text-blue-700';
-      case 'complete':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-red-100 text-red-700';
+  const handleGenerateFinalVideo = async () => {
+    if (selectedSegments.length === 0) {
+      setError('Please select at least one segment');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      // Update video status
+      const { error: updateError } = await supabase
+        .from('videos')
+        .update({ status: 'processing' })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // In a real app, you would:
+      // 1. Call your video generation service
+      // 2. Combine selected segments
+      // 3. Update the video URL when complete
+      
+      // For now, we'll simulate processing
+      setTimeout(async () => {
+        const { error: completeError } = await supabase
+          .from('videos')
+          .update({
+            status: 'complete',
+            video_url: 'https://example.com/video.mp4', // This would be the real video URL
+          })
+          .eq('id', id);
+
+        if (completeError) throw completeError;
+
+        // Refresh video data
+        const { data: videoData } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (videoData) {
+          setVideo(videoData);
+        }
+
+        setIsGenerating(false);
+      }, 3000);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An error occurred while generating the final video');
+      }
+      setIsGenerating(false);
     }
   };
 
@@ -173,94 +244,110 @@ export const VideoDetails = () => {
         >
           Back to Videos
         </Button>
-        
-        <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${getStatusColor()}`}>
-          {getStatusIcon()}
-          <span>{getStatusText()}</span>
-        </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
-          <img
-            src={video.thumbnail_url || 'https://via.placeholder.com/1280x720?text=No+Thumbnail'}
-            alt={video.title}
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            {video.status === 'complete' && video.video_url && (
-              <Button
-                size="lg"
-                onClick={() => window.open(video.video_url, '_blank')}
-                leftIcon={<Play className="h-5 w-5" />}
-              >
-                Play Video
-              </Button>
-            )}
-            {video.status === 'processing' && (
-              <div className="rounded-lg bg-black/50 px-6 py-4 text-white">
-                <div className="flex items-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <div className="text-left">
-                    <p className="font-medium">Processing Video</p>
-                    <p className="text-sm text-white/80">This may take a few minutes...</p>
-                  </div>
+      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-slate-900">{video.title}</h1>
+        <p className="mt-2 text-slate-600">{video.description}</p>
+
+        {characters.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold text-slate-900">Featured Characters</h2>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {characters.map(character => (
+                <div
+                  key={character.id}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2"
+                >
+                  {character.avatar_url ? (
+                    <img
+                      src={character.avatar_url}
+                      alt={character.name}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
+                      <span className="text-sm font-medium text-purple-700">
+                        {character.name[0]}
+                      </span>
+                    </div>
+                  )}
+                  <span className="font-medium text-slate-900">{character.name}</span>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">Video Segments</h2>
+          <Button
+            onClick={handleGenerateFinalVideo}
+            isLoading={isGenerating}
+            loadingText="Generating..."
+            leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
+            disabled={selectedSegments.length === 0 || isGenerating}
+          >
+            Generate Final Video
+          </Button>
         </div>
 
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-slate-900">{video.title}</h1>
-          <p className="mt-2 text-slate-600">{video.description}</p>
+        <div className="space-y-4">
+          {segments.map((segment, index) => {
+            const status = getSegmentStatus(segment.status);
+            const character = characters.find(c => c.id === segment.character_id);
 
-          {characters.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold text-slate-900">Featured Characters</h2>
-              <div className="mt-3 flex flex-wrap gap-3">
-                {characters.map(character => (
-                  <div
-                    key={character.id}
-                    className="flex items-center gap-2 rounded-lg border border-slate-200 p-2"
-                  >
-                    {character.avatar_url ? (
-                      <img
-                        src={character.avatar_url}
-                        alt={character.name}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                        <span className="text-sm font-medium text-purple-700">
-                          {character.name[0]}
-                        </span>
-                      </div>
-                    )}
-                    <span className="font-medium text-slate-900">{character.name}</span>
+            return (
+              <div
+                key={segment.id}
+                className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                  selectedSegments.includes(segment.id)
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-slate-200 hover:border-purple-200'
+                }`}
+                onClick={() => handleSegmentSelect(segment.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100">
+                      <Film className="h-4 w-4 text-slate-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-slate-900">Segment {index + 1}</h3>
+                      {character && (
+                        <p className="text-sm text-slate-500">Speaker: {character.name}</p>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${status.color}`}>
+                    {status.icon}
+                    <span>{status.text}</span>
+                  </div>
+                </div>
 
-          {video.status === 'complete' && (
-            <div className="mt-6 flex gap-3">
-              <Button
-                onClick={() => window.open(video.video_url, '_blank')}
-                leftIcon={<Play className="h-4 w-4" />}
-              >
-                Play Video
-              </Button>
-              <Button
-                variant="outline"
-                leftIcon={<Download className="h-4 w-4" />}
-                onClick={() => window.open(video.video_url, '_blank')}
-              >
-                Download
-              </Button>
-            </div>
-          )}
+                <div className="mt-3 space-y-2">
+                  <p className="text-slate-600">{segment.text}</p>
+                  {segment.segment_url && segment.status === 'completed' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        leftIcon={<Play className="h-4 w-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(segment.segment_url, '_blank');
+                        }}
+                      >
+                        Preview
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
