@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { PlusCircle, ArrowLeft, ArrowRight, Wand2 } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -22,6 +22,7 @@ export const CreateVideoForm: React.FC<Props> = ({
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<VideoCreationStep>('goals');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Goals step state
@@ -42,6 +43,51 @@ export const CreateVideoForm: React.FC<Props> = ({
     style: '',
     musicId: '',
   });
+
+  const enhanceDescription = async () => {
+    setIsEnhancing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at writing engaging educational video descriptions. Enhance the given description to be more detailed, engaging, and SEO-friendly while maintaining the original intent.'
+            },
+            {
+              role: 'user',
+              content: `Please enhance this educational video description: "${goals.description}"`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance description');
+      }
+
+      const data = await response.json();
+      const enhancedDescription = data.choices[0].message.content;
+
+      setGoals(prev => ({
+        ...prev,
+        description: enhancedDescription.replace(/^["']|["']$/g, ''), // Remove quotes if present
+      }));
+    } catch (error) {
+      setError('Failed to enhance description. Please try again.');
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const handleGoalsSubmit = async () => {
     if (!goals.title || !goals.description) {
@@ -141,14 +187,35 @@ export const CreateVideoForm: React.FC<Props> = ({
               fullWidth
             />
             
-            <Textarea
-              label="Description"
-              value={goals.description}
-              onChange={(e) => setGoals({ ...goals, description: e.target.value })}
-              placeholder="Describe what you want to teach in this video"
-              required
-              fullWidth
-            />
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-900">
+                Description
+              </label>
+              <div className="relative">
+                <Textarea
+                  value={goals.description}
+                  onChange={(e) => setGoals({ ...goals, description: e.target.value })}
+                  placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
+                  required
+                  fullWidth
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute right-2 top-2"
+                  onClick={enhanceDescription}
+                  isLoading={isEnhancing}
+                  loadingText="Enhancing..."
+                  leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                  disabled={!goals.description || isEnhancing}
+                >
+                  Enhance
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Pro tip: Write a basic description and click "Enhance" to make it more engaging
+              </p>
+            </div>
             
             <Input
               label="Target Audience"
