@@ -28,12 +28,12 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/4050315/pexels-photo-4050315.jpeg')] bg-cover bg-center bg-no-repeat opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3769714/pexels-photo-3769714.jpeg')] bg-cover bg-center bg-no-repeat opacity-10"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
             <div className="mb-8 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
               <span className="text-sm font-medium text-purple-800">
-                🚀 Professional AI Video Creation
+                Professional Quality • Dedicated Support
               </span>
             </div>
             <h1 className="mb-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl md:text-7xl">
@@ -46,7 +46,7 @@ export const LandingPage = () => {
               </span>
             </h1>
             <p className="mb-12 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Create stunning educational content with professional quality. Our AI-powered platform helps you generate engaging videos with custom characters, animations, and natural voices.
+              Create stunning educational content with our professional AI platform. Generate high-quality videos with custom characters, engaging animations, and natural voices.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link to="/signup">
@@ -358,7 +358,7 @@ export const LandingPage = () => {
           <div className="text-center">
             <div className="mb-4 inline-flex items-center rounded-full bg-purple-100 px-4 py-1.5">
               <span className="text-sm font-medium text-purple-800">
-                Professional Plans
+                Pricing Plans
               </span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
@@ -452,7 +452,7 @@ export const LandingPage = () => {
                   className="group h-14 bg-white px-8 text-lg text-purple-600 hover:bg-purple-50"
                   leftIcon={<Zap className="h-5 w-5 transition-transform group-hover:scale-110" />}
                 >
-                  Get Started Now
+                  Get Started Free
                 </Button>
               </Link>
               <a 
