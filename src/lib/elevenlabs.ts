@@ -32,9 +32,8 @@ export const listVoices = async (): Promise<Voice[]> => {
 
 export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => {
   try {
-    const audioBuffer = await elevenlabs.generate({
+    const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
       text: PREVIEW_TEXT,
-      voice_id: voiceId,
       model_id: 'eleven_monolingual_v1'
     });
     return audioBuffer;
@@ -46,9 +45,8 @@ export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => 
 
 export const generateSpeech = async (text: string, voiceId: string): Promise<ArrayBuffer> => {
   try {
-    const audioBuffer = await elevenlabs.generate({
+    const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
       text,
-      voice_id: voiceId,
       model_id: 'eleven_monolingual_v1'
     });
     return audioBuffer;
