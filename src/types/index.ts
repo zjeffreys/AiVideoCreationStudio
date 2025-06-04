@@ -36,12 +36,12 @@ export type MusicStyle = {
 
 export type Voice = {
   id: string;
-  voice_id: string; // Add this to maintain compatibility
+  voice_id: string;
   name: string;
+  description?: string;
   preview_url?: string;
   gender?: 'male' | 'female' | 'neutral';
   accent?: string;
-  description?: string;
 };
 
 export type VideoCreationStep = 'goals' | 'script' | 'review';

@@ -84,7 +84,6 @@ export const Voices = () => {
         audioRef.current.pause();
       }
 
-      // Generate speech with custom text if provided
       const text = customText.trim() || 'Hello! I can help make your educational content more engaging.';
       const audioBuffer = await generateSpeech(text, voice.voice_id);
       const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
