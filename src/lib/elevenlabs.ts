@@ -50,10 +50,10 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
 //     text: "The first move is what sets everything in motion.",
 //     model_id: "eleven_multilingual_v2"
 // });
-Try
+//Try
     /*end of testing */
     // const client = new ElevenLabsClient({ apiKey: ELEVENLABS_API_KEY });
-    const response = await elevenlabsClient.textToSpeech.convert(voiceId, {
+    const response = await elevenlabs.textToSpeech.convert(voiceId, {
     output_format: "mp3_44100_128",
     text: text,
     model_id: "eleven_multilingual_v2"
