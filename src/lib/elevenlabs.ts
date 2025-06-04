@@ -34,7 +34,7 @@ export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => 
   try {
     const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
       text: PREVIEW_TEXT,
-      model_id: 'eleven_monolingual_v1'
+      model_id: 'eleven_monolingual_v2'
     });
     return audioBuffer;
   } catch (error) {
