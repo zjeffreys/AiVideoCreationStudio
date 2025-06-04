@@ -66,52 +66,52 @@ export const Voices = () => {
     e.preventDefault();
   };
 
- const togglePlayVoice = async (voice: Voice) => {
-  try {
-    if (playingVoiceId === voice.voice_id) {
+  const togglePlayVoice = async (voice: Voice) => {
+    try {
+      if (playingVoiceId === voice.voiceId) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setPlayingVoiceId(null);
+        return;
+      }
+
+      setIsGenerating(true);
+      setPlayingVoiceId(voice.voiceId);
+
+      // If something was playing, stop it
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
+
+      const text =
+        customText.trim() || 'Hello! I can help make your educational content more engaging.';
+
+      // generateSpeech now returns a blob-URL string
+      const blobUrl = await generateSpeech(text, voice.voiceId);
+
+      // Play that blob URL directly—do NOT wrap it in a new Blob again
+      const audio = new Audio(blobUrl);
+      audio.addEventListener('ended', () => {
+        setPlayingVoiceId(null);
+        URL.revokeObjectURL(blobUrl);
+      });
+
+      audioRef.current = audio;
+      audio.play();
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(`Failed to generate speech: ${error.message}`);
+      } else {
+        setError('Failed to generate speech');
+      }
       setPlayingVoiceId(null);
-      return;
+    } finally {
+      setIsGenerating(false);
     }
-
-    setIsGenerating(true);
-    setPlayingVoiceId(voice.voice_id);
-
-    // If something was playing, stop it
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    const text =
-      customText.trim() || 'Hello! I can help make your educational content more engaging.';
-
-    // generateSpeech now returns a blob-URL string
-    const blobUrl = await generateSpeech(text, voice.voice_id);
-
-    // Play that blob URL directly—do NOT wrap it in a new Blob again
-    const audio = new Audio(blobUrl);
-    audio.addEventListener('ended', () => {
-      setPlayingVoiceId(null);
-      URL.revokeObjectURL(blobUrl);
-    });
-
-    audioRef.current = audio;
-    audio.play();
-  } catch (error) {
-    if (error instanceof Error) {
-      setError(`Failed to generate speech: ${error.message}`);
-    } else {
-      setError('Failed to generate speech');
-    }
-    setPlayingVoiceId(null);
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  };
 
   const filteredVoices = searchQuery
     ? voices.filter(voice => 
@@ -189,13 +189,13 @@ export const Voices = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredVoices.map((voice) => (
             <div 
-              key={voice.voice_id}
+              key={voice.voiceId}
               className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-slate-900">{voice.name}</h3>
-                  <span className="text-sm text-slate-500">Voice Id: {voice.voice_id}</span>
+                  <span className="text-sm text-slate-500">Voice Id: {voice.voiceId}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                   {voice.gender && (
@@ -218,11 +218,11 @@ export const Voices = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => togglePlayVoice(voice)}
-                isLoading={isGenerating && playingVoiceId === voice.voice_id}
+                isLoading={isGenerating && playingVoiceId === voice.voiceId}
                 loadingText="Loading..."
                 leftIcon={
                   !isGenerating && (
-                    playingVoiceId === voice.voice_id ? (
+                    playingVoiceId === voice.voiceId ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4" />
@@ -230,7 +230,7 @@ export const Voices = () => {
                   )
                 }
               >
-                {playingVoiceId === voice.voice_id && !isGenerating ? 'Pause' : 'Preview'}
+                {playingVoiceId === voice.voiceId && !isGenerating ? 'Pause' : 'Preview'}
               </Button>
             </div>
           ))}

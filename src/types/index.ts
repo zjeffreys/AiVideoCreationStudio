@@ -36,7 +36,7 @@ export type MusicStyle = {
 
 export type Voice = {
   id: string;
-  voice_id: string;
+  voiceId: string;
   name: string;
   description?: string;
   preview_url?: string;
