@@ -31,33 +31,44 @@ export const listVoices = async (): Promise<Voice[]> => {
   }
 };
 
-export const generateSpeech = async (text: string, voiceId: string): Promise<String> => {
-  console.log("generateSpeech()", text, voiceId)
-  if (!voiceId) {
-    throw new Error('Voice ID is required');
-  }
+// export const generateSpeech = async (text: string, voiceId: string): Promise<String> => {
+//   console.log("generateSpeech()", text, voiceId)
+//   if (!voiceId) {
+//     throw new Error('Voice ID is required');
+//   }
 
-  if (!text.trim()) {
-    throw new Error('Text is required');
-  }
+//   if (!text.trim()) {
+//     throw new Error('Text is required');
+//   }
 
-  try {
-    const response = await elevenlabs.textToSpeech.convert(voiceId, {
+//   try {
+//     const response = await elevenlabs.textToSpeech.convert(voiceId, {
+//     output_format: "mp3_44100_128",
+//     text: text,
+//     model_id: "eleven_multilingual_v2"
+// });
+//  const blob = new Blob([response], { type: 'audio/mpeg' });
+//  return URL.createObjectURL(blob); // return blob URL for audio play
+//   } catch (error) {
+//     console.error('Error generating speech:', error);
+//     if (error instanceof Error) {
+//       if (error.message.includes('401')) {
+//         throw new Error('Invalid API key. Please check your ElevenLabs API key.');
+//       } else if (error.message.includes('429')) {
+//         throw new Error('API rate limit exceeded. Please try again later.');
+//       }
+//     }
+//     throw new Error('Failed to generate speech. Please try again.');
+//   }
+// };
+export const generateSpeech = async (text: string, voiceId: string): Promise<ArrayBuffer> => {
+  const response = await elevenlabs.textToSpeech.convert(voiceId, {
     output_format: "mp3_44100_128",
-    text: text,
+    text,
     model_id: "eleven_multilingual_v2"
-});
- const blob = new Blob([response], { type: 'audio/mpeg' });
- return URL.createObjectURL(blob); // return blob URL for audio play
-  } catch (error) {
-    console.error('Error generating speech:', error);
-    if (error instanceof Error) {
-      if (error.message.includes('401')) {
-        throw new Error('Invalid API key. Please check your ElevenLabs API key.');
-      } else if (error.message.includes('429')) {
-        throw new Error('API rate limit exceeded. Please try again later.');
-      }
-    }
-    throw new Error('Failed to generate speech. Please try again.');
-  }
+  });
+  // Log type and length
+  console.log("ElevenLabs response type:", response.constructor.name);
+  console.log("Response byte length:", response.byteLength || response.length);
+  return response; // return raw ArrayBuffer (no blob URL here)
 };
