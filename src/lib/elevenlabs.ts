@@ -16,8 +16,8 @@ export const listVoices = async (): Promise<Voice[]> => {
     const { voices } = await elevenlabs.voices.getAll();
     console.log(voices)
     return voices.map(voice => ({
-      id: voice.voice_id,
-      voice_id: voice.voice_id,
+      id: voice.voiceId,
+      voice_id: voice.voiceId,
       name: voice.name,
       description: voice.description || undefined,
       preview_url: voice.preview_url,
