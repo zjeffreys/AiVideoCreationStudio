@@ -31,7 +31,7 @@ export const listVoices = async (): Promise<Voice[]> => {
   }
 };
 
-export const generateSpeech = async (text: string, voiceId: string): Promise<ArrayBuffer> => {
+export const generateSpeech = async (text: string, voiceId: string): Promise<String> => {
   console.log("generateSpeech()", text, voiceId)
   if (!voiceId) {
     throw new Error('Voice ID is required');
