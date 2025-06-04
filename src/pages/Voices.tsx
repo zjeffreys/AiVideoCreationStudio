@@ -66,48 +66,52 @@ export const Voices = () => {
     e.preventDefault();
   };
 
-  const togglePlayVoice = async (voice: Voice) => {
-    try {
-      if (playingVoiceId === voice.voice_id) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
-        setPlayingVoiceId(null);
-        return;
-      }
-
-      setIsGenerating(true);
-      setPlayingVoiceId(voice.voice_id);
-
+ const togglePlayVoice = async (voice: Voice) => {
+  try {
+    if (playingVoiceId === voice.voice_id) {
       if (audioRef.current) {
         audioRef.current.pause();
-      }
-
-      const text = customText.trim() || 'Hello! I can help make your educational content more engaging.';
-      const audioBuffer = await generateSpeech(text, voice.voice_id);
-      const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      
-      audio.addEventListener('ended', () => {
-        setPlayingVoiceId(null);
-        URL.revokeObjectURL(url);
-      });
-      
-      audioRef.current = audio;
-      audio.play();
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(`Failed to generate speech: ${error.message}`);
-      } else {
-        setError('Failed to generate speech');
+        audioRef.current = null;
       }
       setPlayingVoiceId(null);
-    } finally {
-      setIsGenerating(false);
+      return;
     }
-  };
+
+    setIsGenerating(true);
+    setPlayingVoiceId(voice.voice_id);
+
+    // If something was playing, stop it
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    const text =
+      customText.trim() || 'Hello! I can help make your educational content more engaging.';
+
+    // generateSpeech now returns a blob-URL string
+    const blobUrl = await generateSpeech(text, voice.voice_id);
+
+    // Play that blob URL directly—do NOT wrap it in a new Blob again
+    const audio = new Audio(blobUrl);
+    audio.addEventListener('ended', () => {
+      setPlayingVoiceId(null);
+      URL.revokeObjectURL(blobUrl);
+    });
+
+    audioRef.current = audio;
+    audio.play();
+  } catch (error) {
+    if (error instanceof Error) {
+      setError(`Failed to generate speech: ${error.message}`);
+    } else {
+      setError('Failed to generate speech');
+    }
+    setPlayingVoiceId(null);
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const filteredVoices = searchQuery
     ? voices.filter(voice => 
