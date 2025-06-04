@@ -26,34 +26,56 @@ export const listVoices = async (): Promise<Voice[]> => {
     }));
   } catch (error) {
     console.error('Error fetching voices:', error);
-    throw error;
+    throw new Error('Failed to fetch voices. Please check your API key and try again.');
   }
 };
 
 export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => {
+  if (!voiceId) {
+    throw new Error('Voice ID is required');
+  }
+
   try {
-    const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
+    const audioBuffer = await elevenlabs.generate({
       text: PREVIEW_TEXT,
+      voice_id: voiceId,
       model_id: 'eleven_flash_v2_5',
       output_format: 'mp3_44100_128'
     });
     return audioBuffer;
   } catch (error) {
     console.error('Error generating preview:', error);
-    throw error;
+    throw new Error('Failed to generate voice preview. Please try again.');
   }
 };
 
 export const generateSpeech = async (text: string, voiceId: string): Promise<ArrayBuffer> => {
+  if (!voiceId) {
+    throw new Error('Voice ID is required');
+  }
+
+  if (!text.trim()) {
+    throw new Error('Text is required');
+  }
+
   try {
-    const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
-      text,
-      model_id: 'eleven_flash_v2_5', // Using Flash v2.5 for previews
+    const audioBuffer = await elevenlabs.generate({
+      text: text,
+      voice_id: voiceId,
+      model_id: 'eleven_flash_v2_5',
       output_format: 'mp3_44100_128'
     });
     return audioBuffer;
   } catch (error) {
     console.error('Error generating speech:', error);
-    throw error;
+    if (error instanceof Error) {
+      // Check for specific API errors
+      if (error.message.includes('401')) {
+        throw new Error('Invalid API key. Please check your ElevenLabs API key.');
+      } else if (error.message.includes('429')) {
+        throw new Error('API rate limit exceeded. Please try again later.');
+      }
+    }
+    throw new Error('Failed to generate speech. Please try again.');
   }
 };
