@@ -15,7 +15,7 @@ const HARDCODED_VOICE_ID = 'PcHg6574SeVenDJODonO';
 
 export const listVoices = async (): Promise<Voice[]> => {
   try {
-    const { voice } = await elevenlabs.voice(HARDCODED_VOICE_ID);
+    const voice = await elevenlabs.voices.get(HARDCODED_VOICE_ID);
     return [{
       id: voice.voice_id,
       voice_id: voice.voice_id,
