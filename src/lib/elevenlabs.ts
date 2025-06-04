@@ -44,16 +44,16 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
   try {
 
     /*testing code*/
-    const client = new ElevenLabsClient({ apiKey: "YOUR_API_KEY" });
-await client.textToSpeech.convert("JBFqnCBsd6RMkjVDRZzb", {
-    output_format: "mp3_44100_128",
-    text: "The first move is what sets everything in motion.",
-    model_id: "eleven_multilingual_v2"
-});
+//     const client = new ElevenLabsClient({ apiKey: "YOUR_API_KEY" });
+// await client.textToSpeech.convert("JBFqnCBsd6RMkjVDRZzb", {
+//     output_format: "mp3_44100_128",
+//     text: "The first move is what sets everything in motion.",
+//     model_id: "eleven_multilingual_v2"
+// });
 Try
     /*end of testing */
-    const client = new ElevenLabsClient({ apiKey: ELEVENLABS_API_KEY });
-    const response = await client.textToSpeech.convert(voiceId, {
+    // const client = new ElevenLabsClient({ apiKey: ELEVENLABS_API_KEY });
+    const response = await elevenlabsClient.textToSpeech.convert(voiceId, {
     output_format: "mp3_44100_128",
     text: text,
     model_id: "eleven_multilingual_v2"
