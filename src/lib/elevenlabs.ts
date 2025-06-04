@@ -48,7 +48,7 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
   try {
     const audioBuffer = await elevenlabs.textToSpeech.convert(voiceId, {
       text,
-      model_id: 'eleven_monolingual_v1',
+      model_id: 'eleven_multilingual_v2',
       output_format: 'mp3_44100_128'
     });
     return audioBuffer;
