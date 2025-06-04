@@ -1,15 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic2, Play, Pause, Search } from 'lucide-react';
 import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
+import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Voice } from '../types';
-import { listVoices, generatePreview } from '../lib/elevenlabs';
+import { listVoices, generateSpeech } from '../lib/elevenlabs';
 import { useAuth } from '../context/AuthContext';
+
+const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' },
+  { value: 'it', label: 'Italian' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'pl', label: 'Polish' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'ja', label: 'Japanese' }
+];
 
 export const Voices = () => {
   const { user } = useAuth();
   const [voices, setVoices] = useState<Voice[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [customText, setCustomText] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
@@ -68,34 +84,25 @@ export const Voices = () => {
         audioRef.current.pause();
       }
 
-      // Generate new preview if no preview URL exists
-      if (!voice.preview_url) {
-        const audioBuffer = await generatePreview(voice.id);
-        const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        
-        audio.addEventListener('ended', () => {
-          setPlayingVoiceId(null);
-          URL.revokeObjectURL(url);
-        });
-        
-        audioRef.current = audio;
-        audio.play();
-      } else {
-        // Use existing preview URL
-        const audio = new Audio(voice.preview_url);
-        audio.addEventListener('ended', () => {
-          setPlayingVoiceId(null);
-        });
-        audioRef.current = audio;
-        audio.play();
-      }
+      // Generate speech with custom text if provided
+      const text = customText.trim() || 'Hello! I can help make your educational content more engaging.';
+      const audioBuffer = await generateSpeech(text, voice.id);
+      const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      
+      audio.addEventListener('ended', () => {
+        setPlayingVoiceId(null);
+        URL.revokeObjectURL(url);
+      });
+      
+      audioRef.current = audio;
+      audio.play();
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setError(`Failed to generate speech: ${error.message}`);
       } else {
-        setError('Failed to play voice preview');
+        setError('Failed to generate speech');
       }
       setPlayingVoiceId(null);
     } finally {
@@ -118,6 +125,29 @@ export const Voices = () => {
         <p className="text-slate-500">
           Browse and preview available AI voices for your characters
         </p>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-6">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Try the Voices</h2>
+        <div className="space-y-4">
+          <Select
+            label="Language"
+            options={LANGUAGES}
+            value={selectedLanguage}
+            onChange={setSelectedLanguage}
+            fullWidth
+          />
+          <Textarea
+            label="Custom Text"
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            placeholder="Enter text for the voice to speak (optional)"
+            fullWidth
+          />
+          <p className="text-sm text-slate-500">
+            If no text is provided, a default greeting will be used.
+          </p>
+        </div>
       </div>
       
       <form onSubmit={handleSearch} className="relative max-w-md">
