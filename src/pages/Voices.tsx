@@ -68,7 +68,7 @@ export const Voices = () => {
 
   const togglePlayVoice = async (voice: Voice) => {
     try {
-      if (playingVoiceId === voice.id) {
+      if (playingVoiceId === voice.voice_id) {
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current = null;
@@ -78,7 +78,7 @@ export const Voices = () => {
       }
 
       setIsGenerating(true);
-      setPlayingVoiceId(voice.id);
+      setPlayingVoiceId(voice.voice_id);
 
       if (audioRef.current) {
         audioRef.current.pause();
@@ -86,7 +86,7 @@ export const Voices = () => {
 
       // Generate speech with custom text if provided
       const text = customText.trim() || 'Hello! I can help make your educational content more engaging.';
-      const audioBuffer = await generateSpeech(text, voice.id);
+      const audioBuffer = await generateSpeech(text, voice.voice_id);
       const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
@@ -186,13 +186,13 @@ export const Voices = () => {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredVoices.map((voice) => (
             <div 
-              key={voice.id}
+              key={voice.voice_id}
               className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-slate-900">{voice.name}</h3>
-                  <span className="text-sm text-slate-500">Voice Id: {voice.id}</span>
+                  <span className="text-sm text-slate-500">Voice Id: {voice.voice_id}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                   {voice.gender && (
@@ -215,11 +215,11 @@ export const Voices = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => togglePlayVoice(voice)}
-                isLoading={isGenerating && playingVoiceId === voice.id}
+                isLoading={isGenerating && playingVoiceId === voice.voice_id}
                 loadingText="Loading..."
                 leftIcon={
                   !isGenerating && (
-                    playingVoiceId === voice.id ? (
+                    playingVoiceId === voice.voice_id ? (
                       <Pause className="h-4 w-4" />
                     ) : (
                       <Play className="h-4 w-4" />
@@ -227,7 +227,7 @@ export const Voices = () => {
                   )
                 }
               >
-                {playingVoiceId === voice.id && !isGenerating ? 'Pause' : 'Preview'}
+                {playingVoiceId === voice.voice_id && !isGenerating ? 'Pause' : 'Preview'}
               </Button>
             </div>
           ))}
