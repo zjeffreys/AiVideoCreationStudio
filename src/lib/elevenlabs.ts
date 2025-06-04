@@ -47,7 +47,8 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
     text: text,
     model_id: "eleven_multilingual_v2"
 });
-    return response;
+const audioBlob = new Blob([await response.arrayBuffer()], { type: 'audio/mpeg' });
+return URL.createObjectURL(audioBlob); // return a blob URL
   } catch (error) {
     console.error('Error generating speech:', error);
     if (error instanceof Error) {
