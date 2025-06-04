@@ -14,22 +14,19 @@ const elevenlabs = new ElevenLabsClient({
 const HARDCODED_VOICE_ID = 'PcHg6574SeVenDJODonO';
 
 export const getVoice = async (): Promise<Voice> => {
-  try {
-    const voice = await elevenlabs.voices.get(HARDCODED_VOICE_ID);
-    return {
-      id: voice.voice_id,
-      voiceId: voice.voice_id,
-      name: voice.name,
-      description: voice.description || undefined,
-      preview_url: voice.preview_url,
-      gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
-      accent: voice.labels?.accent,
-      labels: voice.labels
-    };
-  } catch (error) {
-    console.error('Error fetching voice:', error);
-    throw new Error('Failed to fetch voice. Please check your API key and try again.');
-  }
+  return {
+    id: HARDCODED_VOICE_ID,
+    voiceId: HARDCODED_VOICE_ID,
+    name: "Rachel",
+    description: "A warm and professional female voice perfect for educational content",
+    preview_url: undefined,
+    gender: "female",
+    accent: "American",
+    labels: {
+      gender: "female",
+      accent: "American"
+    }
+  };
 };
 
 export const generateSpeech = async (text: string, voiceId: string): Promise<string> => {
