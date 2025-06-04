@@ -30,16 +30,15 @@ export const getVoice = async (): Promise<Voice> => {
 };
 
 export const generateSpeech = async (text: string, voiceId: string): Promise<string> => {
-  if (!voiceId) {
-    throw new Error('Voice ID is required');
-  }
+  // Always use our hardcoded voice ID regardless of what's passed in
+  const finalVoiceId = HARDCODED_VOICE_ID;
 
   if (!text.trim()) {
     throw new Error('Text is required');
   }
 
   try {
-    const response = await elevenlabs.textToSpeech.convert(voiceId, {
+    const response = await elevenlabs.textToSpeech.convert(finalVoiceId, {
       text,
       model_id: 'eleven_multilingual_v2',
       output_format: 'mp3_44100_128'
