@@ -40,11 +40,26 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<str
   try {
     const response = await elevenlabs.textToSpeech.convert(finalVoiceId, {
       text,
-      model_id: 'eleven_multilingual_v2',
-      output_format: 'mp3_44100_128'
+      modelId: 'eleven_multilingual_v2',
+      outputFormat: 'mp3_44100_128'
     });
 
-    const blob = new Blob([response], { type: 'audio/mpeg' });
+    // Convert the Readable stream to a Uint8Array
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response) {
+      chunks.push(chunk);
+    }
+    
+    // Calculate total length and create a single Uint8Array
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const blob = new Blob([result], { type: 'audio/mpeg' });
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error generating speech:', error);
