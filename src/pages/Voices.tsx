@@ -192,7 +192,7 @@ export const Voices = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-slate-900">{voice.name}</h3>
-                  <span className="text-sm text-slate-500">Voice Id: {voice.id || 'undefined'}</span>
+                  <span className="text-sm text-slate-500">Voice Id: {voice.voice_id || 'undefined'}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                   {voice.gender && (
