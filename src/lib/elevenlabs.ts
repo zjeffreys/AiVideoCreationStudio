@@ -42,11 +42,11 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<str
   }
 
   try {
-    const response = await elevenlabs.textToSpeech({
-      voiceId,
+    const response = await elevenlabs.generate({
       text,
-      modelId: 'eleven_multilingual_v2',
-      outputFormat: 'mp3_44100_128'
+      voice_id: voiceId,
+      model_id: 'eleven_multilingual_v2',
+      output_format: 'mp3_44100_128'
     });
 
     const blob = new Blob([response], { type: 'audio/mpeg' });
