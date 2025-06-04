@@ -13,10 +13,10 @@ const elevenlabs = new ElevenLabsClient({
 
 const HARDCODED_VOICE_ID = 'PcHg6574SeVenDJODonO';
 
-export const listVoices = async (): Promise<Voice[]> => {
+export const getVoice = async (): Promise<Voice> => {
   try {
     const voice = await elevenlabs.voices.get(HARDCODED_VOICE_ID);
-    return [{
+    return {
       id: voice.voice_id,
       voiceId: voice.voice_id,
       name: voice.name,
@@ -25,7 +25,7 @@ export const listVoices = async (): Promise<Voice[]> => {
       gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
       accent: voice.labels?.accent,
       labels: voice.labels
-    }];
+    };
   } catch (error) {
     console.error('Error fetching voice:', error);
     throw new Error('Failed to fetch voice. Please check your API key and try again.');
