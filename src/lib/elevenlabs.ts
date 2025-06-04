@@ -21,7 +21,8 @@ export const listVoices = async (): Promise<Voice[]> => {
       description: voice.description || undefined,
       preview_url: voice.preview_url,
       gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
-      accent: voice.labels?.accent
+      accent: voice.labels?.accent,
+      labels: voice.labels
     }));
   } catch (error) {
     console.error('Error fetching voices:', error);
@@ -50,7 +51,6 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
   } catch (error) {
     console.error('Error generating speech:', error);
     if (error instanceof Error) {
-      // Check for specific API errors
       if (error.message.includes('401')) {
         throw new Error('Invalid API key. Please check your ElevenLabs API key.');
       } else if (error.message.includes('429')) {

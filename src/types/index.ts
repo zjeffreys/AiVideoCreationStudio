@@ -42,6 +42,11 @@ export type Voice = {
   preview_url?: string;
   gender?: 'male' | 'female' | 'neutral';
   accent?: string;
+  labels?: {
+    gender?: string;
+    accent?: string;
+    [key: string]: string | undefined;
+  };
 };
 
 export type VideoCreationStep = 'goals' | 'script' | 'review';
