@@ -190,7 +190,10 @@ export const Voices = () => {
               className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md"
             >
               <div>
-                <h3 className="font-medium text-slate-900">{voice.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-slate-900">{voice.name}</h3>
+                  <span className="text-sm text-slate-500">Voice Id: {voice.id || 'undefined'}</span>
+                </div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                   {voice.gender && (
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
