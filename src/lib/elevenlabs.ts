@@ -11,7 +11,7 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
-const HARDCODED_VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+const HARDCODED_VOICE_ID = 'PcHg6574SeVenDJODonO';
 
 export const listVoices = async (): Promise<Voice[]> => {
   try {
