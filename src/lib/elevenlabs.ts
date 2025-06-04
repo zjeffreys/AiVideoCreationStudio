@@ -14,12 +14,13 @@ const elevenlabs = new ElevenLabsClient({
 export const listVoices = async (): Promise<Voice[]> => {
   try {
     const { voices } = await elevenlabs.voices.getAll();
+    console.log(voices)
     return voices.map(voice => ({
-      id: voice.voice_id,
-      voice_id: voice.voice_id,
+      id: voice.voiceId,
+      voice_id: voice.voiceId,
       name: voice.name,
       description: voice.description || undefined,
-      preview_url: voice.previewUrl,
+      preview_url: voice.preview_url,
       gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
       accent: voice.labels?.accent,
       labels: voice.labels
@@ -30,7 +31,8 @@ export const listVoices = async (): Promise<Voice[]> => {
   }
 };
 
-export const generateSpeech = async (text: string, voiceId: string): Promise<string> => {
+export const generateSpeech = async (text: string, voiceId: string): Promise<String> => {
+  console.log("generateSpeech()", text, voiceId)
   if (!voiceId) {
     throw new Error('Voice ID is required');
   }
@@ -40,21 +42,13 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<str
   }
 
   try {
-    // Get the audio stream from ElevenLabs
-    const audioStream = await elevenlabs.generate({
-      text: text,
-      voice_id: voiceId,
-      model_id: 'eleven_multilingual_v2',
-      output_format: 'mp3_44100_128',
-    });
-
-    // Convert the stream to a blob
-    const audioBlob = new Blob([await audioStream.arrayBuffer()], { 
-      type: 'audio/mpeg' 
-    });
-
-    // Create and return a URL for the blob
-    return URL.createObjectURL(audioBlob);
+    const response = await elevenlabs.textToSpeech.convert(voiceId, {
+    output_format: "mp3_44100_128",
+    text: text,
+    model_id: "eleven_multilingual_v2"
+});
+ const blob = new Blob([response], { type: 'audio/mpeg' });
+ return URL.createObjectURL(blob); // return blob URL for audio play
   } catch (error) {
     console.error('Error generating speech:', error);
     if (error instanceof Error) {
