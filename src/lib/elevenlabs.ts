@@ -14,13 +14,12 @@ const elevenlabs = new ElevenLabsClient({
 export const listVoices = async (): Promise<Voice[]> => {
   try {
     const { voices } = await elevenlabs.voices.getAll();
-    console.log(voices)
     return voices.map(voice => ({
       id: voice.voice_id,
       voice_id: voice.voice_id,
       name: voice.name,
       description: voice.description || undefined,
-      preview_url: voice.previewUrl,
+      preview_url: voice.preview_url,
       gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
       accent: voice.labels?.accent,
       labels: voice.labels
@@ -42,10 +41,10 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<str
 
   try {
     const response = await elevenlabs.textToSpeech({
+      voiceId,
       text,
-      voice_id: voiceId,
-      model_id: 'eleven_multilingual_v2',
-      output_format: 'mp3_44100_128'
+      modelId: 'eleven_multilingual_v2',
+      outputFormat: 'mp3_44100_128'
     });
 
     // Create a blob from the response and return a URL
