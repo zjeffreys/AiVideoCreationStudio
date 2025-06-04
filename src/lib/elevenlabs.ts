@@ -11,10 +11,12 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
+const HARDCODED_VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+
 export const listVoices = async (): Promise<Voice[]> => {
   try {
-    const { voices } = await elevenlabs.voices.getAll();
-    return voices.map(voice => ({
+    const { voice } = await elevenlabs.voice(HARDCODED_VOICE_ID);
+    return [{
       id: voice.voice_id,
       voice_id: voice.voice_id,
       name: voice.name,
@@ -23,10 +25,10 @@ export const listVoices = async (): Promise<Voice[]> => {
       gender: voice.labels?.gender?.toLowerCase() as 'male' | 'female' | 'neutral',
       accent: voice.labels?.accent,
       labels: voice.labels
-    }));
+    }];
   } catch (error) {
-    console.error('Error fetching voices:', error);
-    throw new Error('Failed to fetch voices. Please check your API key and try again.');
+    console.error('Error fetching voice:', error);
+    throw new Error('Failed to fetch voice. Please check your API key and try again.');
   }
 };
 
@@ -47,7 +49,6 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<str
       outputFormat: 'mp3_44100_128'
     });
 
-    // Create a blob from the response and return a URL
     const blob = new Blob([response], { type: 'audio/mpeg' });
     return URL.createObjectURL(blob);
   } catch (error) {
