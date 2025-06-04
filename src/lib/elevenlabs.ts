@@ -11,8 +11,6 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
-const PREVIEW_TEXT = "Hello! I'm excited to help teach your students in an engaging way.";
-
 export const listVoices = async (): Promise<Voice[]> => {
   try {
     const { voices } = await elevenlabs.voices.getAll();
@@ -30,25 +28,6 @@ export const listVoices = async (): Promise<Voice[]> => {
   }
 };
 
-export const generatePreview = async (voiceId: string): Promise<ArrayBuffer> => {
-  if (!voiceId) {
-    throw new Error('Voice ID is required');
-  }
-
-  try {
-    const audioBuffer = await elevenlabs.generate({
-      text: PREVIEW_TEXT,
-      voice_id: voiceId,
-      model_id: 'eleven_flash_v2_5',
-      output_format: 'mp3_44100_128'
-    });
-    return audioBuffer;
-  } catch (error) {
-    console.error('Error generating preview:', error);
-    throw new Error('Failed to generate voice preview. Please try again.');
-  }
-};
-
 export const generateSpeech = async (text: string, voiceId: string): Promise<ArrayBuffer> => {
   if (!voiceId) {
     throw new Error('Voice ID is required');
@@ -59,13 +38,14 @@ export const generateSpeech = async (text: string, voiceId: string): Promise<Arr
   }
 
   try {
-    const audioBuffer = await elevenlabs.generate({
-      text: text,
-      voice_id: voiceId,
-      model_id: 'eleven_flash_v2_5',
-      output_format: 'mp3_44100_128'
+    const response = await elevenlabs.textToSpeech({
+      voiceId,
+      text,
+      modelId: 'eleven_flash_v2_5',
+      outputFormat: 'mp3_44100_128'
     });
-    return audioBuffer;
+
+    return response;
   } catch (error) {
     console.error('Error generating speech:', error);
     if (error instanceof Error) {
