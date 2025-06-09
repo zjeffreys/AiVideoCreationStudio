@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Character, MusicStyle, VideoCreationStep, VideoGoals, VideoScript } from '../../types';
+import { SceneVideoUpload } from './SceneVideoUpload';
 
 type Props = {
   characters: Character[];
@@ -24,6 +25,7 @@ export const CreateVideoForm: React.FC<Props> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const [goals, setGoals] = useState<VideoGoals>({
     title: '',
@@ -41,6 +43,7 @@ export const CreateVideoForm: React.FC<Props> = ({
       charactersInScene: [],
       speakerCharacterId: undefined,
       isOpen: false,
+      videoUrl: undefined,
     }],
     style: '',
     musicId: '',
@@ -51,6 +54,48 @@ export const CreateVideoForm: React.FC<Props> = ({
       ...prev,
       segments: prev.segments.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleFileUpload = async (file: File, index: number) => {
+    if (!user) {
+      setError("User not authenticated.");
+      return;
+    }
+    if (!file) return;
+
+    setUploadingIndex(index);
+    setError(null);
+
+    try {
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { data, error: uploadError } = await supabase.storage
+        .from('scene-videos')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('scene-videos')
+        .getPublicUrl(filePath);
+      
+      if (!publicUrlData) throw new Error("Could not get public URL for the uploaded file.");
+
+      const newSegments = [...script.segments];
+      newSegments[index] = {
+        ...newSegments[index],
+        videoUrl: publicUrlData.publicUrl,
+      };
+      setScript({ ...script, segments: newSegments });
+
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(`File upload failed: ${error.message}`);
+      } else {
+        setError("An unknown error occurred during file upload.");
+      }
+    } finally {
+      setUploadingIndex(null);
+    }
   };
 
   const generateSuggestedScenes = async () => {
@@ -109,6 +154,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           charactersInScene: [],
           speakerCharacterId: undefined,
           isOpen: false,
+          videoUrl: undefined,
         })),
       }));
 
@@ -312,7 +358,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
     }
   };
 
-  const handleScriptSubmit = () => {
+  const handleScriptSubmit = async () => {
     if (!goals.title || !goals.description) {
       setError('Please fill in the video title and description');
       return;
@@ -389,6 +435,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
         charactersInScene: [],
         speakerCharacterId: undefined,
         isOpen: false,
+        videoUrl: undefined,
       }],
     }));
   };
@@ -656,6 +703,14 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                           >
                             Generate Dialogue
                           </Button>
+                        </div>
+
+                        <div>
+                          <SceneVideoUpload
+                            onFileUpload={(file) => handleFileUpload(file, index)}
+                            isUploading={uploadingIndex === index}
+                            existingVideoUrl={scene.videoUrl}
+                          />
                         </div>
                       </div>
                     )}

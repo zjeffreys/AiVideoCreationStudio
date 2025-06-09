@@ -4,7 +4,7 @@ import { ArrowLeft, Play, Download, Loader2, CheckCircle2, Clock, AlertCircle, F
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
-import { Video, Character } from '../types';
+import { Video, Character, VideoScript } from '../types';
 
 interface VideoSegment {
   id: string;
@@ -24,7 +24,6 @@ export const VideoDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
-  const [segments, setSegments] = useState<VideoSegment[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,10 +35,10 @@ export const VideoDetails = () => {
       if (!id) return;
       
       try {
-        // Fetch video details
+        // Fetch video details (including the script JSONB column)
         const { data: videoData, error: videoError } = await supabase
           .from('videos')
-          .select('*')
+          .select('*, script') // Explicitly select script, though '*' should include it
           .eq('id', id)
           .single();
         
@@ -53,26 +52,18 @@ export const VideoDetails = () => {
 
         setVideo(videoData);
 
-        // Fetch video segments
-        const { data: segmentsData, error: segmentsError } = await supabase
-          .from('video_segments')
-          .select('*')
-          .eq('video_id', id)
-          .order('start_time');
-
-        if (segmentsError) throw segmentsError;
-        setSegments(segmentsData || []);
-
-        // Fetch characters
-        if (videoData.characters && videoData.characters.length > 0) {
+        // Fetch characters based on the script's charactersInScene
+        const characterIdsInScript = (videoData.script as VideoScript)?.segments.flatMap(s => s.charactersInScene).filter(Boolean);
+        if (characterIdsInScript && characterIdsInScript.length > 0) {
           const { data: charactersData, error: charactersError } = await supabase
             .from('characters')
             .select('*')
-            .in('id', videoData.characters);
+            .in('id', characterIdsInScript);
           
           if (charactersError) throw charactersError;
           setCharacters(charactersData || []);
         }
+
       } catch (error) {
         if (error instanceof Error) {
           setError(error.message);
@@ -234,6 +225,8 @@ export const VideoDetails = () => {
     );
   }
 
+  const videoScript = video.script as VideoScript; // Cast to VideoScript
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -244,107 +237,55 @@ export const VideoDetails = () => {
         >
           Back to Videos
         </Button>
+        
+        <Button
+          onClick={() => navigate(`/dashboard?editVideoId=${video.id}`)} // Placeholder for editing
+          leftIcon={<Wand2 className="h-4 w-4" />}
+        >
+          Edit Video
+        </Button>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900">{video.title}</h1>
-        <p className="mt-2 text-slate-600">{video.description}</p>
+      <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-white">{video.title}</h1>
+        <p className="mt-2 text-slate-300">{video.description}</p>
 
-        {characters.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold text-slate-900">Featured Characters</h2>
-            <div className="mt-3 flex flex-wrap gap-3">
-              {characters.map(character => (
-                <div
-                  key={character.id}
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2"
-                >
-                  {character.avatar_url ? (
-                    <img
-                      src={character.avatar_url}
-                      alt={character.name}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                      <span className="text-sm font-medium text-purple-700">
-                        {character.name[0]}
-                      </span>
-                    </div>
-                  )}
-                  <span className="font-medium text-slate-900">{character.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {video.music_style && (
+          <p className="mt-4 text-sm text-slate-400">
+            Music Style: {video.music_style}
+          </p>
         )}
-      </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-slate-900">Video Segments</h2>
-          <Button
-            onClick={handleGenerateFinalVideo}
-            isLoading={isGenerating}
-            loadingText="Generating..."
-            leftIcon={!isGenerating ? <Wand2 className="h-4 w-4" /> : undefined}
-            disabled={selectedSegments.length === 0 || isGenerating}
-          >
-            Generate Final Video
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          {segments.map((segment, index) => {
-            const status = getSegmentStatus(segment.status);
-            const character = characters.find(c => c.id === segment.character_id);
+        <h2 className="mt-6 text-xl font-semibold text-white">Script Details</h2>
+        <div className="mt-4 space-y-4">
+          {videoScript?.segments?.map((scene, index) => {
+            const speaker = characters.find(char => char.id === scene.speakerCharacterId);
+            const charactersInSceneNames = characters
+              .filter(char => scene.charactersInScene.includes(char.id))
+              .map(char => char.name)
+              .filter(Boolean)
+              .join(', ');
 
             return (
-              <div
-                key={segment.id}
-                className={`cursor-pointer rounded-lg border p-4 transition-all ${
-                  selectedSegments.includes(segment.id)
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-slate-200 hover:border-purple-200'
-                }`}
-                onClick={() => handleSegmentSelect(segment.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100">
-                      <Film className="h-4 w-4 text-slate-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-slate-900">Segment {index + 1}</h3>
-                      {character && (
-                        <p className="text-sm text-slate-500">Speaker: {character.name}</p>
-                      )}
-                    </div>
+              <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-4">
+                <h3 className="font-medium text-white">Scene {index + 1}</h3>
+                {scene.text && (
+                  <p className="text-slate-300 text-sm mt-1">Dialogue: {scene.text}</p>
+                )}
+                {scene.sceneDescription && (
+                  <p className="text-slate-300 text-sm mt-1">Description: {scene.sceneDescription}</p>
+                )}
+                {speaker && (
+                  <p className="text-slate-300 text-sm mt-1">Speaker: {speaker.name}</p>
+                )}
+                {charactersInSceneNames && (
+                  <p className="text-slate-300 text-sm mt-1">Characters: {charactersInSceneNames}</p>
+                )}
+                {scene.videoUrl && (
+                  <div className="mt-4 rounded-lg overflow-hidden border border-slate-700">
+                    <video controls src={scene.videoUrl} className="w-full h-auto"></video>
                   </div>
-                  <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${status.color}`}>
-                    {status.icon}
-                    <span>{status.text}</span>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-2">
-                  <p className="text-slate-600">{segment.text}</p>
-                  {segment.segment_url && segment.status === 'completed' && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        leftIcon={<Play className="h-4 w-4" />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(segment.segment_url, '_blank');
-                        }}
-                      >
-                        Preview
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             );
           })}

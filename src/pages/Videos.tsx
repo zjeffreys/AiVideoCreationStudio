@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { VideoCard } from '../components/videos/VideoCard';
 import { Video } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 export const Videos = () => {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export const Videos = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const fetchVideos = async () => {
     setLoading(true);
@@ -61,7 +63,7 @@ export const Videos = () => {
 
   const handleEditVideo = (video: Video) => {
     // Implement edit functionality
-    console.log('Edit video:', video.id);
+    navigate(`/videos/${video.id}`);
   };
 
   const handleDeleteVideo = async (id: string) => {

@@ -8,7 +8,7 @@ export type Video = {
   id: string;
   title: string;
   description?: string;
-  script?: string;
+  script?: VideoScript;
   characters?: string[];
   music_style?: string;
   status: 'draft' | 'processing' | 'complete';
@@ -68,6 +68,7 @@ export interface VideoScript {
     speakerCharacterId?: string;
     duration?: number;
     isOpen: boolean;
+    videoUrl?: string;
   }[];
   style: string;
   musicId: string;
