@@ -50,11 +50,19 @@ export const VideoDetails = () => {
           throw new Error('Unauthorized');
         }
 
-        setVideo(videoData);
+        // Parse the script JSON string back into an object
+        const parsedScript: VideoScript = JSON.parse(videoData.script);
+
+        // Update videoData to include the parsed script
+        setVideo({ ...videoData, script: parsedScript });
 
         // Fetch characters based on the script's charactersInScene
-        const characterIdsInScript = (videoData.script as VideoScript)?.segments.flatMap(s => s.charactersInScene).filter(Boolean);
-        if (characterIdsInScript && characterIdsInScript.length > 0) {
+        // Ensure parsedScript and parsedScript.segments exist before calling flatMap
+        const characterIdsInScript = parsedScript && parsedScript.segments 
+          ? parsedScript.segments.flatMap(s => s.charactersInScene).filter(Boolean)
+          : []; // Default to an empty array if script or segments are missing
+        
+        if (characterIdsInScript.length > 0) {
           const { data: charactersData, error: charactersError } = await supabase
             .from('characters')
             .select('*')

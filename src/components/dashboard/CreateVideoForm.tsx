@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusCircle, ArrowLeft, ArrowRight, Wand2, ChevronDown } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
@@ -6,48 +6,32 @@ import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { Character, MusicStyle, VideoCreationStep, VideoGoals, VideoScript } from '../../types';
+import { Character, VideoCreationStep, VideoGoals, VideoScript } from '../../types';
 import { SceneVideoUpload } from './SceneVideoUpload';
 
 type Props = {
   characters: Character[];
-  musicStyles: MusicStyle[];
   onVideoCreated: () => void;
 };
 
-export const CreateVideoForm: React.FC<Props> = ({ 
-  characters, 
-  musicStyles,
-  onVideoCreated 
+export const CreateVideoForm: React.FC<Props> = ({
+  characters,
+  onVideoCreated
 }) => {
+  console.log("CreateVideoForm rendering...");
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<VideoCreationStep>('script');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
-
   const [goals, setGoals] = useState<VideoGoals>({
     title: '',
     description: '',
     targetAudience: '',
-    learningObjectives: [''],
-    duration: 120,
-    isDetailsOpen: false,
+    isDetailsOpen: true,
   });
-
-  const [script, setScript] = useState<VideoScript>({
-    segments: [{
-      text: '',
-      sceneDescription: '',
-      charactersInScene: [],
-      speakerCharacterId: undefined,
-      isOpen: false,
-      videoUrl: undefined,
-    }],
-    style: '',
-    musicId: '',
-  });
+  const [script, setScript] = useState<VideoScript>({ segments: [], style: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [specificErrors, setSpecificErrors] = useState<Record<string, string>>({});
 
   const deleteSegment = (index: number) => {
     setScript(prev => ({
@@ -58,13 +42,13 @@ export const CreateVideoForm: React.FC<Props> = ({
 
   const handleFileUpload = async (file: File, index: number) => {
     if (!user) {
-      setError("User not authenticated.");
+      setSpecificErrors({ user: "User not authenticated." });
       return;
     }
     if (!file) return;
 
     setUploadingIndex(index);
-    setError(null);
+    setSpecificErrors({});
 
     try {
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
@@ -89,9 +73,9 @@ export const CreateVideoForm: React.FC<Props> = ({
 
     } catch (error) {
       if (error instanceof Error) {
-        setError(`File upload failed: ${error.message}`);
+        setSpecificErrors({ fileUpload: error.message });
       } else {
-        setError("An unknown error occurred during file upload.");
+        setSpecificErrors({ fileUpload: "An unknown error occurred during file upload." });
       }
     } finally {
       setUploadingIndex(null);
@@ -100,17 +84,17 @@ export const CreateVideoForm: React.FC<Props> = ({
 
   const generateSuggestedScenes = async () => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
-      setError('OpenAI API key is required for scene generation.');
+      setSpecificErrors({ sceneGeneration: 'OpenAI API key is required for scene generation.' });
       return;
     }
 
     if (!goals.description.trim()) {
-      setError('Please provide a video description before generating scenes.');
+      setSpecificErrors({ sceneGeneration: 'Please provide a video description before generating scenes.' });
       return;
     }
 
     setIsEnhancing(true);
-    setError(null);
+    setSpecificErrors({});
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -160,9 +144,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
 
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setSpecificErrors({ sceneGeneration: error.message });
       } else {
-        setError('An error occurred while generating scenes');
+        setSpecificErrors({ sceneGeneration: 'An error occurred while generating scenes' });
       }
     } finally {
       setIsEnhancing(false);
@@ -171,24 +155,24 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
 
   const generateScript = async (index: number) => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
-      setError('OpenAI API key is required for script generation');
+      setSpecificErrors({ scriptGeneration: 'OpenAI API key is required for script generation' });
       return;
     }
 
     const scene = script.segments[index];
     if (!scene.charactersInScene.length || !scene.speakerCharacterId) {
-      setError('Please select characters and a speaking character first');
+      setSpecificErrors({ scriptGeneration: 'Please select characters and a speaking character first' });
       return;
     }
 
     const speaker = characters.find(c => c.id === scene.speakerCharacterId);
     if (!speaker) {
-      setError('Selected speaking character not found');
+      setSpecificErrors({ scriptGeneration: 'Selected speaking character not found' });
       return;
     }
 
     setIsEnhancing(true);
-    setError(null);
+    setSpecificErrors({});
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -232,9 +216,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
       setScript({ ...script, segments: newSegments });
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setSpecificErrors({ scriptGeneration: error.message });
       } else {
-        setError('Failed to generate script');
+        setSpecificErrors({ scriptGeneration: 'Failed to generate script' });
       }
     } finally {
       setIsEnhancing(false);
@@ -243,17 +227,17 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
 
   const enhanceDescription = async () => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
-      setError('OpenAI API key is required for description enhancement. Please add it to your environment variables.');
+      setSpecificErrors({ descriptionEnhancement: 'OpenAI API key is required for description enhancement. Please add it to your environment variables.' });
       return;
     }
 
     if (!goals.description.trim()) {
-      setError('Please enter a description before enhancing');
+      setSpecificErrors({ descriptionEnhancement: 'Please enter a description before enhancing' });
       return;
     }
 
     setIsEnhancing(true);
-    setError(null);
+    setSpecificErrors({});
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -291,9 +275,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
       }));
     } catch (error) {
       if (error instanceof Error) {
-        setError(`Failed to enhance description: ${error.message}`);
+        setSpecificErrors({ descriptionEnhancement: `Failed to enhance description: ${error.message}` });
       } else {
-        setError('Failed to enhance description. Please try again.');
+        setSpecificErrors({ descriptionEnhancement: 'Failed to enhance description. Please try again.' });
       }
     } finally {
       setIsEnhancing(false);
@@ -302,12 +286,12 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
 
   const generateSceneDescription = async (index: number, userInput: string = '') => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
-      setError('OpenAI API key is required for scene generation');
+      setSpecificErrors({ sceneGeneration: 'OpenAI API key is required for scene generation' });
       return;
     }
 
     setIsEnhancing(true);
-    setError(null);
+    setSpecificErrors({});
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -349,79 +333,107 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
       setScript({ ...script, segments: newSegments });
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setSpecificErrors({ sceneGeneration: error.message });
       } else {
-        setError('Failed to generate scene description');
+        setSpecificErrors({ sceneGeneration: 'Failed to generate scene description' });
       }
     } finally {
       setIsEnhancing(false);
     }
   };
 
-  const handleScriptSubmit = async () => {
-    if (!goals.title || !goals.description) {
-      setError('Please fill in the video title and description');
-      return;
+  const validateAndProceedToReview = (): Record<string, string> => {
+    console.log("Executing validateAndProceedToReview...");
+    const errors: Record<string, string> = {};
+
+    if (!goals.title) {
+      errors.title = "Please provide a video title.";
     }
-    if (script.segments.some(scene => !scene.text || !scene.speakerCharacterId || !scene.sceneDescription)) {
-      setError('Please fill in all script scenes, including scene descriptions and speaking characters');
-      return;
+    if (!goals.description) {
+      errors.description = "Please provide a video description.";
     }
-    setCurrentStep('review');
+
+    script.segments.forEach((scene, index) => {
+      if (!scene.text) {
+        errors[`scene-${index}-text`] = "Please enter the dialogue for this scene.";
+      }
+      if (!scene.sceneDescription) {
+        errors[`scene-${index}-description`] = "Please provide a description for this scene.";
+      }
+      if (!scene.speakerCharacterId) {
+        errors[`scene-${index}-speaker`] = "Please select a speaking character for this scene.";
+      }
+    });
+
+    setSpecificErrors(errors);
+    return errors;
   };
 
-  const handleFinalSubmit = async () => {
-    setError(null);
+  const handleSaveVideo = async () => {
+    console.log("Attempting to save video...");
     setIsSubmitting(true);
+    setSpecificErrors({});
     
     try {
-      const { data: videoData, error: videoError } = await supabase
+      if (!user) {
+        setSpecificErrors({ user: "User not authenticated." });
+        console.error("Attempted to save video without authenticated user.");
+        return;
+      }
+
+      console.log("User ID:", user.id); // Debug: Log user ID
+
+      // Get unique character IDs from all scenes
+      const uniqueCharacterIds = Array.from(new Set(
+        script.segments.flatMap(s => s.charactersInScene)
+      ));
+
+      const videoDataToInsert = {
+        user_id: user.id,
+        title: goals.title,
+        description: goals.description,
+        script: JSON.stringify({ // Keep stringify as script is TEXT in DB
+          segments: script.segments.map(s => ({
+            text: s.text,
+            sceneDescription: s.sceneDescription,
+            charactersInScene: s.charactersInScene,
+            speakerCharacterId: s.speakerCharacterId,
+            duration: s.duration,
+            videoUrl: s.videoUrl,
+          })),
+          style: script.style,
+        }),
+        characters: uniqueCharacterIds, // This matches your _uuid array type
+        status: 'draft',
+        created_at: new Date().toISOString(), // This matches your timestamptz column
+      };
+
+      console.log("Data being inserted into Supabase:", videoDataToInsert); // Debug: Log payload
+
+      const { data, error } = await supabase
         .from('videos')
-        .insert({
-          user_id: user!.id,
-          title: goals.title,
-          description: goals.description,
-          status: 'processing',
-        })
+        .insert(videoDataToInsert)
         .select()
         .single();
-      
-      if (videoError) throw videoError;
 
-      const { error: scriptError } = await supabase
-        .from('video_scripts')
-        .insert({
-          video_id: videoData.id,
-          title: goals.title,
-          description: goals.description,
-          style: script.style,
-          music_id: script.musicId || null,
-        });
-      
-      if (scriptError) throw scriptError;
+      if (error) {
+        console.error("Supabase insert error:", error); // Debug: Log Supabase specific error
+        throw error;
+      }
 
-      const segments = script.segments.map((scene, index) => ({
-        video_id: videoData.id,
-        start_time: index * 6,
-        end_time: (index + 1) * 6,
-        text: scene.text,
-        character_id: scene.speakerCharacterId,
-        status: 'pending',
-      }));
+      console.log("Video created successfully in Supabase:", data); // Debug: Log success data
 
-      const { error: segmentsError } = await supabase
-        .from('video_segments')
-        .insert(segments);
-      
-      if (segmentsError) throw segmentsError;
-      
       onVideoCreated();
+      alert('Video created successfully!');
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message);
+        setSpecificErrors({ general: error.message });
+        console.error("Caught error during video save:", error.message); // Debug: Log caught error
       } else {
-        setError('An unknown error occurred');
+        setSpecificErrors({ general: 'An unknown error occurred' });
+        console.error("Caught unknown error during video save:", error); // Debug: Log unknown error
       }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -452,24 +464,31 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                 className="flex w-full items-center justify-between p-6 text-left"
               >
                 <h2 className="text-xl font-semibold text-white">Video Details</h2>
-                <ChevronDown 
+                <ChevronDown
                   className={`h-5 w-5 text-slate-400 transition-transform ${
                     goals.isDetailsOpen ? 'rotate-180' : ''
-                  }`} 
+                  }`}
                 />
               </button>
               
               {goals.isDetailsOpen && (
                 <div className="space-y-4 border-t border-slate-700 p-6">
-                  <Input
-                    label="Video Title"
-                    value={goals.title}
-                    onChange={(e) => setGoals({ ...goals, title: e.target.value })}
-                    placeholder="Enter a title for your educational video"
-                    required
-                    fullWidth
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">
+                      Video Title
+                    </label>
+                    <Input
+                      value={goals.title}
+                      onChange={(e) => setGoals({ ...goals, title: e.target.value })}
+                      placeholder="Enter a title for your educational video"
+                      required
+                      fullWidth
+                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                    />
+                    {specificErrors.title && (
+                      <p className="text-red-400 text-sm mt-1">{specificErrors.title}</p>
+                    )}
+                  </div>
                   
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-white">
@@ -483,6 +502,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                       fullWidth
                       className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
                     />
+                    {specificErrors.description && (
+                      <p className="text-red-400 text-sm mt-1">{specificErrors.description}</p>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-slate-400">
                         Pro tip: Write a basic description and click "Enhance" to make it more engaging
@@ -565,10 +587,10 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                         >
                           Delete Scene
                         </Button>
-                        <ChevronDown 
+                        <ChevronDown
                           className={`h-5 w-5 text-slate-400 transition-transform ${
                             scene.isOpen ? 'rotate-180' : ''
-                          }`} 
+                          }`}
                         />
                       </div>
                     </button>
@@ -593,6 +615,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                             fullWidth
                             className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
                           />
+                          {specificErrors[`scene-${index}-description`] && (
+                            <p className="text-red-400 text-sm mt-1">{specificErrors[`scene-${index}-description`]}</p>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -606,22 +631,30 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                           </Button>
                         </div>
 
-                        <div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-white">
+                            Speaking Character
+                          </label>
                           <Select
-                            label="Who is speaking in this scene?"
-                            options={characters.map(char => ({ value: char.id, label: char.name }))}
+                            options={characters.map(char => ({
+                              value: char.id,
+                              label: char.name,
+                            }))}
                             value={scene.speakerCharacterId || ''}
                             onChange={(value) => {
                               const newScenes = [...script.segments];
                               newScenes[index] = {
                                 ...scene,
-                                speakerCharacterId: value,
+                                speakerCharacterId: value || undefined,
                               };
                               setScript({ ...script, segments: newScenes });
                             }}
+                            placeholder="Select a character"
                             fullWidth
-                            className="bg-slate-800 border-slate-700 text-white"
                           />
+                          {specificErrors[`scene-${index}-speaker`] && (
+                            <p className="text-red-400 text-sm mt-1">{specificErrors[`scene-${index}-speaker`]}</p>
+                          )}
                         </div>
 
                         <div>
@@ -692,6 +725,9 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                             fullWidth
                             className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
                           />
+                          {specificErrors[`scene-${index}-text`] && (
+                            <p className="text-red-400 text-sm mt-1">{specificErrors[`scene-${index}-text`]}</p>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -726,22 +762,6 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                 >
                   Add New Scene
                 </Button>
-              </div>
-              
-              <div className="space-y-4">
-                <Select
-                  label="Music Style"
-                  options={[
-                    { value: '', label: 'Select music style' },
-                    ...musicStyles.map(style => ({
-                      value: style.id,
-                      label: style.name,
-                    }))
-                  ]}
-                  value={script.musicId || ''}
-                  onChange={(value) => setScript({ ...script, musicId: value })}
-                  fullWidth
-                />
               </div>
             </div>
           </div>
@@ -796,13 +816,34 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
     }
   };
 
+  const handleSubmit = async () => {
+    console.log("Executing handleSubmit...");
+    if (currentStep === 'script') {
+      const errors = validateAndProceedToReview();
+      if (Object.keys(errors).length > 0) {
+        setSpecificErrors(errors);
+        return;
+      }
+      setSpecificErrors({});
+      setCurrentStep('review');
+    } else if (currentStep === 'review') {
+      await handleSaveVideo();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'review') {
+      setCurrentStep('script');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
+      {Object.entries(specificErrors).map(([key, error]) => (
+        <div key={key} className="rounded-lg bg-red-900/50 p-4 text-red-400">
           <p>{error}</p>
         </div>
-      )}
+      ))}
 
       {renderStepContent()}
       
@@ -811,10 +852,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              setError(null);
-              setCurrentStep('script');
-            }}
+            onClick={handleBack}
             leftIcon={<ArrowLeft className="h-4 w-4" />}
             className="border-slate-700 text-white hover:bg-slate-700"
           >
@@ -824,13 +862,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
         
         <Button
           className="ml-auto"
-          onClick={() => {
-            setError(null);
-            switch (currentStep) {
-              case 'script': return handleScriptSubmit();
-              case 'review': return handleFinalSubmit();
-            }
-          }}
+          onClick={handleSubmit}
           isLoading={isSubmitting}
           loadingText={currentStep === 'review' ? 'Creating Video...' : 'Next'}
           rightIcon={currentStep !== 'review' ? <ArrowRight className="h-4 w-4" /> : undefined}

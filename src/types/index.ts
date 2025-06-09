@@ -10,7 +10,6 @@ export type Video = {
   description?: string;
   script?: VideoScript;
   characters?: string[];
-  music_style?: string;
   status: 'draft' | 'processing' | 'complete';
   thumbnail_url?: string;
   video_url?: string;
@@ -27,13 +26,6 @@ export type Character = {
   created_at: string;
 };
 
-export type MusicStyle = {
-  id: string;
-  name: string;
-  description?: string;
-  is_favorite: boolean;
-};
-
 export type Voice = {
   id: string;
   voiceId: string;
@@ -47,6 +39,7 @@ export type Voice = {
     accent?: string;
     [key: string]: string | undefined;
   };
+  videoUrl?: string;
 };
 
 export type VideoCreationStep = 'script' | 'review';
@@ -54,9 +47,7 @@ export type VideoCreationStep = 'script' | 'review';
 export interface VideoGoals {
   title: string;
   description: string;
-  targetAudience: string;
-  learningObjectives: string[];
-  duration: number;
+  targetAudience?: string;
   isDetailsOpen: boolean;
 }
 
@@ -71,5 +62,4 @@ export interface VideoScript {
     videoUrl?: string;
   }[];
   style: string;
-  musicId: string;
 }

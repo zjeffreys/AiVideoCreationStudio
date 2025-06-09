@@ -4,13 +4,12 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { CreateVideoForm } from '../components/dashboard/CreateVideoForm';
-import { Character, MusicStyle, Video } from '../types';
+import { Character, Video } from '../types';
 
 export const Dashboard = () => {
   const { user } = useAuth();
   const [recentVideos, setRecentVideos] = useState<Video[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
-  const [musicStyles, setMusicStyles] = useState<MusicStyle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -38,18 +37,8 @@ export const Dashboard = () => {
       
       if (charactersError) throw charactersError;
       
-      // Fetch music styles
-      const { data: musicData, error: musicError } = await supabase
-        .from('music_styles')
-        .select('*')
-        .is('user_id', null)
-        .order('name');
-      
-      if (musicError) throw musicError;
-      
       setRecentVideos(videosData as Video[]);
       setCharacters(charactersData as Character[]);
-      setMusicStyles(musicData as MusicStyle[]);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -111,7 +100,6 @@ export const Dashboard = () => {
                   </div>
                   <CreateVideoForm 
                     characters={characters} 
-                    musicStyles={musicStyles} 
                     onVideoCreated={handleVideoCreated} 
                   />
                 </>

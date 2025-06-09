@@ -13,10 +13,11 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   error?: string;
   fullWidth?: boolean;
   onChange?: (value: string) => void;
+  placeholder?: string;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, options, fullWidth = false, onChange, ...props }, ref) => {
+  ({ className, label, error, options, fullWidth = false, onChange, placeholder, ...props }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       if (onChange) {
         onChange(e.target.value);
@@ -44,6 +45,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             onChange={handleChange}
             {...props}
           >
+            {placeholder && <option value="" disabled>{placeholder}</option>}
             {options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
