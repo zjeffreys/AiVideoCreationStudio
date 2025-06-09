@@ -430,7 +430,7 @@ export const LandingPage = () => {
                 </ul>
                 <Button
                   className="mt-8"
-                  variant={index === 0 ? 'default' : 'outline'}
+                  variant={index === 0 ? 'primary' : 'outline'}
                   fullWidth
                 >
                   {index === 1 ? 'Contact Sales' : 'Get Started'}
