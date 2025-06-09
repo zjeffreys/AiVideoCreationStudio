@@ -73,8 +73,8 @@ export const MusicPage = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Music</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold text-white">Music</h1>
+        <p className="text-slate-300">
           Browse and select background music for your educational videos
         </p>
       </div>
@@ -85,36 +85,36 @@ export const MusicPage = () => {
           placeholder="Search music styles..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
+          className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
         />
       </form>
       
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
-            <p className="text-lg font-medium text-slate-700">Loading music styles...</p>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+            <p className="text-lg font-medium text-slate-300">Loading music styles...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-red-600">
+        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
           <p className="font-medium">Error</p>
           <p className="text-sm">{error}</p>
         </div>
       ) : filteredMusicStyles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-          <div className="mb-4 rounded-full bg-slate-100 p-3">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-12 text-center">
+          <div className="mb-4 rounded-full bg-slate-700 p-3">
             <Music className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="mb-1 text-lg font-medium text-slate-900">No music styles found</h3>
-          <p className="max-w-md text-slate-500">
+          <h3 className="mb-1 text-lg font-medium text-white">No music styles found</h3>
+          <p className="max-w-md text-slate-400">
             No music styles matching your search criteria.
           </p>
         </div>
       ) : (
         <>
           <div className="space-y-4">
-            <h2 className="text-lg font-medium text-slate-900">
+            <h2 className="text-lg font-medium text-white">
               {searchQuery ? 'Search Results' : 'All Music Styles'}
             </h2>
             <div className="space-y-2">
@@ -128,16 +128,16 @@ export const MusicPage = () => {
             </div>
           </div>
           
-          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-xl font-semibold text-slate-900">About Our Music</h2>
-            <p className="text-slate-600">
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold text-white">About Our Music</h2>
+            <p className="text-slate-300">
               All music tracks are royalty-free and licensed for use in your educational videos. You can select
               a music style that best complements your content's tone and subject matter. The AI will
               automatically adjust the music volume to ensure clear narration.
             </p>
             <div className="mt-4">
-              <h3 className="text-lg font-medium text-slate-900">Music Selection Tips</h3>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-slate-600">
+              <h3 className="text-lg font-medium text-white">Music Selection Tips</h3>
+              <ul className="mt-2 list-inside list-disc space-y-1 text-slate-300">
                 <li>Match the music style to your content's emotional tone</li>
                 <li>Use "Favorite" to mark styles you frequently use</li>
                 <li>For technical subjects, choose neutral or scientific styles</li>

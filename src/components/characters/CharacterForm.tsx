@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { User, Mic2, Upload, X, Wand2 } from 'lucide-react';
+import { User, Mic2, Upload, X, Wand2, Play, Pause } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Character, Voice } from '../../types';
+import { generateSpeech } from '../../lib/elevenlabs';
 
 type CharacterFormProps = {
   character?: Character;
@@ -33,6 +34,10 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewAudio, setPreviewAudio] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -114,10 +119,7 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
     const { error: uploadError, data } = await supabase.storage
       .from('character-avatars')
       .upload(filePath, file, {
-        upsert: true,
-        onUploadProgress: (progress) => {
-          setUploadProgress((progress.loaded / progress.total) * 100);
-        }
+        upsert: true
       });
 
     if (uploadError) {
@@ -197,8 +199,63 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
 
   const voiceOptions = voices.map(voice => ({
     value: voice.id,
-    label: voice.name,
+    label: voice.name || `Voice ${voice.id.substring(0, 6)}...`
   }));
+
+  const handleVoicePreview = async () => {
+    if (!voiceId) return;
+    
+    setIsPreviewLoading(true);
+    setError(null);
+    
+    try {
+      const previewText = "Hello! I'm excited to be your teacher today.";
+      const audioUrl = await generateSpeech(previewText, voiceId);
+      setPreviewAudio(audioUrl);
+      
+      // Create new audio element
+      const audio = new Audio(audioUrl);
+      audio.onended = () => setIsPlaying(false);
+      setAudioElement(audio);
+      
+      // Play the preview
+      await audio.play();
+      setIsPlaying(true);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to generate voice preview');
+      }
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const togglePreview = async () => {
+    if (!audioElement) return;
+    
+    if (isPlaying) {
+      audioElement.pause();
+      setIsPlaying(false);
+    } else {
+      await audioElement.play();
+      setIsPlaying(true);
+    }
+  };
+
+  // Cleanup audio element on unmount
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+      if (previewAudio) {
+        URL.revokeObjectURL(previewAudio);
+      }
+    };
+  }, [audioElement, previewAudio]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -309,13 +366,32 @@ export const CharacterForm: React.FC<CharacterFormProps> = ({
         />
       </div>
       
-      <Select
-        label="Voice"
-        options={[{ value: '', label: 'Select a voice' }, ...voiceOptions]}
-        value={voiceId}
-        onChange={setVoiceId}
-        fullWidth
-      />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-slate-900">
+            Voice
+          </label>
+          {voiceId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={isPlaying ? togglePreview : handleVoicePreview}
+              isLoading={isPreviewLoading}
+              loadingText="Generating..."
+              leftIcon={!isPreviewLoading ? (isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />) : undefined}
+            >
+              {isPlaying ? 'Pause Preview' : 'Preview Voice'}
+            </Button>
+          )}
+        </div>
+        <Select
+          options={[{ value: '', label: 'Select a voice' }, ...voiceOptions]}
+          value={voiceId}
+          onChange={setVoiceId}
+          fullWidth
+        />
+      </div>
       
       <div className="flex justify-end space-x-3">
         <Button

@@ -28,14 +28,14 @@ export const MusicCard: React.FC<MusicCardProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md">
+    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800 p-4 shadow-sm transition-all hover:shadow-md">
       <div className="flex flex-1 items-center gap-4">
         <button
           className={cn(
             "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
             isPlaying 
               ? "bg-purple-600 text-white" 
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
           )}
           onClick={togglePlay}
         >
@@ -47,9 +47,9 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         </button>
         
         <div>
-          <h3 className="font-medium text-slate-900">{music.name}</h3>
+          <h3 className="font-medium text-white">{music.name}</h3>
           {music.description && (
-            <p className="text-sm text-slate-500">{music.description}</p>
+            <p className="text-sm text-slate-300">{music.description}</p>
           )}
         </div>
       </div>
@@ -58,8 +58,8 @@ export const MusicCard: React.FC<MusicCardProps> = ({
         className={cn(
           "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
           isFavorite 
-            ? "text-yellow-500 hover:text-yellow-600" 
-            : "text-slate-400 hover:text-slate-500"
+            ? "text-yellow-400 hover:text-yellow-300" 
+            : "text-slate-400 hover:text-slate-300"
         )}
         onClick={toggleFavorite}
       >

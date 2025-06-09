@@ -101,8 +101,8 @@ export const Settings = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold text-white">Settings</h1>
+        <p className="text-slate-300">
           Manage your account and preferences
         </p>
       </div>
@@ -112,8 +112,8 @@ export const Settings = () => {
           <button
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
               activeTab === 'profile' 
-                ? 'bg-purple-100 text-purple-900' 
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-purple-900/50 text-purple-400' 
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
             onClick={() => setActiveTab('profile')}
           >
@@ -123,8 +123,8 @@ export const Settings = () => {
           <button
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
               activeTab === 'security' 
-                ? 'bg-purple-100 text-purple-900' 
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-purple-900/50 text-purple-400' 
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
             onClick={() => setActiveTab('security')}
           >
@@ -134,8 +134,8 @@ export const Settings = () => {
           <button
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
               activeTab === 'notifications' 
-                ? 'bg-purple-100 text-purple-900' 
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-purple-900/50 text-purple-400' 
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
             onClick={() => setActiveTab('notifications')}
           >
@@ -145,8 +145,8 @@ export const Settings = () => {
           <button
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
               activeTab === 'preferences' 
-                ? 'bg-purple-100 text-purple-900' 
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-purple-900/50 text-purple-400' 
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
             }`}
             onClick={() => setActiveTab('preferences')}
           >
@@ -155,22 +155,22 @@ export const Settings = () => {
           </button>
         </div>
         
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
           {updateError && (
-            <div className="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-600">
+            <div className="mb-6 rounded-md bg-red-900/50 p-4 text-sm text-red-400">
               {updateError}
             </div>
           )}
           
           {updateSuccess && (
-            <div className="mb-6 rounded-md bg-green-50 p-4 text-sm text-green-600">
+            <div className="mb-6 rounded-md bg-green-900/50 p-4 text-sm text-green-400">
               {updateSuccess}
             </div>
           )}
           
           {activeTab === 'profile' && (
             <>
-              <h2 className="mb-6 text-xl font-semibold text-slate-900">Profile Settings</h2>
+              <h2 className="mb-6 text-xl font-semibold text-white">Profile Settings</h2>
               <form onSubmit={handleUpdateProfile} className="space-y-6">
                 <Input
                   label="Email"
@@ -179,6 +179,7 @@ export const Settings = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled
                   fullWidth
+                  className="bg-slate-800 border-slate-700 text-slate-300 placeholder:text-slate-500"
                 />
                 <Input
                   label="Display Name"
@@ -186,6 +187,7 @@ export const Settings = () => {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder={user?.email?.split('@')[0] || 'Your name'}
                   fullWidth
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -203,7 +205,7 @@ export const Settings = () => {
           
           {activeTab === 'security' && (
             <>
-              <h2 className="mb-6 text-xl font-semibold text-slate-900">Security Settings</h2>
+              <h2 className="mb-6 text-xl font-semibold text-white">Security Settings</h2>
               <form onSubmit={handleUpdatePassword} className="space-y-6">
                 <Input
                   label="Current Password"
@@ -212,6 +214,7 @@ export const Settings = () => {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
                   fullWidth
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
                 <Input
                   label="New Password"
@@ -220,6 +223,7 @@ export const Settings = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
                   fullWidth
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
                 <Input
                   label="Confirm New Password"
@@ -228,6 +232,7 @@ export const Settings = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   fullWidth
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
                 <div className="flex justify-end">
                   <Button
@@ -245,26 +250,26 @@ export const Settings = () => {
           
           {activeTab === 'notifications' && (
             <>
-              <h2 className="mb-6 text-xl font-semibold text-slate-900">Notification Settings</h2>
+              <h2 className="mb-6 text-xl font-semibold text-white">Notification Settings</h2>
               <form onSubmit={handleUpdateNotifications} className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="email-notifications" className="flex items-center gap-2 text-white">
+                      <Bell className="h-5 w-5" />
+                      Email Notifications
+                    </label>
                     <input
                       type="checkbox"
                       id="email-notifications"
                       checked={isEmailNotifications}
-                      onChange={() => setIsEmailNotifications(!isEmailNotifications)}
-                      className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                      onChange={(e) => setIsEmailNotifications(e.target.checked)}
+                      className="form-checkbox h-5 w-5 text-purple-600 border-slate-700 bg-slate-800 focus:ring-purple-500"
                     />
-                    <label htmlFor="email-notifications" className="text-sm font-medium text-slate-700">
-                      Email Notifications
-                    </label>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Receive email notifications when your videos are ready, when you receive comments, and for important account updates.
+                  <p className="text-sm text-slate-400">
+                    Receive email updates about your video creation progress and important announcements.
                   </p>
                 </div>
-                
                 <div className="flex justify-end">
                   <Button
                     type="submit"
@@ -281,10 +286,37 @@ export const Settings = () => {
           
           {activeTab === 'preferences' && (
             <>
-              <h2 className="mb-6 text-xl font-semibold text-slate-900">App Preferences</h2>
-              <p className="text-slate-600">
-                Preferences settings will be available in a future update.
-              </p>
+              <h2 className="mb-6 text-xl font-semibold text-white">General Preferences</h2>
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="default-language" className="text-sm font-medium text-white">Default Language</label>
+                  <select
+                    id="default-language"
+                    className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-800 py-2 pl-3 pr-10 text-base text-white focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm"
+                    defaultValue="en"
+                  >
+                    <option value="en" className="bg-slate-800">English</option>
+                    <option value="es" className="bg-slate-800">Spanish</option>
+                    <option value="fr" className="bg-slate-800">French</option>
+                  </select>
+                  <p className="mt-2 text-sm text-slate-400">This setting will be used for new video projects.</p>
+                </div>
+                <div>
+                  <label htmlFor="dark-mode-toggle" className="text-sm font-medium text-white">Theme</label>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-white">Dark Mode</span>
+                    {/* This toggle would typically be handled by a global theme context */}
+                    <input 
+                      type="checkbox" 
+                      id="dark-mode-toggle" 
+                      checked={true} // Assuming dark mode is always on for this demo
+                      readOnly
+                      className="form-checkbox h-5 w-5 text-purple-600 border-slate-700 bg-slate-800 focus:ring-purple-500"
+                    />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-400">Switch between light and dark themes.</p>
+                </div>
+              </div>
             </>
           )}
         </div>

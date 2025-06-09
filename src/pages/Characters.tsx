@@ -7,6 +7,7 @@ import { Input } from '../components/ui/Input';
 import { CharacterCard } from '../components/characters/CharacterCard';
 import { CharacterForm } from '../components/characters/CharacterForm';
 import { Character, Voice } from '../types';
+import { getVoice } from '../lib/elevenlabs';
 
 export const Characters = () => {
   const { user } = useAuth();
@@ -32,18 +33,11 @@ export const Characters = () => {
       
       if (charactersError) throw charactersError;
       
-      // In a real app, you would fetch voices from your API or Supabase
-      // Here we'll use a mock list of voices
-      const mockVoices: Voice[] = [
-        { id: 'v1', name: 'Male Teacher (US)', gender: 'male', accent: 'American' },
-        { id: 'v2', name: 'Female Instructor (US)', gender: 'female', accent: 'American' },
-        { id: 'v3', name: 'Male Professor (UK)', gender: 'male', accent: 'British' },
-        { id: 'v4', name: 'Female Narrator (AU)', gender: 'female', accent: 'Australian' },
-        { id: 'v5', name: 'Child Voice', gender: 'neutral', accent: 'American' },
-      ];
+      // Fetch voices from ElevenLabs
+      const voicesData = await getVoice();
       
       setCharacters(charactersData as Character[]);
-      setVoices(mockVoices);
+      setVoices(voicesData);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -114,15 +108,15 @@ export const Characters = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Characters</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold text-white">Characters</h1>
+        <p className="text-slate-400">
           Create and manage characters for your educational videos
         </p>
       </div>
       
       {isFormOpen ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold text-slate-900">
+        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold text-white">
             {editingCharacter ? 'Edit Character' : 'Create New Character'}
           </h2>
           <CharacterForm
@@ -141,7 +135,7 @@ export const Characters = () => {
                 placeholder="Search characters..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
               />
             </form>
             
@@ -156,22 +150,22 @@ export const Characters = () => {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center space-y-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
-                <p className="text-lg font-medium text-slate-700">Loading characters...</p>
+                <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+                <p className="text-lg font-medium text-slate-300">Loading characters...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="rounded-lg bg-red-50 p-4 text-red-600">
+            <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
               <p className="font-medium">Error loading characters</p>
               <p className="text-sm">{error}</p>
             </div>
           ) : filteredCharacters.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-              <div className="mb-4 rounded-full bg-slate-100 p-3">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-12 text-center">
+              <div className="mb-4 rounded-full bg-slate-700 p-3">
                 <Users className="h-6 w-6 text-slate-400" />
               </div>
-              <h3 className="mb-1 text-lg font-medium text-slate-900">No characters found</h3>
-              <p className="mb-4 max-w-md text-slate-500">
+              <h3 className="mb-1 text-lg font-medium text-white">No characters found</h3>
+              <p className="mb-4 max-w-md text-slate-400">
                 {searchQuery
                   ? `No characters matching "${searchQuery}"`
                   : "You haven't created any characters yet. Create your first character!"}

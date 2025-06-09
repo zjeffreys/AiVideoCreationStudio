@@ -1,5 +1,6 @@
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import type { Voice } from '../types';
+import { VOICE_IDS } from './voices';
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
@@ -11,18 +12,11 @@ const elevenlabs = new ElevenLabsClient({
   apiKey: ELEVENLABS_API_KEY,
 });
 
-const HARDCODED_VOICE_IDS = [
-  'PcHg6574SeVenDJODonO',
-  'mysUMLrLaXJqfLoz2xTV',
-  // 'NOpBlnGInO9m6vDvFkFC',
-  'flHkNRp1BlvT73UL6gyz'
-];
-
 export const getVoice = async (): Promise<Voice[]> => {
   try {
     const voices: Voice[] = [];
 
-    for (const voiceId of HARDCODED_VOICE_IDS) {
+    for (const voiceId of VOICE_IDS) {
       try {
         // Fetch each voice by its ID
         const voiceDetails = await elevenlabs.voices.get(voiceId) as any; // Use 'any' temporarily for flexible mapping

@@ -25,7 +25,7 @@ export const Layout: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-900">
       <Sidebar isMobileOpen={isMobileOpen} toggleMobileSidebar={toggleMobileSidebar} />
       
       <div className="flex flex-1 flex-col overflow-hidden">

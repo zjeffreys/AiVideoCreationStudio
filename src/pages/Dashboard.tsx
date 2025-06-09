@@ -75,8 +75,8 @@ export const Dashboard = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Dashboard</h1>
+        <p className="text-slate-300">
           Create and manage your AI-powered educational videos
         </p>
       </div>
@@ -84,26 +84,27 @@ export const Dashboard = () => {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
-            <p className="text-lg font-medium text-slate-700">Loading dashboard...</p>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+            <p className="text-lg font-medium text-slate-300">Loading dashboard...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-red-600">
+        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
           <p className="font-medium">Error loading dashboard</p>
           <p className="text-sm">{error}</p>
         </div>
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm lg:col-span-2">
               {showCreateForm ? (
                 <>
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-slate-900">Create New Video</h2>
+                    <h2 className="text-xl font-semibold text-white">Create New Video</h2>
                     <Button
                       variant="ghost"
                       onClick={() => setShowCreateForm(false)}
+                      className="text-slate-300 hover:text-white hover:bg-slate-700"
                     >
                       Cancel
                     </Button>
@@ -116,11 +117,11 @@ export const Dashboard = () => {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="mb-4 rounded-full bg-purple-100 p-3">
-                    <PlusCircle className="h-6 w-6 text-purple-600" />
+                  <div className="mb-4 rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3">
+                    <PlusCircle className="h-6 w-6 bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent" />
                   </div>
-                  <h2 className="mb-2 text-xl font-semibold text-slate-900">Create a New Video</h2>
-                  <p className="mb-6 text-slate-500">
+                  <h2 className="mb-2 text-xl font-semibold text-white">Create a New Video</h2>
+                  <p className="mb-6 text-slate-300">
                     Start creating your next educational video with AI assistance
                   </p>
                   <Button
@@ -133,26 +134,26 @@ export const Dashboard = () => {
               )}
             </div>
             
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-xl font-semibold text-slate-900">Stats</h2>
+            <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-semibold text-white">Stats</h2>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-purple-50 p-4">
-                  <p className="text-sm font-medium text-purple-900">Videos</p>
-                  <p className="text-3xl font-bold text-purple-700">{recentVideos.length}</p>
+                <div className="rounded-lg bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-4">
+                  <p className="text-sm font-medium text-purple-200">Videos</p>
+                  <p className="text-3xl font-bold text-purple-400">{recentVideos.length}</p>
                 </div>
-                <div className="rounded-lg bg-teal-50 p-4">
-                  <p className="text-sm font-medium text-teal-900">Characters</p>
-                  <p className="text-3xl font-bold text-teal-700">{characters.length}</p>
+                <div className="rounded-lg bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-4">
+                  <p className="text-sm font-medium text-purple-200">Characters</p>
+                  <p className="text-3xl font-bold text-purple-400">{characters.length}</p>
                 </div>
               </div>
               
               <div className="mt-6">
-                <h3 className="mb-2 font-medium text-slate-900">Quick Links</h3>
+                <h3 className="mb-2 font-medium text-white">Quick Links</h3>
                 <div className="space-y-2">
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start" 
+                    className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700" 
                     leftIcon={<PlusCircle className="h-4 w-4" />}
                     onClick={() => window.location.href = '/characters'}
                   >
@@ -160,7 +161,7 @@ export const Dashboard = () => {
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start" 
+                    className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700" 
                     leftIcon={<PlusCircle className="h-4 w-4" />}
                     onClick={() => window.location.href = '/videos'}
                   >
@@ -174,10 +175,11 @@ export const Dashboard = () => {
           {recentVideos.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-slate-900">Recent Videos</h2>
+                <h2 className="text-xl font-semibold text-white">Recent Videos</h2>
                 <Button 
                   variant="ghost" 
                   onClick={() => window.location.href = '/videos'}
+                  className="text-slate-300 hover:text-white hover:bg-slate-700"
                 >
                   View all
                 </Button>
@@ -187,17 +189,17 @@ export const Dashboard = () => {
                 {recentVideos.map((video) => (
                   <div 
                     key={video.id}
-                    className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                    className="rounded-lg border border-slate-700 bg-slate-800 p-4 shadow-sm"
                   >
                     <div className="mb-2">
-                      <h3 className="font-medium text-slate-900">{video.title}</h3>
-                      <p className="text-sm text-slate-500 line-clamp-2">{video.description}</p>
+                      <h3 className="font-medium text-white">{video.title}</h3>
+                      <p className="text-sm text-slate-300 line-clamp-2">{video.description}</p>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        video.status === 'draft' ? 'bg-slate-100 text-slate-800' :
-                        video.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                        'bg-green-100 text-green-800'
+                        video.status === 'draft' ? 'bg-slate-700 text-slate-300' :
+                        video.status === 'processing' ? 'bg-blue-900/50 text-blue-300' :
+                        'bg-green-900/50 text-green-300'
                       }`}>
                         {video.status.charAt(0).toUpperCase() + video.status.slice(1)}
                       </span>
@@ -205,6 +207,7 @@ export const Dashboard = () => {
                         size="sm" 
                         variant="outline"
                         onClick={() => window.location.href = `/videos/${video.id}`}
+                        className="border-slate-700 text-white hover:bg-slate-700"
                       >
                         View
                       </Button>

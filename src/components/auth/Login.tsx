@@ -59,13 +59,15 @@ export const Login = () => {
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-md space-y-8 p-8">
       <div className="flex flex-col items-center space-y-2 text-center">
-        <Mail className="h-12 w-12 text-purple-600" />
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="text-slate-500">Sign in to your account to continue</p>
+        <div className="rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3">
+          <Mail className="h-12 w-12 bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent" />
+        </div>
+        <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+        <p className="text-slate-300">Sign in to your account to continue</p>
       </div>
 
       {error && (
-        <div className="w-full p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md">
+        <div className="w-full p-3 bg-red-900/50 border border-red-700 text-red-400 text-sm rounded-md">
           {error}
         </div>
       )}
@@ -79,6 +81,7 @@ export const Login = () => {
           placeholder="name@example.com"
           required
           fullWidth
+          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
         />
         <Input
           label="Password"
@@ -88,6 +91,7 @@ export const Login = () => {
           placeholder="••••••••"
           required
           fullWidth
+          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
         />
         
         <Button 
@@ -102,10 +106,10 @@ export const Login = () => {
 
       <div className="relative w-full">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200"></div>
+          <div className="w-full border-t border-slate-700"></div>
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-slate-500">Or continue with</span>
+          <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
         </div>
       </div>
 
@@ -115,7 +119,7 @@ export const Login = () => {
           onClick={handleGoogleLogin} 
           disabled={!isProd || googleLoading}
           fullWidth
-          className={!isProd ? 'opacity-50 cursor-not-allowed' : ''}
+          className={`${!isProd ? 'opacity-50 cursor-not-allowed' : ''} border-slate-700 text-white hover:bg-slate-800`}
         >
           {googleLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -142,18 +146,18 @@ export const Login = () => {
           Sign in with Google
         </Button>
         {!isProd && (
-          <p className="mt-2 text-xs text-center text-slate-500">
+          <p className="mt-2 text-xs text-center text-slate-400">
             Google Sign In is only available in production
           </p>
         )}
       </div>
 
-      <p className="text-sm text-center text-slate-500">
+      <p className="text-sm text-center text-slate-300">
         Don't have an account?{' '}
         <button
           type="button"
           onClick={navigateToSignUp}
-          className="text-purple-600 hover:underline font-medium"
+          className="bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent hover:underline font-medium"
         >
           Sign up
         </button>

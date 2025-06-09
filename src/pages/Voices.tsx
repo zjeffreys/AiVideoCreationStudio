@@ -139,14 +139,14 @@ export const Voices = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">Voice Preview</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold text-white">Voice Preview</h1>
+        <p className="text-slate-300">
           Preview and test the AI voices for your educational content
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">Try the Voice</h2>
+      <div className="rounded-lg border border-slate-700 bg-slate-800 p-6">
+        <h2 className="mb-4 text-lg font-semibold text-white">Try the Voice</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {voices.map((voice) => (
@@ -154,28 +154,28 @@ export const Voices = () => {
                 key={voice.voiceId}
                 className={`cursor-pointer rounded-lg border p-4 transition-all hover:border-purple-500 ${
                   selectedVoice?.voiceId === voice.voiceId
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-slate-200'
+                    ? 'border-purple-500 bg-purple-900/20'
+                    : 'border-slate-700 bg-slate-900 hover:bg-slate-700'
                 }`}
                 onClick={() => setSelectedVoice(voice)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium text-slate-900">{voice.name}</h3>
+                    <h3 className="font-medium text-white">{voice.name}</h3>
                     <div className="mt-1 flex flex-wrap gap-2">
                       {voice.gender && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                        <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
                           {voice.gender.charAt(0).toUpperCase() + voice.gender.slice(1)}
                         </span>
                       )}
                       {voice.accent && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                        <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
                           {voice.accent}
                         </span>
                       )}
                     </div>
                     {voice.description && (
-                      <p className="mt-2 text-sm text-slate-600">{voice.description}</p>
+                      <p className="mt-2 text-sm text-slate-400">{voice.description}</p>
                     )}
                   </div>
                 </div>
@@ -189,6 +189,7 @@ export const Voices = () => {
             value={selectedLanguage}
             onChange={setSelectedLanguage}
             fullWidth
+            className="bg-slate-800 border-slate-700 text-white"
           />
           <Textarea
             label="Custom Text"
@@ -196,8 +197,9 @@ export const Voices = () => {
             onChange={(e) => setCustomText(e.target.value)}
             placeholder="Enter text for the voice to speak (optional)"
             fullWidth
+            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
           />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             If no text is provided, a default greeting will be used.
           </p>
         </div>
@@ -206,37 +208,37 @@ export const Voices = () => {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
-            <p className="text-lg font-medium text-slate-700">Loading voices...</p>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+            <p className="text-lg font-medium text-slate-300">Loading voices...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-red-600">
+        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
           <p className="font-medium">Error</p>
           <p className="text-sm">{error}</p>
         </div>
       ) : selectedVoice ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-700 bg-slate-800 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-medium text-slate-900">{selectedVoice.name}</h3>
-                <span className="text-sm text-slate-500">Voice Id: {selectedVoice.voiceId}</span>
+                <h3 className="font-medium text-white">{selectedVoice.name}</h3>
+                <span className="text-sm text-slate-400">Voice Id: {selectedVoice.voiceId}</span>
               </div>
-              <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+              <div className="mt-1 flex items-center gap-2 text-sm text-slate-400">
                 {selectedVoice.gender && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                  <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
                     {selectedVoice.gender.charAt(0).toUpperCase() + selectedVoice.gender.slice(1)}
                   </span>
                 )}
                 {selectedVoice.accent && (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
+                  <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
                     {selectedVoice.accent}
                   </span>
                 )}
               </div>
               {selectedVoice.description && (
-                <p className="mt-2 text-sm text-slate-600">{selectedVoice.description}</p>
+                <p className="mt-2 text-sm text-slate-400">{selectedVoice.description}</p>
               )}
             </div>
             
@@ -248,26 +250,23 @@ export const Voices = () => {
               loadingText="Loading..."
               leftIcon={
                 !isGenerating && (
-                  isPlaying ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )
+                  (isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />)
                 )
               }
+              className="border-slate-700 text-white hover:bg-slate-700"
             >
-              {isPlaying && !isGenerating ? 'Pause' : 'Preview'}
+              {isPlaying ? 'Pause' : 'Play'}
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-          <div className="mb-4 rounded-full bg-slate-100 p-3">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-12 text-center">
+          <div className="mb-4 rounded-full bg-slate-700 p-3">
             <Mic2 className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="mb-1 text-lg font-medium text-slate-900">No voice selected</h3>
-          <p className="max-w-md text-slate-500">
-            Please select a voice from the list above to preview it.
+          <h3 className="mb-1 text-lg font-medium text-white">No voices available</h3>
+          <p className="mb-4 max-w-md text-slate-400">
+            We couldn't load any voices. Please check your internet connection or try again later.
           </p>
         </div>
       )}

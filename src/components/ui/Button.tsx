@@ -31,11 +31,11 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
   
   const variants = {
-    primary: 'bg-purple-600 text-white hover:bg-purple-700 focus-visible:ring-purple-500',
-    secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500',
-    outline: 'border border-slate-200 bg-transparent hover:bg-slate-100 focus-visible:ring-slate-500',
-    ghost: 'bg-transparent hover:bg-slate-100 focus-visible:ring-slate-500',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+    primary: 'bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600 focus-visible:ring-purple-500 dark:from-purple-500 dark:to-orange-400 dark:hover:from-purple-600 dark:hover:to-orange-500',
+    secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600',
+    outline: 'border border-slate-200 bg-transparent hover:bg-slate-100 focus-visible:ring-slate-500 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800',
+    ghost: 'bg-transparent hover:bg-slate-100 focus-visible:ring-slate-500 dark:text-white dark:hover:bg-slate-800',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600',
   };
   
   const sizes = {

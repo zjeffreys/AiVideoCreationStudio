@@ -96,8 +96,8 @@ export const Videos = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">My Videos</h1>
-        <p className="text-slate-500">
+        <h1 className="text-3xl font-bold text-white">My Videos</h1>
+        <p className="text-slate-300">
           View and manage all your educational videos
         </p>
       </div>
@@ -109,22 +109,22 @@ export const Videos = () => {
             placeholder="Search videos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
           />
         </form>
         
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 p-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <select
-              className="bg-transparent text-sm focus:outline-none"
+              className="bg-transparent text-sm focus:outline-none text-slate-300"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="processing">Processing</option>
-              <option value="complete">Complete</option>
+              <option value="all" className="bg-slate-800">All Status</option>
+              <option value="draft" className="bg-slate-800">Draft</option>
+              <option value="processing" className="bg-slate-800">Processing</option>
+              <option value="complete" className="bg-slate-800">Complete</option>
             </select>
           </div>
           
@@ -140,22 +140,22 @@ export const Videos = () => {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="flex flex-col items-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
-            <p className="text-lg font-medium text-slate-700">Loading videos...</p>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+            <p className="text-lg font-medium text-slate-300">Loading videos...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 p-4 text-red-600">
+        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
           <p className="font-medium">Error loading videos</p>
           <p className="text-sm">{error}</p>
         </div>
       ) : filteredVideos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-          <div className="mb-4 rounded-full bg-slate-100 p-3">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-12 text-center">
+          <div className="mb-4 rounded-full bg-slate-700 p-3">
             <Film className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="mb-1 text-lg font-medium text-slate-900">No videos found</h3>
-          <p className="mb-4 max-w-md text-slate-500">
+          <h3 className="mb-1 text-lg font-medium text-white">No videos found</h3>
+          <p className="mb-4 max-w-md text-slate-400">
             {searchQuery
               ? `No videos matching "${searchQuery}"`
               : statusFilter !== 'all'

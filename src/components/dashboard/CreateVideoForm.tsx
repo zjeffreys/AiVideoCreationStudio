@@ -44,19 +44,95 @@ export const CreateVideoForm: React.FC<Props> = ({
     musicId: '',
   });
 
+  const deleteSegment = (index: number) => {
+    setScript(prev => ({
+      ...prev,
+      segments: prev.segments.filter((_, i) => i !== index),
+    }));
+  };
+
+  const generateSuggestedScenes = async () => {
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      setError('OpenAI API key is required for scene generation.');
+      return;
+    }
+
+    if (!goals.description.trim()) {
+      setError('Please provide a video description before generating scenes.');
+      return;
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert at outlining educational video scenes. Based on the video description, suggest 3-5 distinct scenes. Provide only the scene descriptions, one per line. Do not include any numbering or extra text, just the descriptions.'
+            },
+            {
+              role: 'user',
+              content: `Video Description: "${goals.description}"
+Target Audience: ${goals.targetAudience || 'general public'}
+
+Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educational video.`
+            }
+          ],
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate scenes: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const generatedScenesText = data.choices[0].message.content;
+      const suggestedScenes = generatedScenesText.split('\n').filter((line: string) => line.trim() !== '');
+
+      setScript(prev => ({
+        ...prev,
+        segments: suggestedScenes.map((desc: string) => ({
+          text: '',
+          sceneDescription: desc.trim(),
+          charactersInScene: [],
+          speakerCharacterId: undefined,
+        })),
+      }));
+
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An error occurred while generating scenes');
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   const generateScript = async (index: number) => {
     if (!import.meta.env.VITE_OPENAI_API_KEY) {
       setError('OpenAI API key is required for script generation');
       return;
     }
 
-    const segment = script.segments[index];
-    if (!segment.charactersInScene.length || !segment.speakerCharacterId) {
+    const scene = script.segments[index];
+    if (!scene.charactersInScene.length || !scene.speakerCharacterId) {
       setError('Please select characters and a speaking character first');
       return;
     }
 
-    const speaker = characters.find(c => c.id === segment.speakerCharacterId);
+    const speaker = characters.find(c => c.id === scene.speakerCharacterId);
     if (!speaker) {
       setError('Selected speaking character not found');
       return;
@@ -82,7 +158,7 @@ export const CreateVideoForm: React.FC<Props> = ({
             {
               role: 'user',
               content: `Write a 6-second script segment for an educational video about "${goals.title}". 
-              The scene description is: "${segment.sceneDescription}"
+              The scene description is: "${scene.sceneDescription}"
               Speaking character is: ${speaker.name} (${speaker.description || speaker.personality || 'No description'})
               Target audience: ${goals.targetAudience}
               Keep the dialogue concise and natural, suitable for a 6-second delivery.`
@@ -242,8 +318,8 @@ export const CreateVideoForm: React.FC<Props> = ({
   };
 
   const handleScriptSubmit = () => {
-    if (script.segments.some(segment => !segment.text || !segment.speakerCharacterId || !segment.sceneDescription)) {
-      setError('Please fill in all script segments, including scene descriptions and speaking characters');
+    if (script.segments.some(scene => !scene.text || !scene.speakerCharacterId || !scene.sceneDescription)) {
+      setError('Please fill in all script scenes, including scene descriptions and speaking characters');
       return;
     }
     setCurrentStep('review');
@@ -279,12 +355,12 @@ export const CreateVideoForm: React.FC<Props> = ({
       
       if (scriptError) throw scriptError;
 
-      const segments = script.segments.map((segment, index) => ({
+      const segments = script.segments.map((scene, index) => ({
         video_id: videoData.id,
         start_time: index * 6,
         end_time: (index + 1) * 6,
-        text: segment.text,
-        character_id: segment.speakerCharacterId,
+        text: scene.text,
+        character_id: scene.speakerCharacterId,
         status: 'pending',
       }));
 
@@ -306,18 +382,15 @@ export const CreateVideoForm: React.FC<Props> = ({
   };
 
   const addNewSegment = () => {
-    setScript({
-      ...script,
-      segments: [
-        ...script.segments,
-        {
-          text: '',
-          sceneDescription: '',
-          charactersInScene: [],
-          speakerCharacterId: undefined,
-        }
-      ]
-    });
+    setScript(prev => ({
+      ...prev,
+      segments: [...prev.segments, {
+        text: '',
+        sceneDescription: '',
+        charactersInScene: [],
+        speakerCharacterId: undefined,
+      }],
+    }));
   };
 
   const renderStepContent = () => {
@@ -332,10 +405,11 @@ export const CreateVideoForm: React.FC<Props> = ({
               placeholder="Enter a title for your educational video"
               required
               fullWidth
+              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
             />
             
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-900">
+              <label className="text-sm font-medium text-white">
                 Description
               </label>
               <Textarea
@@ -344,9 +418,10 @@ export const CreateVideoForm: React.FC<Props> = ({
                 placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
                 required
                 fullWidth
+                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
               />
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-400">
                   Pro tip: Write a basic description and click "Enhance" to make it more engaging
                 </p>
                 <Button
@@ -357,6 +432,7 @@ export const CreateVideoForm: React.FC<Props> = ({
                   loadingText="Enhancing..."
                   leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
                   disabled={!goals.description || isEnhancing}
+                  className="border-slate-700 text-white hover:bg-slate-700"
                 >
                   Enhance Description
                 </Button>
@@ -369,10 +445,11 @@ export const CreateVideoForm: React.FC<Props> = ({
               onChange={(e) => setGoals({ ...goals, targetAudience: e.target.value })}
               placeholder="Who is this video for?"
               fullWidth
+              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
             />
             
             <div className="space-y-4">
-              <label className="text-sm font-medium text-slate-900">
+              <label className="text-sm font-medium text-white">
                 Learning Objectives
               </label>
               {goals.learningObjectives.map((objective, index) => (
@@ -386,6 +463,7 @@ export const CreateVideoForm: React.FC<Props> = ({
                     }}
                     placeholder={`Objective ${index + 1}`}
                     fullWidth
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
                   />
                   {index === goals.learningObjectives.length - 1 && (
                     <Button
@@ -395,6 +473,7 @@ export const CreateVideoForm: React.FC<Props> = ({
                         ...goals,
                         learningObjectives: [...goals.learningObjectives, '']
                       })}
+                      className="border-slate-700 text-white hover:bg-slate-700"
                     >
                       <PlusCircle className="h-4 w-4" />
                     </Button>
@@ -408,87 +487,112 @@ export const CreateVideoForm: React.FC<Props> = ({
       case 'script':
         return (
           <div className="space-y-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">Create Script</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={generateSuggestedScenes}
+                isLoading={isEnhancing}
+                loadingText="Generating Scenes..."
+                leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                disabled={!goals.description || isEnhancing}
+                className="border-slate-700 text-white hover:bg-slate-700"
+              >
+                Generate Suggested Scenes
+              </Button>
+            </div>
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-slate-900">Create Script</h3>
-              <p className="text-sm text-slate-500">
-                Break down your video into segments. Each segment should be about 6 seconds long.
-              </p>
-              
-              {script.segments.map((segment, index) => (
-                <div key={index} className="space-y-4 rounded-lg border border-slate-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-slate-900">Segment {index + 1}</h4>
-                    <span className="text-sm text-slate-500">~6 seconds</span>
+              {script.segments.map((scene, index) => (
+                <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Scene {index + 1}</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteSegment(index)}
+                      className="text-red-400 hover:bg-red-900/50 hover:text-red-300"
+                    >
+                      Delete Scene
+                    </Button>
                   </div>
 
                   <div className="space-y-4">
-                    <div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-900">
-                          Scene Elements (Optional)
-                        </label>
-                        <Textarea
-                          placeholder="Describe key elements you want in this scene (e.g., 'classroom setting with whiteboard, students sitting in groups')"
-                          value={segment.sceneDescription}
-                          onChange={(e) => {
-                            const newSegments = [...script.segments];
-                            newSegments[index] = {
-                              ...segment,
-                              sceneDescription: e.target.value,
-                            };
-                            setScript({ ...script, segments: newSegments });
-                          }}
-                          fullWidth
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => generateSceneDescription(index, segment.sceneDescription)}
-                          isLoading={isEnhancing}
-                          loadingText="Generating..."
-                          leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
-                        >
-                          Generate Scene Description
-                        </Button>
-                      </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-white">
+                        What happens in this scene?
+                      </label>
+                      <Textarea
+                        placeholder="Describe what happens in this scene (e.g., 'The teacher explains the water cycle using a diagram on the whiteboard')"
+                        value={scene.sceneDescription}
+                        onChange={(e) => {
+                          const newScenes = [...script.segments];
+                          newScenes[index] = {
+                            ...scene,
+                            sceneDescription: e.target.value,
+                          };
+                          setScript({ ...script, segments: newScenes });
+                        }}
+                        fullWidth
+                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateSceneDescription(index, scene.sceneDescription)}
+                        isLoading={isEnhancing}
+                        loadingText="Generating..."
+                        leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                        className="border-slate-700 text-white hover:bg-slate-700"
+                      >
+                        Generate Scene Description
+                      </Button>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-900">
-                        Characters in Scene (Max 3)
-                      </label>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                      <Select
+                        label="Who is speaking in this scene?"
+                        options={characters.map(char => ({ value: char.id, label: char.name }))}
+                        value={scene.speakerCharacterId || ''}
+                        onChange={(value) => {
+                          const newScenes = [...script.segments];
+                          newScenes[index] = {
+                            ...scene,
+                            speakerCharacterId: value,
+                          };
+                          setScript({ ...script, segments: newScenes });
+                        }}
+                        fullWidth
+                        className="bg-slate-800 border-slate-700 text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-white">Who else appears in this scene? (Max 3)</label>
+                      <div className="mt-2 flex flex-wrap gap-3">
                         {characters.map(character => (
                           <div
                             key={character.id}
-                            onClick={() => {
-                              const isSelected = segment.charactersInScene.includes(character.id);
-                              let newCharacters = [...segment.charactersInScene];
-                              
-                              if (isSelected) {
-                                newCharacters = newCharacters.filter(id => id !== character.id);
-                                if (segment.speakerCharacterId === character.id) {
-                                  segment.speakerCharacterId = undefined;
-                                }
-                              } else if (newCharacters.length < 3) {
-                                newCharacters.push(character.id);
-                              }
-                              
-                              const newSegments = [...script.segments];
-                              newSegments[index] = {
-                                ...segment,
-                                charactersInScene: newCharacters,
-                              };
-                              setScript({ ...script, segments: newSegments });
-                            }}
                             className={`cursor-pointer rounded-lg border p-2 transition-colors ${
-                              segment.charactersInScene.includes(character.id)
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-slate-200 hover:border-purple-200'
-                            } ${segment.charactersInScene.length >= 3 && !segment.charactersInScene.includes(character.id)
+                              scene.charactersInScene.includes(character.id)
+                                ? 'border-purple-500 bg-purple-900/20'
+                                : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
+                            } ${scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)
                               ? 'opacity-50 cursor-not-allowed'
                               : ''
                             }`}
+                            onClick={() => {
+                              if (scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)) return;
+                              const newScenes = [...script.segments];
+                              const currentCharacters = newScenes[index].charactersInScene;
+                              newScenes[index] = {
+                                ...scene,
+                                charactersInScene: currentCharacters.includes(character.id)
+                                  ? currentCharacters.filter(id => id !== character.id)
+                                  : [...currentCharacters, character.id],
+                              };
+                              setScript({ ...script, segments: newScenes });
+                            }}
                           >
                             <div className="flex items-center gap-2">
                               {character.avatar_url ? (
@@ -498,13 +602,13 @@ export const CreateVideoForm: React.FC<Props> = ({
                                   className="h-8 w-8 rounded-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-                                  <span className="text-sm font-medium text-purple-700">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-900/50">
+                                  <span className="text-sm font-medium text-purple-400">
                                     {character.name[0]}
                                   </span>
                                 </div>
                               )}
-                              <span className="text-sm font-medium text-slate-900">
+                              <span className="text-sm font-medium text-white">
                                 {character.name}
                               </span>
                             </div>
@@ -513,70 +617,48 @@ export const CreateVideoForm: React.FC<Props> = ({
                       </div>
                     </div>
 
-                    <Select
-                      label="Speaking Character"
-                      options={[
-                        { value: '', label: 'Select speaking character' },
-                        ...segment.charactersInScene.map(charId => {
-                          const character = characters.find(c => c.id === charId);
-                          return {
-                            value: charId,
-                            label: character?.name || '',
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-white">
+                        What do they say?
+                      </label>
+                      <Input
+                        value={scene.text}
+                        onChange={(e) => {
+                          const newScenes = [...script.segments];
+                          newScenes[index] = {
+                            ...scene,
+                            text: e.target.value,
                           };
-                        })
-                      ]}
-                      value={segment.speakerCharacterId || ''}
-                      onChange={(value) => {
-                        const newSegments = [...script.segments];
-                        newSegments[index] = {
-                          ...segment,
-                          speakerCharacterId: value,
-                        };
-                        setScript({ ...script, segments: newSegments });
-                      }}
-                      fullWidth
-                    />
-                    
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="text-sm font-medium text-slate-900">Script</label>
+                          setScript({ ...script, segments: newScenes });
+                        }}
+                        placeholder="Enter what the speaking character says in this scene"
+                        fullWidth
+                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                      />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => generateScript(index)}
-                        isLoading={isEnhancing}
-                        loadingText="Generating..."
+                        isLoading={isEnhancing && (currentStep === 'script')}
+                        loadingText="Generating Script..."
                         leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
-                        disabled={!segment.charactersInScene.length || !segment.speakerCharacterId || isEnhancing}
+                        className="border-slate-700 text-white hover:bg-slate-700"
                       >
-                        Generate Script
+                        Generate Dialogue
                       </Button>
                     </div>
-                    
-                    <Textarea
-                      value={segment.text}
-                      onChange={(e) => {
-                        const newSegments = [...script.segments];
-                        newSegments[index] = {
-                          ...segment,
-                          text: e.target.value,
-                        };
-                        setScript({ ...script, segments: newSegments });
-                      }}
-                      placeholder="What should the character say in this segment?"
-                      fullWidth
-                    />
                   </div>
                 </div>
               ))}
-              
               <Button
                 type="button"
                 variant="outline"
                 onClick={addNewSegment}
-                fullWidth
                 leftIcon={<PlusCircle className="h-4 w-4" />}
+                fullWidth
+                className="border-slate-700 text-white hover:bg-slate-700"
               >
-                Add Another Segment
+                Add New Scene
               </Button>
             </div>
             
@@ -601,67 +683,76 @@ export const CreateVideoForm: React.FC<Props> = ({
       case 'review':
         return (
           <div className="space-y-6">
-            <div className="rounded-lg border border-slate-200 p-4">
-              <h3 className="mb-2 text-lg font-medium text-slate-900">Video Goals</h3>
+            <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+              <h3 className="mb-2 text-lg font-medium text-white">Video Goals</h3>
               <dl className="space-y-2">
                 <div>
-                  <dt className="text-sm font-medium text-slate-500">Title</dt>
-                  <dd className="text-slate-900">{goals.title}</dd>
+                  <dt className="text-sm font-medium text-slate-300">Title</dt>
+                  <dd className="text-white">{goals.title}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-slate-500">Description</dt>
-                  <dd className="text-slate-900">{goals.description}</dd>
+                  <dt className="text-sm font-medium text-slate-300">Description</dt>
+                  <dd className="text-white">{goals.description}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-slate-500">Target Audience</dt>
-                  <dd className="text-slate-900">{goals.targetAudience}</dd>
+                  <dt className="text-sm font-medium text-slate-300">Target Audience</dt>
+                  <dd className="text-white">{goals.targetAudience}</dd>
                 </div>
+                {goals.learningObjectives.some(obj => obj.trim() !== '') && (
+                  <div>
+                    <dt className="text-sm font-medium text-slate-300">Learning Objectives</dt>
+                    <dd className="mt-1 text-white">
+                      <ul className="list-inside list-disc space-y-1">
+                        {goals.learningObjectives.filter(obj => obj.trim() !== '').map((objective, index) => (
+                          <li key={index}>{objective}</li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
             
-            <div className="rounded-lg border border-slate-200 p-4">
-              <h3 className="mb-2 text-lg font-medium text-slate-900">Script</h3>
-              <div className="space-y-6">
-                {script.segments.map((segment, index) => {
-                  const speaker = characters.find(c => c.id === segment.speakerCharacterId);
-                  const sceneCharacters = segment.charactersInScene
-                    .map(id => characters.find(c => c.id === id))
-                    .filter((c): c is Character => c !== undefined);
-                  
+            <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+              <h3 className="mb-2 text-lg font-medium text-white">Video Script</h3>
+              <div className="space-y-4">
+                {script.segments.map((scene, index) => {
+                  const speaker = characters.find(char => char.id === scene.speakerCharacterId);
+                  const charactersInSceneNames = characters
+                    .filter(char => scene.charactersInScene.includes(char.id))
+                    .map(char => char.name)
+                    .join(', ');
+
                   return (
-                    <div key={index} className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-slate-900">Scene {index + 1}</h4>
-                        <span className="text-sm text-slate-500">~6 seconds</span>
-                      </div>
-                      
-                      <div className="rounded-lg bg-slate-50 p-3">
-                        <p className="text-sm text-slate-600">{segment.sceneDescription}</p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        {sceneCharacters.map(character => (
-                          <span
-                            key={character.id}
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
-                              character.id === segment.speakerCharacterId
-                                ? 'bg-purple-100 text-purple-900'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {character.name}
-                            {character.id === segment.speakerCharacterId && ' (Speaking)'}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="border-l-2 border-purple-200 pl-4">
-                        <p className="text-slate-900">{segment.text}</p>
+                    <div key={index} className="rounded-lg border border-slate-700 p-4 bg-slate-900">
+                      <h4 className="font-medium text-white">Scene {index + 1}</h4>
+                      {speaker && (
+                        <p className="text-sm text-slate-300">Speaker: {speaker.name}</p>
+                      )}
+                      {charactersInSceneNames && (
+                        <p className="text-sm text-slate-300">Characters: {charactersInSceneNames}</p>
+                      )}
+                      {scene.sceneDescription && (
+                        <p className="text-sm text-slate-300">Scene: {scene.sceneDescription}</p>
+                      )}
+                      <div className="border-l-2 border-purple-400 pl-4 mt-2">
+                        <p className="text-slate-300">{scene.text}</p>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+              <h3 className="mb-2 text-lg font-medium text-white">Music Style</h3>
+              {script.musicId ? (
+                <p className="text-white">
+                  {musicStyles.find(m => m.id === script.musicId)?.name || 'N/A'}
+                </p>
+              ) : (
+                <p className="text-slate-300">No music style selected.</p>
+              )}
             </div>
           </div>
         );
@@ -671,7 +762,7 @@ export const CreateVideoForm: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-600">
+        <div className="rounded-md bg-red-900/50 p-4 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -686,8 +777,8 @@ export const CreateVideoForm: React.FC<Props> = ({
                     currentStep === step
                       ? 'bg-purple-600 text-white'
                       : index < ['goals', 'script', 'review'].indexOf(currentStep)
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-slate-100 text-slate-400'
+                      ? 'bg-purple-900/50 text-purple-300'
+                      : 'bg-slate-700 text-slate-400'
                   }`}
                 >
                   {index + 1}
@@ -696,59 +787,60 @@ export const CreateVideoForm: React.FC<Props> = ({
                   <div
                     className={`h-0.5 w-8 ${
                       index < ['goals', 'script'].indexOf(currentStep)
-                        ? 'bg-purple-200'
-                        : 'bg-slate-200'
+                        ? 'bg-purple-400'
+                        : 'bg-slate-700'
                     }`}
                   />
                 )}
               </React.Fragment>
             ))}
           </div>
-          <div className="text-sm font-medium text-slate-500">
+          <div className="text-sm font-medium text-slate-300">
             Step {['goals', 'script', 'review'].indexOf(currentStep) + 1} of 3
           </div>
         </div>
-      </div>
 
-      {renderStepContent()}
-      
-      <div className="flex justify-between pt-6">
-        {currentStep !== 'goals' && (
+        {renderStepContent()}
+        
+        <div className="flex justify-between pt-6">
+          {currentStep !== 'goals' && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setError(null);
+                setCurrentStep(prev => {
+                  switch (prev) {
+                    case 'script': return 'goals';
+                    case 'review': return 'script';
+                    default: return prev;
+                  }
+                });
+              }}
+              leftIcon={<ArrowLeft className="h-4 w-4" />}
+              className="border-slate-700 text-white hover:bg-slate-700"
+            >
+              Back
+            </Button>
+          )}
+          
           <Button
-            type="button"
-            variant="outline"
+            className="ml-auto"
             onClick={() => {
               setError(null);
-              setCurrentStep(prev => {
-                switch (prev) {
-                  case 'script': return 'goals';
-                  case 'review': return 'script';
-                  default: return prev;
-                }
-              });
+              switch (currentStep) {
+                case 'goals': return handleGoalsSubmit();
+                case 'script': return handleScriptSubmit();
+                case 'review': return handleFinalSubmit();
+              }
             }}
-            leftIcon={<ArrowLeft className="h-4 w-4" />}
+            isLoading={isSubmitting}
+            loadingText={currentStep === 'review' ? 'Creating Video...' : 'Next'}
+            rightIcon={currentStep !== 'review' ? <ArrowRight className="h-4 w-4" /> : undefined}
           >
-            Back
+            {currentStep === 'review' ? 'Create Video' : 'Next'}
           </Button>
-        )}
-        
-        <Button
-          className="ml-auto"
-          onClick={() => {
-            setError(null);
-            switch (currentStep) {
-              case 'goals': return handleGoalsSubmit();
-              case 'script': return handleScriptSubmit();
-              case 'review': return handleFinalSubmit();
-            }
-          }}
-          isLoading={isSubmitting}
-          loadingText={currentStep === 'review' ? 'Creating Video...' : 'Next'}
-          rightIcon={currentStep !== 'review' ? <ArrowRight className="h-4 w-4" /> : undefined}
-        >
-          {currentStep === 'review' ? 'Create Video' : 'Next'}
-        </Button>
+        </div>
       </div>
     </div>
   );

@@ -12,8 +12,8 @@ export const LoginPage = () => {
   }
   
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-slate-100 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white shadow-lg">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+      <div className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 shadow-lg">
         <LoginComponent />
       </div>
     </div>
