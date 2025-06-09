@@ -76,19 +76,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, toggleMobileSide
       >
         <div className="flex h-16 items-center justify-between px-4 border-b border-slate-800">
           <div className="flex items-center">
-            <svg 
-              viewBox="0 0 24 24" 
-              className="h-8 w-8 text-purple-500"
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <path d="M12 3v15m0 0 6.5-6.5M12 18l-6.5-6.5" />
-              <path d="M3 9h18M3 15h18" />
-            </svg>
-            <span className="ml-2 text-xl font-bold">EduMotion</span>
+            <img 
+              src="/EduMotionLogo.png" 
+              alt="EduMotion Logo" 
+              className="h-8 w-auto"
+            />
+            <span className="ml-2 text-xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">EduMotion</span>
           </div>
           <button 
             className="lg:hidden"
@@ -106,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, toggleMobileSide
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200",
                 isActive 
-                  ? "bg-purple-700 text-white" 
+                  ? "bg-gradient-to-r from-purple-600 to-orange-500 text-white" 
                   : "text-slate-300 hover:bg-slate-800 hover:text-white"
               )}
               onClick={() => {
@@ -123,19 +116,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, toggleMobileSide
         </nav>
         
         <div className="absolute bottom-0 left-0 right-0 p-4">
-          <div className="flex items-center gap-2 rounded-md bg-slate-800 p-3">
-            <svg 
-              viewBox="0 0 24 24" 
-              className="h-8 w-8 text-purple-500"
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <path d="M12 3v15m0 0 6.5-6.5M12 18l-6.5-6.5" />
-              <path d="M3 9h18M3 15h18" />
-            </svg>
+          <div className="flex items-center gap-2 rounded-md bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3">
+            <img 
+              src="/EduMotionLogo.png" 
+              alt="EduMotion Logo" 
+              className="h-8 w-auto"
+            />
             <div className="flex flex-col">
               <span className="text-sm font-medium text-white">EduMotion</span>
               <span className="text-xs text-slate-400">v0.1.0</span>

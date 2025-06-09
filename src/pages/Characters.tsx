@@ -108,7 +108,7 @@ export const Characters = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-white">Characters</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Characters</h1>
         <p className="text-slate-400">
           Create and manage characters for your educational videos
         </p>

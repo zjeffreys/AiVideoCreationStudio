@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, ArrowLeft, ArrowRight, Wand2 } from 'lucide-react';
+import { PlusCircle, ArrowLeft, ArrowRight, Wand2, ChevronDown } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
@@ -20,7 +20,7 @@ export const CreateVideoForm: React.FC<Props> = ({
   onVideoCreated 
 }) => {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState<VideoCreationStep>('goals');
+  const [currentStep, setCurrentStep] = useState<VideoCreationStep>('script');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export const CreateVideoForm: React.FC<Props> = ({
     targetAudience: '',
     learningObjectives: [''],
     duration: 120,
+    isDetailsOpen: false,
   });
 
   const [script, setScript] = useState<VideoScript>({
@@ -39,6 +40,7 @@ export const CreateVideoForm: React.FC<Props> = ({
       sceneDescription: '',
       charactersInScene: [],
       speakerCharacterId: undefined,
+      isOpen: false,
     }],
     style: '',
     musicId: '',
@@ -106,6 +108,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           sceneDescription: desc.trim(),
           charactersInScene: [],
           speakerCharacterId: undefined,
+          isOpen: false,
         })),
       }));
 
@@ -309,15 +312,11 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
     }
   };
 
-  const handleGoalsSubmit = async () => {
+  const handleScriptSubmit = () => {
     if (!goals.title || !goals.description) {
-      setError('Please fill in all required fields');
+      setError('Please fill in the video title and description');
       return;
     }
-    setCurrentStep('script');
-  };
-
-  const handleScriptSubmit = () => {
     if (script.segments.some(scene => !scene.text || !scene.speakerCharacterId || !scene.sceneDescription)) {
       setError('Please fill in all script scenes, including scene descriptions and speaking characters');
       return;
@@ -389,293 +388,306 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
         sceneDescription: '',
         charactersInScene: [],
         speakerCharacterId: undefined,
+        isOpen: false,
       }],
     }));
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 'goals':
+      case 'script':
         return (
           <div className="space-y-6">
-            <Input
-              label="Video Title"
-              value={goals.title}
-              onChange={(e) => setGoals({ ...goals, title: e.target.value })}
-              placeholder="Enter a title for your educational video"
-              required
-              fullWidth
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-            />
-            
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-white">
-                Description
-              </label>
-              <Textarea
-                value={goals.description}
-                onChange={(e) => setGoals({ ...goals, description: e.target.value })}
-                placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
-                required
-                fullWidth
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-              />
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-slate-400">
-                  Pro tip: Write a basic description and click "Enhance" to make it more engaging
-                </p>
+            {/* Video Details Section */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800">
+              <button
+                onClick={() => setGoals(prev => ({ ...prev, isDetailsOpen: !prev.isDetailsOpen }))}
+                className="flex w-full items-center justify-between p-6 text-left"
+              >
+                <h2 className="text-xl font-semibold text-white">Video Details</h2>
+                <ChevronDown 
+                  className={`h-5 w-5 text-slate-400 transition-transform ${
+                    goals.isDetailsOpen ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+              
+              {goals.isDetailsOpen && (
+                <div className="space-y-4 border-t border-slate-700 p-6">
+                  <Input
+                    label="Video Title"
+                    value={goals.title}
+                    onChange={(e) => setGoals({ ...goals, title: e.target.value })}
+                    placeholder="Enter a title for your educational video"
+                    required
+                    fullWidth
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                  />
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-white">
+                      Description
+                    </label>
+                    <Textarea
+                      value={goals.description}
+                      onChange={(e) => setGoals({ ...goals, description: e.target.value })}
+                      placeholder="Describe what you want to teach in this video. For example: 'This video explains the water cycle for middle school students, covering evaporation, condensation, and precipitation through engaging animations and real-world examples.'"
+                      required
+                      fullWidth
+                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-slate-400">
+                        Pro tip: Write a basic description and click "Enhance" to make it more engaging
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={enhanceDescription}
+                        isLoading={isEnhancing}
+                        loadingText="Enhancing..."
+                        leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                        disabled={!goals.description || isEnhancing}
+                        className="border-slate-700 text-white hover:bg-slate-700"
+                      >
+                        Enhance Description
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Input
+                    label="Target Audience"
+                    value={goals.targetAudience}
+                    onChange={(e) => setGoals({ ...goals, targetAudience: e.target.value })}
+                    placeholder="Who is this video for?"
+                    fullWidth
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Script Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white">Create Script</h2>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={enhanceDescription}
+                  onClick={generateSuggestedScenes}
                   isLoading={isEnhancing}
-                  loadingText="Enhancing..."
+                  loadingText="Generating Scenes..."
                   leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
                   disabled={!goals.description || isEnhancing}
                   className="border-slate-700 text-white hover:bg-slate-700"
                 >
-                  Enhance Description
+                  Generate Suggested Scenes
                 </Button>
               </div>
-            </div>
-            
-            <Input
-              label="Target Audience"
-              value={goals.targetAudience}
-              onChange={(e) => setGoals({ ...goals, targetAudience: e.target.value })}
-              placeholder="Who is this video for?"
-              fullWidth
-              className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-            />
-            
-            <div className="space-y-4">
-              <label className="text-sm font-medium text-white">
-                Learning Objectives
-              </label>
-              {goals.learningObjectives.map((objective, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={objective}
-                    onChange={(e) => {
-                      const newObjectives = [...goals.learningObjectives];
-                      newObjectives[index] = e.target.value;
-                      setGoals({ ...goals, learningObjectives: newObjectives });
-                    }}
-                    placeholder={`Objective ${index + 1}`}
-                    fullWidth
-                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-                  />
-                  {index === goals.learningObjectives.length - 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setGoals({
-                        ...goals,
-                        learningObjectives: [...goals.learningObjectives, '']
-                      })}
-                      className="border-slate-700 text-white hover:bg-slate-700"
+              <div className="space-y-4">
+                {script.segments.map((scene, index) => (
+                  <div key={index} className="rounded-lg border border-slate-700 bg-slate-900">
+                    <button
+                      onClick={() => {
+                        const newScenes = [...script.segments];
+                        newScenes[index] = {
+                          ...scene,
+                          isOpen: !scene.isOpen
+                        };
+                        setScript({ ...script, segments: newScenes });
+                      }}
+                      className="flex w-full items-center justify-between p-4 text-left"
                     >
-                      <PlusCircle className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-white">Scene {index + 1}</h3>
+                        {scene.sceneDescription && (
+                          <span className="text-sm text-slate-400 line-clamp-1">
+                            {scene.sceneDescription}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSegment(index);
+                          }}
+                          className="text-red-400 hover:bg-red-900/50 hover:text-red-300"
+                        >
+                          Delete Scene
+                        </Button>
+                        <ChevronDown 
+                          className={`h-5 w-5 text-slate-400 transition-transform ${
+                            scene.isOpen ? 'rotate-180' : ''
+                          }`} 
+                        />
+                      </div>
+                    </button>
 
-      case 'script':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Create Script</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={generateSuggestedScenes}
-                isLoading={isEnhancing}
-                loadingText="Generating Scenes..."
-                leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
-                disabled={!goals.description || isEnhancing}
-                className="border-slate-700 text-white hover:bg-slate-700"
-              >
-                Generate Suggested Scenes
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {script.segments.map((scene, index) => (
-                <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Scene {index + 1}</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteSegment(index)}
-                      className="text-red-400 hover:bg-red-900/50 hover:text-red-300"
-                    >
-                      Delete Scene
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">
-                        What happens in this scene?
-                      </label>
-                      <Textarea
-                        placeholder="Describe what happens in this scene (e.g., 'The teacher explains the water cycle using a diagram on the whiteboard')"
-                        value={scene.sceneDescription}
-                        onChange={(e) => {
-                          const newScenes = [...script.segments];
-                          newScenes[index] = {
-                            ...scene,
-                            sceneDescription: e.target.value,
-                          };
-                          setScript({ ...script, segments: newScenes });
-                        }}
-                        fullWidth
-                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateSceneDescription(index, scene.sceneDescription)}
-                        isLoading={isEnhancing}
-                        loadingText="Generating..."
-                        leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
-                        className="border-slate-700 text-white hover:bg-slate-700"
-                      >
-                        Generate Scene Description
-                      </Button>
-                    </div>
-
-                    <div>
-                      <Select
-                        label="Who is speaking in this scene?"
-                        options={characters.map(char => ({ value: char.id, label: char.name }))}
-                        value={scene.speakerCharacterId || ''}
-                        onChange={(value) => {
-                          const newScenes = [...script.segments];
-                          newScenes[index] = {
-                            ...scene,
-                            speakerCharacterId: value,
-                          };
-                          setScript({ ...script, segments: newScenes });
-                        }}
-                        fullWidth
-                        className="bg-slate-800 border-slate-700 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-white">Who else appears in this scene? (Max 3)</label>
-                      <div className="mt-2 flex flex-wrap gap-3">
-                        {characters.map(character => (
-                          <div
-                            key={character.id}
-                            className={`cursor-pointer rounded-lg border p-2 transition-colors ${
-                              scene.charactersInScene.includes(character.id)
-                                ? 'border-purple-500 bg-purple-900/20'
-                                : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
-                            } ${scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)
-                              ? 'opacity-50 cursor-not-allowed'
-                              : ''
-                            }`}
-                            onClick={() => {
-                              if (scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)) return;
+                    {scene.isOpen && (
+                      <div className="space-y-4 border-t border-slate-700 p-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-white">
+                            What happens in this scene?
+                          </label>
+                          <Textarea
+                            placeholder="Describe what happens in this scene (e.g., 'The teacher explains the water cycle using a diagram on the whiteboard')"
+                            value={scene.sceneDescription}
+                            onChange={(e) => {
                               const newScenes = [...script.segments];
-                              const currentCharacters = newScenes[index].charactersInScene;
                               newScenes[index] = {
                                 ...scene,
-                                charactersInScene: currentCharacters.includes(character.id)
-                                  ? currentCharacters.filter(id => id !== character.id)
-                                  : [...currentCharacters, character.id],
+                                sceneDescription: e.target.value,
                               };
                               setScript({ ...script, segments: newScenes });
                             }}
+                            fullWidth
+                            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generateSceneDescription(index, scene.sceneDescription)}
+                            isLoading={isEnhancing}
+                            loadingText="Generating..."
+                            leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                            className="border-slate-700 text-white hover:bg-slate-700"
                           >
-                            <div className="flex items-center gap-2">
-                              {character.avatar_url ? (
-                                <img
-                                  src={character.avatar_url}
-                                  alt={character.name}
-                                  className="h-8 w-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-900/50">
-                                  <span className="text-sm font-medium text-purple-400">
-                                    {character.name[0]}
+                            Generate Scene Description
+                          </Button>
+                        </div>
+
+                        <div>
+                          <Select
+                            label="Who is speaking in this scene?"
+                            options={characters.map(char => ({ value: char.id, label: char.name }))}
+                            value={scene.speakerCharacterId || ''}
+                            onChange={(value) => {
+                              const newScenes = [...script.segments];
+                              newScenes[index] = {
+                                ...scene,
+                                speakerCharacterId: value,
+                              };
+                              setScript({ ...script, segments: newScenes });
+                            }}
+                            fullWidth
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-white">Who else appears in this scene? (Max 3)</label>
+                          <div className="mt-2 flex flex-wrap gap-3">
+                            {characters.map(character => (
+                              <div
+                                key={character.id}
+                                className={`cursor-pointer rounded-lg border p-2 transition-colors ${
+                                  scene.charactersInScene.includes(character.id)
+                                    ? 'border-purple-500 bg-purple-900/20'
+                                    : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
+                                } ${scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)
+                                  ? 'opacity-50 cursor-not-allowed'
+                                  : ''
+                                }`}
+                                onClick={() => {
+                                  if (scene.charactersInScene.length >= 3 && !scene.charactersInScene.includes(character.id)) return;
+                                  const newScenes = [...script.segments];
+                                  const currentCharacters = newScenes[index].charactersInScene;
+                                  newScenes[index] = {
+                                    ...scene,
+                                    charactersInScene: currentCharacters.includes(character.id)
+                                      ? currentCharacters.filter(id => id !== character.id)
+                                      : [...currentCharacters, character.id],
+                                  };
+                                  setScript({ ...script, segments: newScenes });
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  {character.avatar_url ? (
+                                    <img
+                                      src={character.avatar_url}
+                                      alt={character.name}
+                                      className="h-8 w-8 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-900/50">
+                                      <span className="text-sm font-medium text-purple-400">
+                                        {character.name[0]}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-medium text-white">
+                                    {character.name}
                                   </span>
                                 </div>
-                              )}
-                              <span className="text-sm font-medium text-white">
-                                {character.name}
-                              </span>
-                            </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-white">
-                        What do they say?
-                      </label>
-                      <Input
-                        value={scene.text}
-                        onChange={(e) => {
-                          const newScenes = [...script.segments];
-                          newScenes[index] = {
-                            ...scene,
-                            text: e.target.value,
-                          };
-                          setScript({ ...script, segments: newScenes });
-                        }}
-                        placeholder="Enter what the speaking character says in this scene"
-                        fullWidth
-                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateScript(index)}
-                        isLoading={isEnhancing && (currentStep === 'script')}
-                        loadingText="Generating Script..."
-                        leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
-                        className="border-slate-700 text-white hover:bg-slate-700"
-                      >
-                        Generate Dialogue
-                      </Button>
-                    </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-white">
+                            What do they say?
+                          </label>
+                          <Input
+                            value={scene.text}
+                            onChange={(e) => {
+                              const newScenes = [...script.segments];
+                              newScenes[index] = {
+                                ...scene,
+                                text: e.target.value,
+                              };
+                              setScript({ ...script, segments: newScenes });
+                            }}
+                            placeholder="Enter what the speaking character says in this scene"
+                            fullWidth
+                            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-300"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generateScript(index)}
+                            isLoading={isEnhancing && (currentStep === 'script')}
+                            loadingText="Generating Script..."
+                            leftIcon={!isEnhancing ? <Wand2 className="h-4 w-4" /> : undefined}
+                            className="border-slate-700 text-white hover:bg-slate-700"
+                          >
+                            Generate Dialogue
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addNewSegment}
-                leftIcon={<PlusCircle className="h-4 w-4" />}
-                fullWidth
-                className="border-slate-700 text-white hover:bg-slate-700"
-              >
-                Add New Scene
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              <Select
-                label="Music Style"
-                options={[
-                  { value: '', label: 'Select music style' },
-                  ...musicStyles.map(style => ({
-                    value: style.id,
-                    label: style.name,
-                  }))
-                ]}
-                value={script.musicId || ''}
-                onChange={(value) => setScript({ ...script, musicId: value })}
-                fullWidth
-              />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addNewSegment}
+                  leftIcon={<PlusCircle className="h-4 w-4" />}
+                  fullWidth
+                  className="border-slate-700 text-white hover:bg-slate-700"
+                >
+                  Add New Scene
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <Select
+                  label="Music Style"
+                  options={[
+                    { value: '', label: 'Select music style' },
+                    ...musicStyles.map(style => ({
+                      value: style.id,
+                      label: style.name,
+                    }))
+                  ]}
+                  value={script.musicId || ''}
+                  onChange={(value) => setScript({ ...script, musicId: value })}
+                  fullWidth
+                />
+              </div>
             </div>
           </div>
         );
@@ -684,33 +696,14 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
         return (
           <div className="space-y-6">
             <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-              <h3 className="mb-2 text-lg font-medium text-white">Video Goals</h3>
-              <dl className="space-y-2">
-                <div>
-                  <dt className="text-sm font-medium text-slate-300">Title</dt>
-                  <dd className="text-white">{goals.title}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-slate-300">Description</dt>
-                  <dd className="text-white">{goals.description}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-slate-300">Target Audience</dt>
-                  <dd className="text-white">{goals.targetAudience}</dd>
-                </div>
-                {goals.learningObjectives.some(obj => obj.trim() !== '') && (
-                  <div>
-                    <dt className="text-sm font-medium text-slate-300">Learning Objectives</dt>
-                    <dd className="mt-1 text-white">
-                      <ul className="list-inside list-disc space-y-1">
-                        {goals.learningObjectives.filter(obj => obj.trim() !== '').map((objective, index) => (
-                          <li key={index}>{objective}</li>
-                        ))}
-                      </ul>
-                    </dd>
-                  </div>
+              <h3 className="mb-2 text-lg font-medium text-white">Video Details</h3>
+              <div className="space-y-2">
+                <p className="text-slate-300"><span className="font-medium text-white">Title:</span> {goals.title}</p>
+                <p className="text-slate-300"><span className="font-medium text-white">Description:</span> {goals.description}</p>
+                {goals.targetAudience && (
+                  <p className="text-slate-300"><span className="font-medium text-white">Target Audience:</span> {goals.targetAudience}</p>
                 )}
-              </dl>
+              </div>
             </div>
             
             <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
@@ -743,17 +736,6 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                 })}
               </div>
             </div>
-
-            <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-              <h3 className="mb-2 text-lg font-medium text-white">Music Style</h3>
-              {script.musicId ? (
-                <p className="text-white">
-                  {musicStyles.find(m => m.id === script.musicId)?.name || 'N/A'}
-                </p>
-              ) : (
-                <p className="text-slate-300">No music style selected.</p>
-              )}
-            </div>
           </div>
         );
     }
@@ -762,85 +744,44 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-md bg-red-900/50 p-4 text-sm text-red-400">
-          {error}
+        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
+          <p>{error}</p>
         </div>
       )}
-      
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {['goals', 'script', 'review'].map((step, index) => (
-              <React.Fragment key={step}>
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                    currentStep === step
-                      ? 'bg-purple-600 text-white'
-                      : index < ['goals', 'script', 'review'].indexOf(currentStep)
-                      ? 'bg-purple-900/50 text-purple-300'
-                      : 'bg-slate-700 text-slate-400'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-                {index < 2 && (
-                  <div
-                    className={`h-0.5 w-8 ${
-                      index < ['goals', 'script'].indexOf(currentStep)
-                        ? 'bg-purple-400'
-                        : 'bg-slate-700'
-                    }`}
-                  />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-          <div className="text-sm font-medium text-slate-300">
-            Step {['goals', 'script', 'review'].indexOf(currentStep) + 1} of 3
-          </div>
-        </div>
 
-        {renderStepContent()}
-        
-        <div className="flex justify-between pt-6">
-          {currentStep !== 'goals' && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setError(null);
-                setCurrentStep(prev => {
-                  switch (prev) {
-                    case 'script': return 'goals';
-                    case 'review': return 'script';
-                    default: return prev;
-                  }
-                });
-              }}
-              leftIcon={<ArrowLeft className="h-4 w-4" />}
-              className="border-slate-700 text-white hover:bg-slate-700"
-            >
-              Back
-            </Button>
-          )}
-          
+      {renderStepContent()}
+      
+      <div className="flex justify-between pt-6">
+        {currentStep !== 'script' && (
           <Button
-            className="ml-auto"
+            type="button"
+            variant="outline"
             onClick={() => {
               setError(null);
-              switch (currentStep) {
-                case 'goals': return handleGoalsSubmit();
-                case 'script': return handleScriptSubmit();
-                case 'review': return handleFinalSubmit();
-              }
+              setCurrentStep('script');
             }}
-            isLoading={isSubmitting}
-            loadingText={currentStep === 'review' ? 'Creating Video...' : 'Next'}
-            rightIcon={currentStep !== 'review' ? <ArrowRight className="h-4 w-4" /> : undefined}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+            className="border-slate-700 text-white hover:bg-slate-700"
           >
-            {currentStep === 'review' ? 'Create Video' : 'Next'}
+            Back
           </Button>
-        </div>
+        )}
+        
+        <Button
+          className="ml-auto"
+          onClick={() => {
+            setError(null);
+            switch (currentStep) {
+              case 'script': return handleScriptSubmit();
+              case 'review': return handleFinalSubmit();
+            }
+          }}
+          isLoading={isSubmitting}
+          loadingText={currentStep === 'review' ? 'Creating Video...' : 'Next'}
+          rightIcon={currentStep !== 'review' ? <ArrowRight className="h-4 w-4" /> : undefined}
+        >
+          {currentStep === 'review' ? 'Create Video' : 'Next'}
+        </Button>
       </div>
     </div>
   );

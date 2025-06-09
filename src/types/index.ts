@@ -49,7 +49,7 @@ export type Voice = {
   };
 };
 
-export type VideoCreationStep = 'goals' | 'script' | 'review';
+export type VideoCreationStep = 'script' | 'review';
 
 export interface VideoGoals {
   title: string;
@@ -57,6 +57,7 @@ export interface VideoGoals {
   targetAudience: string;
   learningObjectives: string[];
   duration: number;
+  isDetailsOpen: boolean;
 }
 
 export interface VideoScript {
@@ -66,7 +67,8 @@ export interface VideoScript {
     charactersInScene: string[];
     speakerCharacterId?: string;
     duration?: number;
+    isOpen: boolean;
   }[];
-  style?: string;
-  musicId?: string;
+  style: string;
+  musicId: string;
 }

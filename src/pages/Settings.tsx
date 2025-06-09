@@ -101,9 +101,9 @@ export const Settings = () => {
   return (
     <div className="space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Settings</h1>
         <p className="text-slate-300">
-          Manage your account and preferences
+          Manage your account settings and preferences
         </p>
       </div>
       
