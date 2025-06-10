@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, User, Lock, Bell, Globe } from 'lucide-react';
+import { Save, User, Lock, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -142,17 +142,6 @@ export const Settings = () => {
             <Bell className="h-5 w-5" />
             Notifications
           </button>
-          <button
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
-              activeTab === 'preferences' 
-                ? 'bg-purple-900/50 text-purple-400' 
-                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-            }`}
-            onClick={() => setActiveTab('preferences')}
-          >
-            <Globe className="h-5 w-5" />
-            Preferences
-          </button>
         </div>
         
         <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
@@ -212,7 +201,6 @@ export const Settings = () => {
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
                   fullWidth
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
@@ -221,7 +209,6 @@ export const Settings = () => {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  required
                   fullWidth
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
@@ -230,7 +217,6 @@ export const Settings = () => {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
                   fullWidth
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
                 />
@@ -238,7 +224,7 @@ export const Settings = () => {
                   <Button
                     type="submit"
                     isLoading={isUpdating}
-                    loadingText="Updating..."
+                    loadingText="Saving..."
                     leftIcon={!isUpdating ? <Save className="h-5 w-5" /> : undefined}
                   >
                     Update Password
@@ -281,42 +267,6 @@ export const Settings = () => {
                   </Button>
                 </div>
               </form>
-            </>
-          )}
-          
-          {activeTab === 'preferences' && (
-            <>
-              <h2 className="mb-6 text-xl font-semibold text-white">General Preferences</h2>
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="default-language" className="text-sm font-medium text-white">Default Language</label>
-                  <select
-                    id="default-language"
-                    className="mt-1 block w-full rounded-md border border-slate-700 bg-slate-800 py-2 pl-3 pr-10 text-base text-white focus:border-purple-500 focus:outline-none focus:ring-purple-500 sm:text-sm"
-                    defaultValue="en"
-                  >
-                    <option value="en" className="bg-slate-800">English</option>
-                    <option value="es" className="bg-slate-800">Spanish</option>
-                    <option value="fr" className="bg-slate-800">French</option>
-                  </select>
-                  <p className="mt-2 text-sm text-slate-400">This setting will be used for new video projects.</p>
-                </div>
-                <div>
-                  <label htmlFor="dark-mode-toggle" className="text-sm font-medium text-white">Theme</label>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-white">Dark Mode</span>
-                    {/* This toggle would typically be handled by a global theme context */}
-                    <input 
-                      type="checkbox" 
-                      id="dark-mode-toggle" 
-                      checked={true} // Assuming dark mode is always on for this demo
-                      readOnly
-                      className="form-checkbox h-5 w-5 text-purple-600 border-slate-700 bg-slate-800 focus:ring-purple-500"
-                    />
-                  </div>
-                  <p className="mt-2 text-sm text-slate-400">Switch between light and dark themes.</p>
-                </div>
-              </div>
             </>
           )}
         </div>

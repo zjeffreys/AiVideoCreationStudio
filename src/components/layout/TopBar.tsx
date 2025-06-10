@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 
@@ -33,12 +33,6 @@ export const TopBar: React.FC<TopBarProps> = ({ toggleMobileSidebar }) => {
       </button>
       
       <div className="flex items-center gap-4">
-        <button className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-300 hover:bg-slate-800 hover:text-white">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-red-500"></span>
-          <span className="sr-only">Notifications</span>
-        </button>
-        
         <div className="relative">
           <button
             className="flex items-center gap-2 rounded-full border border-slate-700 p-1 pl-1 pr-3 text-sm hover:bg-slate-800"

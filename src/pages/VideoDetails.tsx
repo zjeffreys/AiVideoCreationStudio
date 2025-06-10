@@ -6,24 +6,37 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Video, Character, VideoScript } from '../types';
 
-interface VideoSegment {
+// Define a type for the actual video segment data from the DB
+interface DbVideoSegment {
   id: string;
   video_id: string;
-  start_time: number;
-  end_time: number;
+  start_time: number | null;
+  end_time: number | null;
   text: string;
-  character_id: string;
+  character_id: string | null;
   voice_id: string | null;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   segment_url: string | null;
   created_at: string;
 }
 
+// Define a combined type for display, merging script scene with segment URL
+interface DisplayScene extends Omit<VideoScript['segments'][0], 'videoUrl'> {
+  segmentId?: string; // ID from video_segments table
+  videoUrl?: string | null; // The URL from video_segments.segment_url
+}
+
+// Extend Video type for internal use to include parsed script and segments
+interface ExtendedVideo extends Video {
+  parsedScript?: VideoScript;
+  dbSegments?: DbVideoSegment[];
+}
+
 export const VideoDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [video, setVideo] = useState<Video | null>(null);
+  const [video, setVideo] = useState<ExtendedVideo | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +48,10 @@ export const VideoDetails = () => {
       if (!id) return;
       
       try {
-        // Fetch video details (including the script JSONB column)
+        // Fetch main video details
         const { data: videoData, error: videoError } = await supabase
           .from('videos')
-          .select('*, script') // Explicitly select script, though '*' should include it
+          .select('*') // Select all columns, including the script (as text)
           .eq('id', id)
           .single();
         
@@ -51,22 +64,45 @@ export const VideoDetails = () => {
         }
 
         // Parse the script JSON string back into an object
-        const parsedScript: VideoScript = JSON.parse(videoData.script);
+        const parsedScript: VideoScript = JSON.parse(videoData.script as string);
 
-        // Update videoData to include the parsed script
-        setVideo({ ...videoData, script: parsedScript });
+        // Fetch associated video segments
+        const { data: dbSegmentsData, error: segmentsError } = await supabase
+          .from('video_segments')
+          .select('*')
+          .eq('video_id', id)
+          .order('created_at', { ascending: true }); // Order to match script segments potentially
 
-        // Fetch characters based on the script's charactersInScene
-        // Ensure parsedScript and parsedScript.segments exist before calling flatMap
-        const characterIdsInScript = parsedScript && parsedScript.segments 
-          ? parsedScript.segments.flatMap(s => s.charactersInScene).filter(Boolean)
-          : []; // Default to an empty array if script or segments are missing
+        if (segmentsError) throw segmentsError;
+
+        const extendedVideo: ExtendedVideo = {
+          ...videoData,
+          parsedScript: parsedScript,
+          dbSegments: dbSegmentsData || [],
+        };
+        setVideo(extendedVideo);
+
+        // Fetch characters based on the combined script's charactersInScene and actual segments' character_id
+        const allCharacterIds = new Set<string>();
+        if (parsedScript && parsedScript.segments) {
+          parsedScript.segments.forEach(s => {
+            s.charactersInScene.forEach(charId => allCharacterIds.add(charId));
+            if (s.speakerCharacterId) allCharacterIds.add(s.speakerCharacterId);
+          });
+        }
+        if (dbSegmentsData) {
+          dbSegmentsData.forEach(seg => {
+            if (seg.character_id) allCharacterIds.add(seg.character_id);
+          });
+        }
+
+        const uniqueCharacterIds = Array.from(allCharacterIds).filter(Boolean);
         
-        if (characterIdsInScript.length > 0) {
+        if (uniqueCharacterIds.length > 0) {
           const { data: charactersData, error: charactersError } = await supabase
             .from('characters')
             .select('*')
-            .in('id', characterIdsInScript);
+            .in('id', uniqueCharacterIds);
           
           if (charactersError) throw charactersError;
           setCharacters(charactersData || []);
@@ -147,14 +183,16 @@ export const VideoDetails = () => {
         if (completeError) throw completeError;
 
         // Refresh video data
+        // No longer fetching all columns just to update; only needed ones
         const { data: videoData } = await supabase
           .from('videos')
-          .select('*')
+          .select('id, status, video_url') // Only select necessary fields
           .eq('id', id)
           .single();
 
         if (videoData) {
-          setVideo(videoData);
+          // Only update relevant video fields, not the whole object from fetch
+          setVideo(prev => prev ? { ...prev, ...videoData } : null);
         }
 
         setIsGenerating(false);
@@ -207,33 +245,20 @@ export const VideoDetails = () => {
     );
   }
 
-  if (!video) {
-    return (
-      <div className="space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/videos')}
-          leftIcon={<ArrowLeft className="h-4 w-4" />}
-        >
-          Back to Videos
-        </Button>
-        
-        <div className="rounded-lg bg-slate-100 p-6 text-center">
-          <h3 className="text-lg font-semibold text-slate-900">Video Not Found</h3>
-          <p className="mt-2 text-slate-600">The requested video could not be found.</p>
-          <Button
-            className="mt-6"
-            variant="outline"
-            onClick={() => navigate('/videos')}
-          >
-            Return to Videos
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Combine script segments with actual video_segments data for display
+  const displayScenes: DisplayScene[] = video?.parsedScript?.segments.map((scriptScene, index) => {
+    const correspondingDbSegment = video.dbSegments?.find(dbSeg => {
+      // This is a simple way to find corresponding segment, might need more robust logic
+      // if segments can be reordered or if script text changes significantly
+      return dbSeg.text === scriptScene.text && dbSeg.character_id === scriptScene.speakerCharacterId;
+    });
 
-  const videoScript = video.script as VideoScript; // Cast to VideoScript
+    return {
+      ...scriptScene,
+      segmentId: correspondingDbSegment?.id,
+      videoUrl: correspondingDbSegment?.segment_url,
+    };
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -245,9 +270,9 @@ export const VideoDetails = () => {
         >
           Back to Videos
         </Button>
-        
         <Button
-          onClick={() => navigate(`/dashboard?editVideoId=${video.id}`)} // Placeholder for editing
+          variant="outline"
+          onClick={() => navigate(`/dashboard/edit/${video?.id}`)}
           leftIcon={<Wand2 className="h-4 w-4" />}
         >
           Edit Video
@@ -255,48 +280,97 @@ export const VideoDetails = () => {
       </div>
 
       <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-white">{video.title}</h1>
-        <p className="mt-2 text-slate-300">{video.description}</p>
+        <h1 className="mb-2 text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
+          {video?.title}
+        </h1>
+        <p className="text-slate-300">{video?.description}</p>
+      </div>
 
-        {video.music_style && (
-          <p className="mt-4 text-sm text-slate-400">
-            Music Style: {video.music_style}
-          </p>
-        )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold text-white">Video Script & Segments</h2>
+          <div className="space-y-4">
+            {displayScenes.map((scene, index) => {
+              const speaker = characters.find(char => char.id === scene.speakerCharacterId);
+              const charactersInSceneNames = characters
+                .filter(char => scene.charactersInScene.includes(char.id))
+                .map(char => char.name)
+                .join(', ');
 
-        <h2 className="mt-6 text-xl font-semibold text-white">Script Details</h2>
-        <div className="mt-4 space-y-4">
-          {videoScript?.segments?.map((scene, index) => {
-            const speaker = characters.find(char => char.id === scene.speakerCharacterId);
-            const charactersInSceneNames = characters
-              .filter(char => scene.charactersInScene.includes(char.id))
-              .map(char => char.name)
-              .filter(Boolean)
-              .join(', ');
-
-            return (
-              <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-                <h3 className="font-medium text-white">Scene {index + 1}</h3>
-                {scene.text && (
-                  <p className="text-slate-300 text-sm mt-1">Dialogue: {scene.text}</p>
-                )}
-                {scene.sceneDescription && (
-                  <p className="text-slate-300 text-sm mt-1">Description: {scene.sceneDescription}</p>
-                )}
-                {speaker && (
-                  <p className="text-slate-300 text-sm mt-1">Speaker: {speaker.name}</p>
-                )}
-                {charactersInSceneNames && (
-                  <p className="text-slate-300 text-sm mt-1">Characters: {charactersInSceneNames}</p>
-                )}
-                {scene.videoUrl && (
-                  <div className="mt-4 rounded-lg overflow-hidden border border-slate-700">
-                    <video controls src={scene.videoUrl} className="w-full h-auto"></video>
+              return (
+                <div key={index} className="rounded-lg border border-slate-700 p-4 bg-slate-900">
+                  <h4 className="font-medium text-white">Scene {index + 1}</h4>
+                  {speaker && (
+                    <p className="text-sm text-slate-300">Speaker: {speaker.name}</p>
+                  )}
+                  {charactersInSceneNames && (
+                    <p className="text-sm text-slate-300">Characters: {charactersInSceneNames}</p>
+                  )}
+                  {scene.sceneDescription && (
+                    <p className="text-sm text-slate-300">Scene: {scene.sceneDescription}</p>
+                  )}
+                  <div className="border-l-2 border-purple-400 pl-4 mt-2">
+                    <p className="text-slate-300">{scene.text}</p>
                   </div>
-                )}
+                  {scene.videoUrl && (
+                    <div className="mt-4">
+                      <video controls src={scene.videoUrl} className="w-full rounded-md" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold text-white">Final Video Generation</h2>
+          {video?.video_url ? (
+            <div className="space-y-4">
+              <video controls src={video.video_url} className="w-full rounded-md" />
+              <Button 
+                onClick={() => window.open(video.video_url || '', '_blank')}
+                leftIcon={<Download className="h-4 w-4" />}
+                fullWidth
+              >
+                Download Final Video
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="mb-4 text-slate-300">
+                <p>Select segments to generate the final video:</p>
               </div>
-            );
-          })}
+              {/* This part might need adjustment based on how segments are selected */}
+              {displayScenes.map((scene) => (
+                scene.segmentId && scene.videoUrl && (
+                  <div key={scene.segmentId} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={scene.segmentId}
+                      checked={selectedSegments.includes(scene.segmentId)}
+                      onChange={() => handleSegmentSelect(scene.segmentId as string)}
+                      className="form-checkbox h-4 w-4 text-purple-600 rounded-md border-slate-700 bg-slate-900 focus:ring-purple-500"
+                    />
+                    <label htmlFor={scene.segmentId} className="text-slate-300">
+                      Scene {displayScenes.indexOf(scene) + 1}: {scene.sceneDescription}
+                    </label>
+                  </div>
+                )
+              ))}
+              
+              <Button
+                onClick={handleGenerateFinalVideo}
+                isLoading={isGenerating}
+                loadingText="Generating..."
+                leftIcon={!isGenerating ? <Film className="h-4 w-4" /> : undefined}
+                fullWidth
+                disabled={selectedSegments.length === 0 || isGenerating}
+              >
+                Generate Final Video
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

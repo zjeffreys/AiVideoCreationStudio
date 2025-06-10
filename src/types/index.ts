@@ -8,7 +8,7 @@ export type Video = {
   id: string;
   title: string;
   description?: string;
-  script?: VideoScript;
+  script?: string;
   characters?: string[];
   status: 'draft' | 'processing' | 'complete';
   thumbnail_url?: string;
@@ -59,7 +59,6 @@ export interface VideoScript {
     speakerCharacterId?: string;
     duration?: number;
     isOpen: boolean;
-    videoUrl?: string;
   }[];
   style: string;
 }

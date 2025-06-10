@@ -6,7 +6,6 @@ import {
   Film, 
   Users, 
   Mic2, 
-  Music, 
   Settings,
   Menu,
   X
@@ -43,11 +42,6 @@ const navItems: NavItem[] = [
     label: 'Voices',
     path: '/voices',
     icon: <Mic2 className="h-5 w-5" />,
-  },
-  {
-    label: 'Music',
-    path: '/music',
-    icon: <Music className="h-5 w-5" />,
   },
   {
     label: 'Settings',

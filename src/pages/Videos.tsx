@@ -63,22 +63,66 @@ export const Videos = () => {
 
   const handleEditVideo = (video: Video) => {
     // Implement edit functionality
-    navigate(`/videos/${video.id}`);
+    navigate(`/dashboard/edit/${video.id}`);
   };
 
   const handleDeleteVideo = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this video?')) {
+    if (window.confirm('Are you sure you want to delete this video and all its associated data?')) {
+      if (!user) {
+        setError("User not authenticated.");
+        return;
+      }
+
       try {
-        const { error } = await supabase
+        // 1. Fetch associated video segments to get storage paths
+        const { data: segments, error: segmentsFetchError } = await supabase
+          .from('video_segments')
+          .select('segment_url')
+          .eq('video_id', id);
+
+        if (segmentsFetchError) throw segmentsFetchError;
+
+        // 2. Delete files from Supabase Storage
+        if (segments && segments.length > 0) {
+          const filesToDelete = segments.map(segment => {
+            // Extract the path after the bucket name, e.g., 'user_id/video_id/uuid.extension'
+            const urlParts = segment.segment_url.split('scene-videos/');
+            return urlParts.length > 1 ? urlParts[1] : null;
+          }).filter((path): path is string => path !== null);
+
+          if (filesToDelete.length > 0) {
+            const { error: storageDeleteError } = await supabase.storage
+              .from('scene-videos')
+              .remove(filesToDelete);
+
+            if (storageDeleteError) {
+              console.warn("Partial storage deletion error (some files might remain):", storageDeleteError); // Log warning for partial failure
+              // Don't throw here, continue with database deletion as it's more critical
+            }
+          }
+        }
+
+        // 3. Delete records from video_segments table
+        const { error: segmentsDeleteError } = await supabase
+          .from('video_segments')
+          .delete()
+          .eq('video_id', id);
+
+        if (segmentsDeleteError) throw segmentsDeleteError;
+
+        // 4. Delete the main video record
+        const { error: videoDeleteError } = await supabase
           .from('videos')
           .delete()
           .eq('id', id);
         
-        if (error) throw error;
+        if (videoDeleteError) throw videoDeleteError;
         
         // Refresh videos list
         fetchVideos();
+        alert('Video and all associated data deleted successfully!');
       } catch (error) {
+        console.error('Error deleting video:', error);
         if (error instanceof Error) {
           setError(error.message);
         } else {

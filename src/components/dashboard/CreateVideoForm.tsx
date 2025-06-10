@@ -12,11 +12,13 @@ import { SceneVideoUpload } from './SceneVideoUpload';
 type Props = {
   characters: Character[];
   onVideoCreated: () => void;
+  existingVideoId?: string;
 };
 
 export const CreateVideoForm: React.FC<Props> = ({
   characters,
-  onVideoCreated
+  onVideoCreated,
+  existingVideoId,
 }) => {
   console.log("CreateVideoForm rendering...");
   const { user } = useAuth();
@@ -32,6 +34,107 @@ export const CreateVideoForm: React.FC<Props> = ({
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [specificErrors, setSpecificErrors] = useState<Record<string, string>>({});
+  const [uploadedSceneUrls, setUploadedSceneUrls] = useState<Record<number, string | null>>({});
+  const [videoId, setVideoId] = useState<string | null>(existingVideoId || null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const createDraftVideo = async () => {
+      if (!user || existingVideoId || videoId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('videos')
+          .insert({
+            user_id: user.id,
+            title: 'New Video (Draft)',
+            description: '',
+            script: JSON.stringify({ segments: [], style: '' }),
+            status: 'draft',
+            characters: [],
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        setVideoId(data.id);
+        console.log("Draft video created with ID:", data.id);
+      } catch (error) {
+        console.error("Error creating draft video:", error);
+        if (error instanceof Error) {
+          setSpecificErrors({ initialization: `Failed to create draft video: ${error.message}` });
+        } else {
+          setSpecificErrors({ initialization: "An unknown error occurred during draft video creation." });
+        }
+      }
+    };
+
+    createDraftVideo();
+  }, [user, existingVideoId, videoId]);
+
+  useEffect(() => {
+    const loadExistingVideo = async () => {
+      if (!existingVideoId || !user) return;
+
+      setLoading(true);
+      setSpecificErrors({});
+
+      try {
+        const { data: videoData, error: videoError } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('id', existingVideoId)
+          .single();
+
+        if (videoError) throw videoError;
+        if (!videoData) throw new Error("Video not found.");
+
+        if (videoData.user_id !== user.id) {
+          throw new Error("Unauthorized access to video.");
+        }
+
+        setGoals({
+          title: videoData.title,
+          description: videoData.description || '',
+          targetAudience: '',
+          isDetailsOpen: false,
+        });
+
+        const parsedScript: VideoScript = JSON.parse(videoData.script);
+        setScript(parsedScript);
+
+        const { data: dbSegmentsData, error: segmentsError } = await supabase
+          .from('video_segments')
+          .select('id, segment_url')
+          .eq('video_id', existingVideoId)
+          .order('created_at', { ascending: true });
+
+        if (segmentsError) throw segmentsError;
+
+        const urls: Record<number, string | null> = {};
+        parsedScript.segments.forEach((_, index) => {
+          if (dbSegmentsData && dbSegmentsData[index] && dbSegmentsData[index].segment_url) {
+            urls[index] = dbSegmentsData[index].segment_url;
+          }
+        });
+        setUploadedSceneUrls(urls);
+
+        setVideoId(existingVideoId);
+
+      } catch (error) {
+        console.error("Error loading existing video:", error);
+        if (error instanceof Error) {
+          setSpecificErrors({ loadVideo: `Failed to load video: ${error.message}` });
+        } else {
+          setSpecificErrors({ loadVideo: "An unknown error occurred while loading video." });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExistingVideo();
+  }, [existingVideoId, user]);
 
   const deleteSegment = (index: number) => {
     setScript(prev => ({
@@ -45,13 +148,22 @@ export const CreateVideoForm: React.FC<Props> = ({
       setSpecificErrors({ user: "User not authenticated." });
       return;
     }
+    if (!videoId) {
+      setSpecificErrors({ fileUpload: "Video ID is not available. Please try again after the draft video is created." });
+      return;
+    }
     if (!file) return;
 
     setUploadingIndex(index);
     setSpecificErrors({});
 
     try {
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const fileExtension = file.name.split('.').pop();
+      // Generate a unique ID for the file itself to avoid duplicates and simplify naming
+      const uniqueFileName = `${crypto.randomUUID()}.${fileExtension}`;
+      // Path: user_id/video_id/unique_file_id.ext
+      const filePath = `${user.id}/${videoId}/${uniqueFileName}`;
+
       const { data, error: uploadError } = await supabase.storage
         .from('scene-videos')
         .upload(filePath, file, { cacheControl: '3600', upsert: false });
@@ -64,12 +176,7 @@ export const CreateVideoForm: React.FC<Props> = ({
       
       if (!publicUrlData) throw new Error("Could not get public URL for the uploaded file.");
 
-      const newSegments = [...script.segments];
-      newSegments[index] = {
-        ...newSegments[index],
-        videoUrl: publicUrlData.publicUrl,
-      };
-      setScript({ ...script, segments: newSegments });
+      setUploadedSceneUrls(prev => ({ ...prev, [index]: publicUrlData.publicUrl }));
 
     } catch (error) {
       if (error instanceof Error) {
@@ -370,68 +477,74 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
   };
 
   const handleSaveVideo = async () => {
-    console.log("Attempting to save video...");
+    if (!user) {
+      setSpecificErrors({ user: "User not authenticated." });
+      return;
+    }
+    if (!videoId) {
+      setSpecificErrors({ save: "Video ID is missing. Cannot save video." });
+      return;
+    }
+
     setIsSubmitting(true);
     setSpecificErrors({});
-    
+
     try {
-      if (!user) {
-        setSpecificErrors({ user: "User not authenticated." });
-        console.error("Attempted to save video without authenticated user.");
-        return;
-      }
-
-      console.log("User ID:", user.id); // Debug: Log user ID
-
-      // Get unique character IDs from all scenes
       const uniqueCharacterIds = Array.from(new Set(
         script.segments.flatMap(s => s.charactersInScene)
       ));
 
-      const videoDataToInsert = {
-        user_id: user.id,
-        title: goals.title,
-        description: goals.description,
-        script: JSON.stringify({ // Keep stringify as script is TEXT in DB
-          segments: script.segments.map(s => ({
-            text: s.text,
-            sceneDescription: s.sceneDescription,
-            charactersInScene: s.charactersInScene,
-            speakerCharacterId: s.speakerCharacterId,
-            duration: s.duration,
-            videoUrl: s.videoUrl,
-          })),
-          style: script.style,
-        }),
-        characters: uniqueCharacterIds, // This matches your _uuid array type
-        status: 'draft',
-        created_at: new Date().toISOString(), // This matches your timestamptz column
-      };
-
-      console.log("Data being inserted into Supabase:", videoDataToInsert); // Debug: Log payload
-
-      const { data, error } = await supabase
+      const { error: videoUpdateError } = await supabase
         .from('videos')
-        .insert(videoDataToInsert)
-        .select()
-        .single();
+        .update({
+          title: goals.title,
+          description: goals.description,
+          script: JSON.stringify(script),
+          characters: uniqueCharacterIds,
+          status: 'draft',
+        })
+        .eq('id', videoId);
 
-      if (error) {
-        console.error("Supabase insert error:", error); // Debug: Log Supabase specific error
-        throw error;
+      if (videoUpdateError) throw videoUpdateError;
+
+      console.log("Main video record updated successfully for ID:", videoId);
+
+      const { error: deleteSegmentsError } = await supabase
+        .from('video_segments')
+        .delete()
+        .eq('video_id', videoId);
+
+      if (deleteSegmentsError) throw deleteSegmentsError;
+      console.log("Existing segments deleted.");
+
+      const segmentsToInsert = script.segments.map((segment, index) => ({
+        video_id: videoId,
+        text: segment.text,
+        character_id: segment.speakerCharacterId || null,
+        segment_url: uploadedSceneUrls[index] || null,
+        status: uploadedSceneUrls[index] ? 'completed' : 'pending',
+        created_at: new Date().toISOString(),
+      }));
+
+      if (segmentsToInsert.length > 0) {
+        const { error: segmentsInsertError } = await supabase
+          .from('video_segments')
+          .insert(segmentsToInsert);
+
+        if (segmentsInsertError) throw segmentsInsertError;
+        console.log("Video segments inserted successfully!");
+      } else {
+        console.log("No segments to insert.");
       }
 
-      console.log("Video created successfully in Supabase:", data); // Debug: Log success data
-
       onVideoCreated();
-      alert('Video created successfully!');
+      alert('Video created/updated successfully!');
     } catch (error) {
+      console.error('Error saving video:', error);
       if (error instanceof Error) {
-        setSpecificErrors({ general: error.message });
-        console.error("Caught error during video save:", error.message); // Debug: Log caught error
+        setSpecificErrors({ save: error.message });
       } else {
-        setSpecificErrors({ general: 'An unknown error occurred' });
-        console.error("Caught unknown error during video save:", error); // Debug: Log unknown error
+        setSpecificErrors({ save: 'An error occurred while saving the video' });
       }
     } finally {
       setIsSubmitting(false);
@@ -457,7 +570,6 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
       case 'script':
         return (
           <div className="space-y-6">
-            {/* Video Details Section */}
             <div className="rounded-lg border border-slate-700 bg-slate-800">
               <button
                 onClick={() => setGoals(prev => ({ ...prev, isDetailsOpen: !prev.isDetailsOpen }))}
@@ -536,7 +648,6 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
               )}
             </div>
 
-            {/* Script Section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">Create Script</h2>
@@ -745,7 +856,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
                           <SceneVideoUpload
                             onFileUpload={(file) => handleFileUpload(file, index)}
                             isUploading={uploadingIndex === index}
-                            existingVideoUrl={scene.videoUrl}
+                            existingVideoUrl={uploadedSceneUrls[index] || undefined}
                           />
                         </div>
                       </div>
