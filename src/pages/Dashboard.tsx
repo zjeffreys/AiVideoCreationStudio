@@ -5,9 +5,11 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { CreateVideoForm } from '../components/dashboard/CreateVideoForm';
 import { Character, Video } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [recentVideos, setRecentVideos] = useState<Video[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,150 +65,83 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Dashboard</h1>
-        <p className="text-slate-300">
-          Create and manage your AI-powered educational videos
-        </p>
-      </div>
-      
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
-            <p className="text-lg font-medium text-slate-300">Loading dashboard...</p>
-          </div>
+      <div className="rounded-2xl p-6 mb-4" style={{background: 'linear-gradient(90deg, #c7d2fe 0%, #fbc2a4 100%)'}}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-medium text-slate-700 flex items-center gap-2">
+            Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, create your video from
+          </h2>
         </div>
-      ) : error ? (
-        <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
-          <p className="font-medium">Error loading dashboard</p>
-          <p className="text-sm">{error}</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm lg:col-span-2">
-              {showCreateForm ? (
-                <>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-white">Create New Video</h2>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowCreateForm(false)}
-                      className="text-slate-300 hover:text-white hover:bg-slate-700"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                  <CreateVideoForm 
-                    characters={characters} 
-                    onVideoCreated={handleVideoCreated} 
-                  />
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="mb-4 rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3">
-                    <PlusCircle className="h-6 w-6 bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent" />
-                  </div>
-                  <h2 className="mb-2 text-xl font-semibold text-white">Create a New Video</h2>
-                  <p className="mb-6 text-slate-300">
-                    Start creating your next educational video with AI assistance
-                  </p>
-                  <Button
-                    onClick={() => setShowCreateForm(true)}
-                    leftIcon={<PlusCircle className="h-5 w-5" />}
-                  >
-                    Create New Video
-                  </Button>
-                </div>
-              )}
-            </div>
-            
-            <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-              <h2 className="mb-4 text-xl font-semibold text-white">Stats</h2>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-4">
-                  <p className="text-sm font-medium text-purple-200">Videos</p>
-                  <p className="text-3xl font-bold text-purple-400">{recentVideos.length}</p>
-                </div>
-                <div className="rounded-lg bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-4">
-                  <p className="text-sm font-medium text-purple-200">Characters</p>
-                  <p className="text-3xl font-bold text-purple-400">{characters.length}</p>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="mb-2 font-medium text-white">Quick Links</h3>
-                <div className="space-y-2">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700" 
-                    leftIcon={<PlusCircle className="h-4 w-4" />}
-                    onClick={() => window.location.href = '/characters'}
-                  >
-                    Create New Character
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-700" 
-                    leftIcon={<PlusCircle className="h-4 w-4" />}
-                    onClick={() => window.location.href = '/videos'}
-                  >
-                    View All Videos
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {recentVideos.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">Recent Videos</h2>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => window.location.href = '/videos'}
-                  className="text-slate-300 hover:text-white hover:bg-slate-700"
+        <div className="mt-6 flex justify-start">
+          <div
+            className="inline-block rounded-xl p-[2px]"
+            style={{
+              background: 'linear-gradient(90deg, #a5b4fc 0%, #fbc2a4 100%)',
+            }}
+          >
+            <button
+              onClick={() => navigate('/story-board')}
+              className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow"
+              style={{
+                border: 'none',
+              }}
+            >
+              <span className="inline-flex items-center justify-center h-5 w-5">
+                <svg
+                  viewBox="0 0 768 768"
+                  className="h-5 w-5"
+                  fill="url(#star-gradient)"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  View all
-                </Button>
+                  <defs>
+                    <linearGradient id="star-gradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#a78bfa" />
+                      <stop offset="100%" stopColor="#fb923c" />
+                    </linearGradient>
+                  </defs>
+                  <g clipPath="url(#clip0)">
+                    <path d="M694.945 428.957C419.336 463.875 390.301 492.18 354.484 760.871C318.668 492.18 289.637 463.875 14.023 428.957C289.637 394.043 318.668 365.738 354.484 97.047C390.301 365.738 419.336 394.043 694.945 428.957Z" />
+                    <path d="M754.078 150.996C620.059 160.32 612.086 167.879 602.25 294.906C592.41 167.879 584.438 160.32 450.418 150.996C584.438 141.672 592.41 134.113 602.25 7.086C612.086 134.113 620.059 141.672 754.078 150.996Z" />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0">
+                      <rect width="768" height="768" fill="white" />
+                    </clipPath>
+                  </defs>
+                </svg>
+              </span>
+              <span className="text-base font-medium text-slate-700">AI Video assistant</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* My Videos Section (only if user has videos) */}
+      {recentVideos.length > 0 && (
+        <section>
+          <h2 className="text-xl font-semibold text-slate-700 mb-4">My Videos</h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {recentVideos.map((video) => (
+              <div 
+                key={video.id}
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm"
+              >
+                <h3 className="font-medium text-slate-900 dark:text-white mb-1">{video.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-300 line-clamp-2 mb-2">{video.description}</p>
+                <button
+                  className="text-sm text-purple-600 hover:underline font-medium"
+                  onClick={() => window.location.href = `/videos/${video.id}`}
+                >
+                  View Video
+                </button>
               </div>
-              
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {recentVideos.map((video) => (
-                  <div 
-                    key={video.id}
-                    className="rounded-lg border border-slate-700 bg-slate-800 p-4 shadow-sm"
-                  >
-                    <div className="mb-2">
-                      <h3 className="font-medium text-white">{video.title}</h3>
-                      <p className="text-sm text-slate-300 line-clamp-2">{video.description}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        video.status === 'draft' ? 'bg-slate-700 text-slate-300' :
-                        video.status === 'processing' ? 'bg-blue-900/50 text-blue-300' :
-                        'bg-green-900/50 text-green-300'
-                      }`}>
-                        {video.status.charAt(0).toUpperCase() + video.status.slice(1)}
-                      </span>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => window.location.href = `/videos/${video.id}`}
-                        className="border-slate-700 text-white hover:bg-slate-700"
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        </section>
       )}
+      {/* Templates Section (always show) */}
+      <section>
+        <h2 className="text-xl font-semibold text-slate-700 mb-4">Templates</h2>
+        <div className="text-slate-400 text-base italic">Coming soon...</div>
+      </section>
     </div>
   );
 };

@@ -59,15 +59,15 @@ export const Login = () => {
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-md space-y-8 p-8">
       <div className="flex flex-col items-center space-y-2 text-center">
-        <div className="rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3">
+        <div className="rounded-full bg-gradient-to-r from-purple-200 to-orange-200 p-3">
           <Mail className="h-12 w-12 bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent" />
         </div>
-        <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-        <p className="text-slate-300">Sign in to your account to continue</p>
+        <h1 className="text-2xl font-bold text-slate-700 dark:text-white">Welcome back</h1>
+        <p className="text-slate-400 dark:text-slate-300">Sign in to your account to continue</p>
       </div>
 
       {error && (
-        <div className="w-full p-3 bg-red-900/50 border border-red-700 text-red-400 text-sm rounded-md">
+        <div className="w-full p-3 bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm rounded-md">
           {error}
         </div>
       )}
@@ -81,7 +81,7 @@ export const Login = () => {
           placeholder="name@example.com"
           required
           fullWidth
-          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+          className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400"
         />
         <Input
           label="Password"
@@ -91,7 +91,7 @@ export const Login = () => {
           placeholder="••••••••"
           required
           fullWidth
-          className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+          className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400"
         />
         
         <Button 
@@ -99,6 +99,7 @@ export const Login = () => {
           isLoading={loading}
           loadingText="Signing in..."
           fullWidth
+          className="bg-gradient-to-r from-purple-500 to-orange-400 text-white hover:from-purple-600 hover:to-orange-500"
         >
           Sign in
         </Button>
@@ -106,10 +107,10 @@ export const Login = () => {
 
       <div className="relative w-full">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700"></div>
+          <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-slate-900 px-2 text-slate-400">Or continue with</span>
+          <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">Or continue with</span>
         </div>
       </div>
 
@@ -119,12 +120,12 @@ export const Login = () => {
           onClick={handleGoogleLogin} 
           disabled={!isProd || googleLoading}
           fullWidth
-          className={`${!isProd ? 'opacity-50 cursor-not-allowed' : ''} border-slate-700 text-white hover:bg-slate-800`}
+          className={`${!isProd ? 'opacity-50 cursor-not-allowed' : ''} border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800`}
         >
           {googleLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <svg className="mr-2 h-4 w-4\" viewBox="0 0 24 24">
+            <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -152,7 +153,7 @@ export const Login = () => {
         )}
       </div>
 
-      <p className="text-sm text-center text-slate-300">
+      <p className="text-sm text-center text-slate-400 dark:text-slate-300">
         Don't have an account?{' '}
         <button
           type="button"

@@ -12,6 +12,7 @@ import { Characters } from './pages/Characters';
 import { Voices } from './pages/Voices';
 import { MusicPage } from './pages/Music';
 import { Settings } from './pages/Settings';
+import StoryBoard from './pages/StoryBoard';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -48,7 +49,7 @@ function App() {
     <Router>
       <Routes>
         {/* Landing page for non-authenticated users */}
-        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard\" replace />} />
+        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
         
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -57,7 +58,10 @@ function App() {
         {/* Auth callback route */}
         <Route path="/auth/callback" element={<AuthCallback />} />
         
-        {/* Protected routes */}
+        {/* StoryBoard route OUTSIDE layout for full-viewport */}
+        <Route path="/story-board" element={<ProtectedRoute><StoryBoard /></ProtectedRoute>} />
+        
+        {/* Protected routes with sidebar/topbar */}
         <Route
           path="/"
           element={
@@ -76,7 +80,7 @@ function App() {
         </Route>
         
         {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/\" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

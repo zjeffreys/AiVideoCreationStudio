@@ -137,16 +137,16 @@ export const Voices = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-white dark:bg-slate-900 space-y-8">
       <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold text-white">Voice Preview</h1>
-        <p className="text-slate-300">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Voice Preview</h1>
+        <p className="text-slate-500 dark:text-slate-300">
           Preview and test the AI voices for your educational content
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-6">
-        <h2 className="mb-4 text-lg font-semibold text-white">Try the Voice</h2>
+      <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 p-6">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Try the Voice</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {voices.map((voice) => (
@@ -154,28 +154,28 @@ export const Voices = () => {
                 key={voice.voiceId}
                 className={`cursor-pointer rounded-lg border p-4 transition-all hover:border-purple-500 ${
                   selectedVoice?.voiceId === voice.voiceId
-                    ? 'border-purple-500 bg-purple-900/20'
-                    : 'border-slate-700 bg-slate-900 hover:bg-slate-700'
+                    ? 'border-purple-500 bg-purple-100 dark:bg-purple-900/20'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-700'
                 }`}
                 onClick={() => setSelectedVoice(voice)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-medium text-white">{voice.name}</h3>
+                    <h3 className="font-medium text-slate-900 dark:text-white">{voice.name}</h3>
                     <div className="mt-1 flex flex-wrap gap-2">
                       {voice.gender && (
-                        <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                           {voice.gender.charAt(0).toUpperCase() + voice.gender.slice(1)}
                         </span>
                       )}
                       {voice.accent && (
-                        <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300">
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                           {voice.accent}
                         </span>
                       )}
                     </div>
                     {voice.description && (
-                      <p className="mt-2 text-sm text-slate-400">{voice.description}</p>
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{voice.description}</p>
                     )}
                   </div>
                 </div>
@@ -189,7 +189,7 @@ export const Voices = () => {
             value={selectedLanguage}
             onChange={setSelectedLanguage}
             fullWidth
-            className="bg-slate-800 border-slate-700 text-white"
+            className="bg-white border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-white"
           />
           <Textarea
             label="Custom Text"
@@ -197,7 +197,7 @@ export const Voices = () => {
             onChange={(e) => setCustomText(e.target.value)}
             placeholder="Enter text for the voice to speak (optional)"
             fullWidth
-            className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+            className="bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-400"
           />
           <p className="text-sm text-slate-400">
             If no text is provided, a default greeting will be used.

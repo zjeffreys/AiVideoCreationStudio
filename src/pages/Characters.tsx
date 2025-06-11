@@ -106,17 +106,17 @@ export const Characters = () => {
     : characters;
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-white dark:bg-slate-900 space-y-8">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Characters</h1>
-        <p className="text-slate-400">
+        <p className="text-slate-500 dark:text-slate-400">
           Create and manage characters for your educational videos
         </p>
       </div>
       
       {isFormOpen ? (
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold text-white">
+        <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-white">
             {editingCharacter ? 'Edit Character' : 'Create New Character'}
           </h2>
           <CharacterForm
@@ -135,7 +135,7 @@ export const Characters = () => {
                 placeholder="Search characters..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-800 border-slate-700 text-white placeholder:text-slate-400"
+                className="pl-9 bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-400"
               />
             </form>
             
@@ -151,21 +151,21 @@ export const Characters = () => {
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center space-y-4">
                 <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
-                <p className="text-lg font-medium text-slate-300">Loading characters...</p>
+                <p className="text-lg font-medium text-slate-500 dark:text-slate-300">Loading characters...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/50 p-4 text-red-600 dark:text-red-400">
               <p className="font-medium">Error loading characters</p>
               <p className="text-sm">{error}</p>
             </div>
           ) : filteredCharacters.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-800/50 p-12 text-center">
-              <div className="mb-4 rounded-full bg-slate-700 p-3">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 p-12 text-center">
+              <div className="mb-4 rounded-full bg-slate-200 dark:bg-slate-700 p-3">
                 <Users className="h-6 w-6 text-slate-400" />
               </div>
-              <h3 className="mb-1 text-lg font-medium text-white">No characters found</h3>
-              <p className="mb-4 max-w-md text-slate-400">
+              <h3 className="mb-1 text-lg font-medium text-slate-700 dark:text-white">No characters found</h3>
+              <p className="mb-4 max-w-md text-slate-500 dark:text-slate-400">
                 {searchQuery
                   ? `No characters matching "${searchQuery}"`
                   : "You haven't created any characters yet. Create your first character!"}

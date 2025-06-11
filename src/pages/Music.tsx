@@ -71,7 +71,7 @@ export const MusicPage = () => {
     : musicStyles;
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-white dark:bg-slate-900 space-y-8">
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">Music</h1>
         <p className="text-slate-300">

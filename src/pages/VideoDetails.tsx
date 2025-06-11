@@ -261,116 +261,118 @@ export const VideoDetails = () => {
   }) || [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/videos')}
-          leftIcon={<ArrowLeft className="h-4 w-4" />}
-        >
-          Back to Videos
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate(`/dashboard/edit/${video?.id}`)}
-          leftIcon={<Wand2 className="h-4 w-4" />}
-        >
-          Edit Video
-        </Button>
-      </div>
-
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-        <h1 className="mb-2 text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
-          {video?.title}
-        </h1>
-        <p className="text-slate-300">{video?.description}</p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold text-white">Video Script & Segments</h2>
-          <div className="space-y-4">
-            {displayScenes.map((scene, index) => {
-              const speaker = characters.find(char => char.id === scene.speakerCharacterId);
-              const charactersInSceneNames = characters
-                .filter(char => scene.charactersInScene.includes(char.id))
-                .map(char => char.name)
-                .join(', ');
-
-              return (
-                <div key={index} className="rounded-lg border border-slate-700 p-4 bg-slate-900">
-                  <h4 className="font-medium text-white">Scene {index + 1}</h4>
-                  {speaker && (
-                    <p className="text-sm text-slate-300">Speaker: {speaker.name}</p>
-                  )}
-                  {charactersInSceneNames && (
-                    <p className="text-sm text-slate-300">Characters: {charactersInSceneNames}</p>
-                  )}
-                  {scene.sceneDescription && (
-                    <p className="text-sm text-slate-300">Scene: {scene.sceneDescription}</p>
-                  )}
-                  <div className="border-l-2 border-purple-400 pl-4 mt-2">
-                    <p className="text-slate-300">{scene.text}</p>
-                  </div>
-                  {scene.videoUrl && (
-                    <div className="mt-4">
-                      <video controls src={scene.videoUrl} className="w-full rounded-md" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+    <div className="min-h-screen bg-white dark:bg-slate-900">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/videos')}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+          >
+            Back to Videos
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/dashboard/edit/${video?.id}`)}
+            leftIcon={<Wand2 className="h-4 w-4" />}
+          >
+            Edit Video
+          </Button>
         </div>
 
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold text-white">Final Video Generation</h2>
-          {video?.video_url ? (
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+          <h1 className="mb-2 text-3xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
+            {video?.title}
+          </h1>
+          <p className="text-slate-500 dark:text-slate-300">{video?.description}</p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold text-white">Video Script & Segments</h2>
             <div className="space-y-4">
-              <video controls src={video.video_url} className="w-full rounded-md" />
-              <Button 
-                onClick={() => window.open(video.video_url || '', '_blank')}
-                leftIcon={<Download className="h-4 w-4" />}
-                fullWidth
-              >
-                Download Final Video
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="mb-4 text-slate-300">
-                <p>Select segments to generate the final video:</p>
-              </div>
-              {/* This part might need adjustment based on how segments are selected */}
-              {displayScenes.map((scene) => (
-                scene.segmentId && scene.videoUrl && (
-                  <div key={scene.segmentId} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={scene.segmentId}
-                      checked={selectedSegments.includes(scene.segmentId)}
-                      onChange={() => handleSegmentSelect(scene.segmentId as string)}
-                      className="form-checkbox h-4 w-4 text-purple-600 rounded-md border-slate-700 bg-slate-900 focus:ring-purple-500"
-                    />
-                    <label htmlFor={scene.segmentId} className="text-slate-300">
-                      Scene {displayScenes.indexOf(scene) + 1}: {scene.sceneDescription}
-                    </label>
+              {displayScenes.map((scene, index) => {
+                const speaker = characters.find(char => char.id === scene.speakerCharacterId);
+                const charactersInSceneNames = characters
+                  .filter(char => scene.charactersInScene.includes(char.id))
+                  .map(char => char.name)
+                  .join(', ');
+
+                return (
+                  <div key={index} className="rounded-lg border border-slate-700 p-4 bg-slate-900">
+                    <h4 className="font-medium text-white">Scene {index + 1}</h4>
+                    {speaker && (
+                      <p className="text-sm text-slate-300">Speaker: {speaker.name}</p>
+                    )}
+                    {charactersInSceneNames && (
+                      <p className="text-sm text-slate-300">Characters: {charactersInSceneNames}</p>
+                    )}
+                    {scene.sceneDescription && (
+                      <p className="text-sm text-slate-300">Scene: {scene.sceneDescription}</p>
+                    )}
+                    <div className="border-l-2 border-purple-400 pl-4 mt-2">
+                      <p className="text-slate-300">{scene.text}</p>
+                    </div>
+                    {scene.videoUrl && (
+                      <div className="mt-4">
+                        <video controls src={scene.videoUrl} className="w-full rounded-md" />
+                      </div>
+                    )}
                   </div>
-                )
-              ))}
-              
-              <Button
-                onClick={handleGenerateFinalVideo}
-                isLoading={isGenerating}
-                loadingText="Generating..."
-                leftIcon={!isGenerating ? <Film className="h-4 w-4" /> : undefined}
-                fullWidth
-                disabled={selectedSegments.length === 0 || isGenerating}
-              >
-                Generate Final Video
-              </Button>
+                );
+              })}
             </div>
-          )}
+          </div>
+
+          <div className="rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold text-white">Final Video Generation</h2>
+            {video?.video_url ? (
+              <div className="space-y-4">
+                <video controls src={video.video_url} className="w-full rounded-md" />
+                <Button 
+                  onClick={() => window.open(video.video_url || '', '_blank')}
+                  leftIcon={<Download className="h-4 w-4" />}
+                  fullWidth
+                >
+                  Download Final Video
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="mb-4 text-slate-300">
+                  <p>Select segments to generate the final video:</p>
+                </div>
+                {/* This part might need adjustment based on how segments are selected */}
+                {displayScenes.map((scene) => (
+                  scene.segmentId && scene.videoUrl && (
+                    <div key={scene.segmentId} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={scene.segmentId}
+                        checked={selectedSegments.includes(scene.segmentId)}
+                        onChange={() => handleSegmentSelect(scene.segmentId as string)}
+                        className="form-checkbox h-4 w-4 text-purple-600 rounded-md border-slate-700 bg-slate-900 focus:ring-purple-500"
+                      />
+                      <label htmlFor={scene.segmentId} className="text-slate-300">
+                        Scene {displayScenes.indexOf(scene) + 1}: {scene.sceneDescription}
+                      </label>
+                    </div>
+                  )
+                ))}
+                
+                <Button
+                  onClick={handleGenerateFinalVideo}
+                  isLoading={isGenerating}
+                  loadingText="Generating..."
+                  leftIcon={!isGenerating ? <Film className="h-4 w-4" /> : undefined}
+                  fullWidth
+                  disabled={selectedSegments.length === 0 || isGenerating}
+                >
+                  Generate Final Video
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

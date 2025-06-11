@@ -76,8 +76,8 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-sm transition-all hover:shadow-md">
-      <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
+    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm transition-all hover:shadow-md">
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <img
           src={video.thumbnail_url || 'https://via.placeholder.com/640x360?text=No+Thumbnail'}
           alt={video.title}
@@ -105,14 +105,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
       
       <div className="p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white line-clamp-1">{video.title}</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white line-clamp-1">{video.title}</h3>
           <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium', getStatusColor())}>
             {getStatusIcon()}
             {getStatusText()}
           </span>
         </div>
         
-        <p className="mb-4 text-sm text-slate-300 line-clamp-2">
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-300 line-clamp-2">
           {video.description || 'No description provided.'}
         </p>
         
@@ -139,7 +139,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, onEdit, onDelete })
           <Button
             size="sm"
             variant="ghost"
-            className="text-red-400 hover:bg-red-900/50 hover:text-red-300"
+            className="text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-300"
             leftIcon={<Trash className="h-4 w-4" />}
             onClick={() => onDelete(video.id)}
           >

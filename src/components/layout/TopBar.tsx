@@ -23,9 +23,9 @@ export const TopBar: React.FC<TopBarProps> = ({ toggleMobileSidebar }) => {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-700 bg-slate-900 px-4 lg:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 lg:px-6">
       <button
-        className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-800 lg:hidden"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
         onClick={toggleMobileSidebar}
       >
         <Menu className="h-6 w-6" />
@@ -35,24 +35,24 @@ export const TopBar: React.FC<TopBarProps> = ({ toggleMobileSidebar }) => {
       <div className="flex items-center gap-4">
         <div className="relative">
           <button
-            className="flex items-center gap-2 rounded-full border border-slate-700 p-1 pl-1 pr-3 text-sm hover:bg-slate-800"
+            className="flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 p-1 pl-1 pr-3 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-900/50 text-purple-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-500 dark:text-purple-300">
               <User className="h-4 w-4" />
             </span>
-            <span className="font-medium text-slate-300">
+            <span className="font-medium text-slate-700 dark:text-slate-300">
               {user?.email?.split('@')[0] || 'User'}
             </span>
           </button>
           
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-md border border-slate-700 bg-slate-800 py-1 shadow-lg">
-              <div className="border-b border-slate-700 px-4 py-2">
-                <p className="text-sm font-medium text-white">{user?.email}</p>
+            <div className="absolute right-0 mt-2 w-48 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-lg">
+              <div className="border-b border-slate-200 dark:border-slate-700 px-4 py-2">
+                <p className="text-sm font-medium text-slate-700 dark:text-white">{user?.email}</p>
               </div>
               <button
-                className="block w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white"
+                className="block w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"
                 onClick={() => {
                   setIsProfileOpen(false);
                   navigate('/settings');
@@ -61,7 +61,7 @@ export const TopBar: React.FC<TopBarProps> = ({ toggleMobileSidebar }) => {
                 Account settings
               </button>
               <button
-                className="block w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-slate-700"
+                className="block w-full px-4 py-2 text-left text-sm text-red-500 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"
                 onClick={handleSignOut}
               >
                 Sign out
