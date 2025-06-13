@@ -79,7 +79,7 @@ export const Dashboard = () => {
             }}
           >
             <button
-              onClick={() => navigate('/story-board')}
+              onClick={() => navigate('/storyboard-planner')}
               className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow"
               style={{
                 border: 'none',

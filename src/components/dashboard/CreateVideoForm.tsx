@@ -211,7 +211,7 @@ export const CreateVideoForm: React.FC<Props> = ({
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -289,7 +289,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -354,7 +354,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4.1-mini',
           messages: [
             {
               role: 'system',
@@ -408,7 +408,7 @@ Suggest 3-5 concise scene descriptions (approx. 6 seconds each) for this educati
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4.1-mini',
           messages: [
             {
               role: 'system',

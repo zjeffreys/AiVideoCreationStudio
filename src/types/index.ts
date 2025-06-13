@@ -49,6 +49,7 @@ export interface VideoGoals {
   description: string;
   targetAudience?: string;
   isDetailsOpen: boolean;
+  format: 'short-form' | 'long-form';
 }
 
 export interface VideoScript {
@@ -57,7 +58,7 @@ export interface VideoScript {
     sceneDescription: string;
     charactersInScene: string[];
     speakerCharacterId?: string;
-    duration?: number;
+    duration: string;
     isOpen: boolean;
   }[];
   style: string;

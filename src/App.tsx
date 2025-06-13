@@ -13,6 +13,7 @@ import { Voices } from './pages/Voices';
 import { MusicPage } from './pages/Music';
 import { Settings } from './pages/Settings';
 import StoryBoard from './pages/StoryBoard';
+import StoryboardPlanner from './pages/StoryboardPlanner';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -57,6 +58,9 @@ function App() {
         
         {/* Auth callback route */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+        
+        {/* StoryboardPlanner route OUTSIDE layout for full-viewport */}
+        <Route path="/storyboard-planner" element={<ProtectedRoute><StoryboardPlanner /></ProtectedRoute>} />
         
         {/* StoryBoard route OUTSIDE layout for full-viewport */}
         <Route path="/story-board" element={<ProtectedRoute><StoryBoard /></ProtectedRoute>} />
