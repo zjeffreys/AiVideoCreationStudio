@@ -14,6 +14,7 @@ import { MusicPage } from './pages/Music';
 import { Settings } from './pages/Settings';
 import StoryBoard from './pages/StoryBoard';
 import StoryboardPlanner from './pages/StoryboardPlanner';
+import VideoEditor from './pages/VideoEditor';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -64,6 +65,9 @@ function App() {
         
         {/* StoryBoard route OUTSIDE layout for full-viewport */}
         <Route path="/story-board" element={<ProtectedRoute><StoryBoard /></ProtectedRoute>} />
+        
+        {/* VideoEditor route OUTSIDE layout for full-viewport */}
+        <Route path="/video-editor" element={<ProtectedRoute><VideoEditor /></ProtectedRoute>} />
         
         {/* Protected routes with sidebar/topbar */}
         <Route

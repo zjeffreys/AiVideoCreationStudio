@@ -15,6 +15,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [videoPrompt, setVideoPrompt] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -109,9 +110,28 @@ export const Dashboard = () => {
                   </defs>
                 </svg>
               </span>
-              <span className="text-base font-medium text-slate-700">AI Video assistant</span>
+              <span className="text-base font-medium text-slate-700">AI Storyboard Assistant</span>
             </button>
           </div>
+        </div>
+        <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2 w-full">
+          <label htmlFor="dashboardVideoPrompt" className="text-sm font-medium text-slate-700 dark:text-white mb-1">Generate a Video from a Prompt</label>
+          <textarea
+            id="dashboardVideoPrompt"
+            placeholder="Describe your educational video idea..."
+            rows={4}
+            className="w-full px-3 py-2 rounded border bg-white dark:bg-slate-900 text-slate-700 dark:text-white resize-vertical min-h-[80px]"
+            value={videoPrompt}
+            onChange={e => setVideoPrompt(e.target.value)}
+          />
+          <button
+            type="button"
+            className="mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors self-start"
+            onClick={() => navigate('/video-editor')}
+            disabled={!videoPrompt.trim()}
+          >
+            Generate Video from Prompt
+          </button>
         </div>
       </div>
       {/* My Videos Section (only if user has videos) */}

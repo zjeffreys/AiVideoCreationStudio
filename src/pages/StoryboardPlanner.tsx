@@ -81,16 +81,72 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
 const selectClass = "min-w-[140px] bg-white border-slate-300 text-slate-700 dark:bg-white dark:text-slate-700 dark:border-slate-300";
 
 const LEADING_QUESTIONS = [
-  "What's the main goal or message you want your audience to take away from this video? (e.g., teach a historical event, inspire action, explain a process, share a personal story, etc.)",
-  "What tone or style do you want for your video (e.g., fun, serious, inspirational, etc.)?",
-  "Are there any key points, facts, or characters you want to include?",
-  "What time period or years should this story or video focus on? (e.g., 1800s, 1960-1970, present day, etc.)",
-  // Story progression questions:
-  "How does your story begin? (Describe the setup or introduction)",
-  "What is the main conflict or challenge in your story?",
-  "How does the story develop or escalate? (Key turning points)",
-  "How is the conflict resolved? (Climax or resolution)",
-  "How do you want the story to end? (Conclusion, takeaway, or call to action)",
+  "What is the main topic or concept you want to teach in this video? (e.g., photosynthesis, the Civil War, basic algebra, etc.)",
+  "Who is your target audience? (e.g., elementary school, high school, college, adult learners) and what tone should we use? (e.g., fun, serious, inspiring)",
+  "What are the key facts, points, or examples that must be included to explain this topic clearly?"
+];
+
+const getQuickAISuggestions = (topic: string, studentLevel: string) => {
+  // Lowercase for easier matching
+  const level = (studentLevel || '').toLowerCase();
+  // Default suggestions for all
+  let suggestions = [
+    { icon: '🎯', label: 'Sharpen Learning Goal', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+    { icon: '🎨', label: 'Add Visuals', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+    { icon: '🧩', label: 'Insert a Quick Quiz', color: 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' },
+    { icon: '🌍', label: 'Relate to Real Life', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
+    { icon: '🎵', label: 'Add Fun Audio', color: 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100' },
+  ];
+
+  // Adjust for student level
+  if (level.includes('elementary')) {
+    suggestions = [
+      { icon: '🎨', label: 'Add a Drawing Activity', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+      { icon: '🎵', label: 'Use a Catchy Song', color: 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100' },
+      { icon: '🧸', label: 'Simplify Language', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+      { icon: '🧩', label: 'Insert a Simple Quiz', color: 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' },
+      { icon: '🕹️', label: 'Make it Interactive', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
+    ];
+  } else if (level.includes('middle')) {
+    suggestions = [
+      { icon: '🎬', label: 'Show a Short Animation', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+      { icon: '🧠', label: 'Challenge with a Scenario', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+      { icon: '🧩', label: 'Add a Quick Quiz', color: 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' },
+      { icon: '🌱', label: 'Connect to Daily Life', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
+      { icon: '🎵', label: 'Add Fun Audio', color: 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100' },
+    ];
+  } else if (level.includes('high')) {
+    suggestions = [
+      { icon: '🌍', label: 'Relate to Real-World Issues', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
+      { icon: '📊', label: 'Add Data Visualization', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+      { icon: '🧠', label: 'Challenge with a Scenario', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+      { icon: '📝', label: 'Prompt for Reflection', color: 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' },
+      { icon: '🎬', label: 'Include Expert Insight', color: 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100' },
+    ];
+  } else if (level.includes('college') || level.includes('adult')) {
+    suggestions = [
+      { icon: '🌍', label: 'Relate to Real-World Issues', color: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' },
+      { icon: '📊', label: 'Add Data Visualization', color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
+      { icon: '🧠', label: 'Challenge with a Scenario', color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100' },
+      { icon: '📝', label: 'Prompt for Reflection', color: 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100' },
+      { icon: '🎬', label: 'Include Expert Insight', color: 'bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100' },
+    ];
+  }
+
+  // Optionally, further tailor based on topic (not implemented for brevity)
+  return suggestions.slice(0, 5);
+};
+
+const skillOptions = [
+  { value: 'reading', label: 'Reading Comprehension' },
+  { value: 'math', label: 'Math Problem Solving' },
+  { value: 'science', label: 'Scientific Inquiry' },
+  { value: 'critical', label: 'Critical Thinking' },
+  { value: 'collaboration', label: 'Collaboration' },
+  { value: 'digital', label: 'Digital Literacy' },
+  { value: 'writing', label: 'Writing Skills' },
+  { value: 'environment', label: 'Environmental Friendliness' },
+  { value: 'content-creation', label: 'Content Creation & Digital Skills' },
 ];
 
 const StoryboardPlanner: React.FC = () => {
@@ -119,6 +175,11 @@ const StoryboardPlanner: React.FC = () => {
   }>(null);
   const [canGenerateStoryboard, setCanGenerateStoryboard] = useState(false);
   const [generatedStoryboard, setGeneratedStoryboard] = useState<any[] | null>(null);
+  const [studentLevel, setStudentLevel] = useState('Elementary');
+  const [topic, setTopic] = useState('');
+  const [skills, setSkills] = useState(skillOptions[0].value);
+  const [engagementIdeas, setEngagementIdeas] = useState('');
+  const quickAISuggestions = getQuickAISuggestions(topic, studentLevel);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -446,142 +507,270 @@ ${context}`;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-6xl">
         <StickyTopBar
           onBack={() => navigate(-1)}
           breadcrumbTrail={['Story Planner', 'Story Board', 'Preview']}
           currentStep={0}
         />
       </div>
-      {/* Main Card */}
-      <div className="w-full max-w-3xl mt-8 mb-16 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-[#ece6fa] dark:border-slate-800 p-8 flex flex-col gap-8">
-        <h2 className="text-2xl font-bold text-slate-700 dark:text-white mb-4">Let's plan your video!</h2>
-        
-        {/* Format and Duration Selectors */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Format</label>
-            <Select
-              value={format}
-              onChange={(value: string) => setFormat(value)}
-              options={formatOptions}
-              className={selectClass}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Duration</label>
-            <Select
-              value={duration}
-              onChange={(value: string) => setDuration(value)}
-              options={TIME_OPTIONS}
-              className={selectClass}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Target Audience</label>
-            <Select
-              value={audience}
-              onChange={(value: string) => setAudience(value)}
-              options={audienceOptions}
-              className={selectClass}
-            />
-          </div>
-        </div>
-
-        {/* Chat Interface */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="flex-1 overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 min-h-[220px] border border-slate-100 dark:border-slate-700">
-            {messages.map((message, index) => (
-              message.text === '[structured-doc-response]' && structuredDocResponse ? (
-                <div key={index} className="flex w-full justify-start mb-2">
-                  <div className="rounded-2xl px-4 py-2 max-w-[75%] break-words shadow-sm bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] text-slate-700 dark:from-purple-600 dark:to-orange-500 dark:text-white">
-                    <div className="mb-2">
-                      <strong>Summary:</strong> {structuredDocResponse.summary}
-                    </div>
-                    <div className="mb-2">
-                      <strong>Suggested Structure:</strong>
-                      <ol className="list-decimal ml-5">
-                        {structuredDocResponse.structure.map((scene, i) => (
-                          <li key={i} className="mb-1">
-                            <span className="font-semibold">{scene.title}</span>
-                            {scene.date && <span className="ml-2 text-xs text-slate-500">({scene.date})</span>}
-                            <div>{scene.description}</div>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                    <div className="mt-2">
-                      <strong>Next Question:</strong> {structuredDocResponse.next_question}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <MessageBubble key={index} message={message} />
-              )
-            ))}
-            {isLoading && (
-              <div className="flex w-full justify-start mb-2">
-                <div className="rounded-2xl px-4 py-2 max-w-[75%] bg-gradient-to-r from-blue-400 to-purple-400 text-white dark:from-blue-700 dark:to-purple-700 dark:text-white flex items-center">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                </div>
+      <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 items-start px-2 md:px-0">
+        {/* Video Planning Form (Primary) */}
+        <section className="flex-1 min-w-0 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-[#ece6fa] dark:border-slate-800 p-8 mt-8 mb-16 flex flex-col gap-8">
+          <h2 className="text-2xl font-bold text-slate-700 dark:text-white mb-4">Plan Your Educational Video</h2>
+          <form className="flex flex-col gap-4" autoComplete="off" onSubmit={e => e.preventDefault()}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Format</label>
+                <Select
+                  value={format}
+                  onChange={setFormat}
+                  options={formatOptions}
+                  className={selectClass}
+                />
               </div>
-            )}
-          </div>
-          <div ref={messagesEndRef} />
-          
-          {/* Input Area */}
-          <div className="flex gap-2 mt-2 items-center">
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && handleSend()}
-              placeholder="Type your message..."
-              className="flex-1 rounded-lg border border-[#e5e7eb] dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#a78bfa]"
-            />
-            <label className="cursor-pointer flex items-center gap-1 px-3 py-2 rounded-lg bg-[#e6f0fa] text-slate-700 border border-[#e5e7eb] dark:border-slate-700 hover:bg-blue-100 relative">
-              <span role="img" aria-label="attach">📎</span>
-              <span>Attach file</span>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Duration</label>
+                <Select
+                  value={duration}
+                  onChange={setDuration}
+                  options={TIME_OPTIONS}
+                  className={selectClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Target Audience</label>
+                <Select
+                  value={audience}
+                  onChange={setAudience}
+                  options={audienceOptions}
+                  className={selectClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Student Level</label>
+                <select
+                  className="w-full px-3 py-2 rounded border bg-slate-50 text-slate-700"
+                  value={studentLevel}
+                  onChange={e => setStudentLevel(e.target.value)}
+                >
+                  <option>Elementary</option>
+                  <option>Middle School</option>
+                  <option>High School</option>
+                  <option>College</option>
+                  <option>Adult</option>
+                  <option>Content Creators (General)</option>
+                  <option>YouTube Creators</option>
+                  <option>Social Media Influencers</option>
+                  <option>Adult Learners (General)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Topic</label>
               <input
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                ref={fileInputRef}
+                type="text"
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                className="w-full px-3 py-2 rounded border bg-slate-50 text-slate-700"
+                placeholder="e.g. The Water Cycle"
               />
-              {showFileTypeError && (
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-red-500 text-white text-xs rounded px-3 py-1 shadow z-10 whitespace-nowrap">
-                  Only .txt or .docx files are allowed.
-                </span>
-              )}
-            </label>
-            <Button
-              onClick={handleSend}
-              disabled={isLoading || !input.trim()}
-              className="px-4 py-2 rounded-lg bg-[#a78bfa] hover:bg-[#8b5cf6] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send Message
-            </Button>
-            {attachedFile && (
-              <span className="ml-2 text-xs text-slate-500 truncate max-w-[120px]" title={attachedFile.name}>
-                {attachedFile.name}
-              </span>
-            )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Skills / Standards</label>
+              <select
+                value={skills}
+                onChange={e => setSkills(e.target.value)}
+                className="w-full px-3 py-2 rounded border bg-slate-50 text-slate-700"
+              >
+                {skillOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Engagement Ideas</label>
+              <textarea
+                value={engagementIdeas}
+                onChange={e => setEngagementIdeas(e.target.value)}
+                className="w-full px-3 py-2 rounded border bg-slate-50 text-slate-700 min-h-[60px]"
+                placeholder="e.g. Add a meme, use a pop song, include a quick quiz"
+              />
+            </div>
+          </form>
+          {/* Quick AI Suggestions */}
+          <div className="flex flex-col gap-2 mt-2">
+            <div className="text-xs font-semibold text-slate-500 mb-1">Quick AI Suggestions</div>
+            <div className="flex flex-row flex-wrap gap-2">
+              {quickAISuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  className={`flex items-center gap-2 px-4 py-2 rounded border shadow-sm ${s.color} font-medium text-sm transition-colors duration-150`}
+                  type="button"
+                  disabled
+                >
+                  <span className="text-xl">{s.icon}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
-          {(attachedFile || (answers.length >= 5) || structuredDocResponse) && (
-            <Button
-              onClick={handleGenerateStoryboard}
-              disabled={isLoading}
-              className="w-full mt-4 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-bold text-lg shadow disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Generate Storyboard
-            </Button>
-          )}
-        </div>
+        </section>
+        {/* AI Assistant Chat Panel (Secondary) */}
+        <aside className="w-full md:w-[400px] flex-shrink-0 mt-8 mb-16 md:mt-8 md:mb-16 md:sticky md:top-8">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-[#ece6fa] dark:border-slate-800 p-6 flex flex-col gap-4 h-[600px] md:h-[700px] max-h-[80vh] overflow-y-auto relative">
+            <h3 className="text-lg font-bold text-slate-700 dark:text-white mb-2">AI Storyboard Assistant</h3>
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="flex-1 overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 min-h-[220px] border border-slate-100 dark:border-slate-700 h-[340px] max-h-[340px]">
+                {messages.map((message, index) => (
+                  message.text === '[structured-doc-response]' && structuredDocResponse ? (
+                    <div key={index} className="flex w-full justify-start mb-2">
+                      <div className="rounded-2xl px-4 py-2 max-w-[75%] break-words shadow-sm bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] text-slate-700 dark:from-purple-600 dark:to-orange-500 dark:text-white">
+                        <div className="mb-2">
+                          <strong>Summary:</strong> {structuredDocResponse.summary}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Suggested Structure:</strong>
+                          <ol className="list-decimal ml-5">
+                            {structuredDocResponse.structure.map((scene, i) => (
+                              <li key={i} className="mb-1">
+                                <span className="font-semibold">{scene.title}</span>
+                                {scene.date && <span className="ml-2 text-xs text-slate-500">({scene.date})</span>}
+                                <div>{scene.description}</div>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                        <div className="mt-2">
+                          <strong>Next Question:</strong> {structuredDocResponse.next_question}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <MessageBubble key={index} message={message} />
+                  )
+                ))}
+                {isLoading && (
+                  <div className="flex w-full justify-start mb-2">
+                    <div className="rounded-2xl px-4 py-2 max-w-[75%] bg-gradient-to-r from-blue-400 to-purple-400 text-white dark:from-blue-700 dark:to-purple-700 dark:text-white flex items-center">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div ref={messagesEndRef} />
+              {/* Input Area */}
+              <div className="flex gap-2 mt-2 items-center">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleSend()}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-lg border border-[#e5e7eb] dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#a78bfa]"
+                />
+                <label className="cursor-pointer flex items-center gap-1 px-3 py-2 rounded-lg bg-[#e6f0fa] text-slate-700 border border-[#e5e7eb] dark:border-slate-700 hover:bg-blue-100 relative">
+                  <span role="img" aria-label="attach">📎</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                  />
+                  {showFileTypeError && (
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-red-500 text-white text-xs rounded px-3 py-1 shadow z-10 whitespace-nowrap">
+                      Only .txt or .docx files are allowed.
+                    </span>
+                  )}
+                </label>
+                <Button
+                  onClick={handleSend}
+                  disabled={isLoading || !input.trim()}
+                  className="p-2 rounded-lg bg-[#a78bfa] hover:bg-[#8b5cf6] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[40px] min-h-[40px]"
+                  aria-label="Send Message"
+                >
+                  <span className="material-icons">send</span>
+                </Button>
+                {attachedFile && (
+                  <span className="ml-2 text-xs text-slate-500 truncate max-w-[120px]" title={attachedFile.name}>
+                    {attachedFile.name}
+                  </span>
+                )}
+              </div>
+              {(attachedFile || (answers.length >= 5) || structuredDocResponse) && (
+                <Button
+                  onClick={handleGenerateStoryboard}
+                  disabled={isLoading}
+                  className="w-full mt-4 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-bold text-lg shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Generate Storyboard
+                </Button>
+              )}
+            </div>
+            {/* New: Generate Video from Prompt section */}
+            <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+              <label htmlFor="videoPrompt" className="text-sm font-medium text-slate-700 dark:text-white mb-1">Generate a Video from a Prompt</label>
+              <input
+                id="videoPrompt"
+                type="text"
+                placeholder="Describe your educational video idea..."
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-slate-900 text-slate-700 dark:text-white"
+                // You can add value/onChange for state if you want to make it functional
+              />
+              <button
+                type="button"
+                className="mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors"
+                // onClick={() => { /* handle video generation */ }}
+                disabled
+              >
+                Generate Video from Prompt
+              </button>
+            </div>
+          </div>
+          {/* Mobile floating chat button */}
+          <div className="fixed bottom-6 right-6 md:hidden z-50">
+            <button className="bg-[#a78bfa] hover:bg-[#8b5cf6] text-white rounded-full shadow-lg p-4 flex items-center gap-2">
+              <span className="material-icons">chat</span>
+              <span className="font-semibold">AI Chat</span>
+            </button>
+          </div>
+        </aside>
       </div>
+      {/* Scene Outline Section */}
+      {generatedStoryboard && Array.isArray(generatedStoryboard) && (
+        <section className="w-full max-w-6xl mt-8 mb-16">
+          <h3 className="text-xl font-bold text-slate-700 dark:text-white mb-4">Storyboard Outline</h3>
+          <div className="flex flex-col gap-6">
+            {generatedStoryboard.map((section, idx) => (
+              <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl shadow border border-slate-200 dark:border-slate-800 p-6">
+                <div className="flex flex-row items-center justify-between mb-2">
+                  <span className="font-semibold text-lg text-purple-700 dark:text-purple-300">{section.label}</span>
+                  <span className="text-sm text-slate-500">{section.duration}</span>
+                </div>
+                <ol className="list-decimal ml-6 space-y-2">
+                  {section.scenes && section.scenes.map((scene: any, sidx: number) => (
+                    <li key={sidx}>
+                      <div className="font-semibold text-slate-700 dark:text-white">{scene.title}</div>
+                      <div className="text-slate-600 dark:text-slate-300 mb-1">{scene.description}</div>
+                      {scene.bullets && Array.isArray(scene.bullets) && scene.bullets.length > 0 && (
+                        <ul className="list-disc ml-6 text-slate-500 dark:text-slate-400 text-sm">
+                          {scene.bullets.map((b: string, bi: number) => (
+                            <li key={bi}>{b}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
