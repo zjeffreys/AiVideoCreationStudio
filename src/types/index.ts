@@ -13,6 +13,7 @@ export type Video = {
   status: 'draft' | 'processing' | 'complete';
   thumbnail_url?: string;
   video_url?: string;
+  file_path?: string;
   created_at: string;
 };
 

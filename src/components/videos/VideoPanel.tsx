@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Upload, X, Sparkles, Video as VideoIcon } from 'lucide-react';
+import { Plus, Upload, X, Sparkles, Video as VideoIcon, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Video } from '../../types';
 
@@ -28,6 +28,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upload');
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -56,6 +57,15 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     const files = e.target.files;
     if (files && files.length > 0) {
       onAddVideo(files[0]);
+    }
+  };
+
+  const handleVideoClick = (video: SceneVideo, event: React.MouseEvent) => {
+    if (isDeleteMode) {
+      event.stopPropagation();
+      onRemoveVideo(video.id);
+    } else {
+      onVideoSelect(video);
     }
   };
 
@@ -145,14 +155,25 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
   return (
     <div className="w-64 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col relative">
-      <h2 className="p-4 font-bold text-slate-700 dark:text-white">Scene Videos</h2>
+      <div className="p-4 flex justify-between items-center">
+        <h2 className="font-bold text-slate-700 dark:text-white">Scene Videos</h2>
+        <Button
+          size="sm"
+          variant={isDeleteMode ? "ghost" : "outline"}
+          className={isDeleteMode ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50" : ""}
+          onClick={() => setIsDeleteMode(!isDeleteMode)}
+          leftIcon={<Trash2 className="h-4 w-4" />}
+        >
+          {isDeleteMode ? 'Exit Delete' : 'Delete'}
+        </Button>
+      </div>
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-4 p-4">
           {videos.map((video) => (
             <div
               key={video.id}
               className="group relative aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 cursor-pointer"
-              onClick={() => onVideoSelect(video)}
+              onClick={(e) => handleVideoClick(video, e)}
             >
               {video.thumbnail_url ? (
                 <img
@@ -165,19 +186,13 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
                   <span className="text-sm">No thumbnail</span>
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:text-red-400"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveVideo(video.id);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {isDeleteMode && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                    <X className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              )}
               <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
                 <p className="text-sm text-white truncate">{video.title}</p>
               </div>

@@ -7,6 +7,10 @@ import { MusicPanel } from '../components/music/MusicPanel';
 import { VoicesPanel } from '../components/voices/VoicesPanel';
 import { Video, MusicTrack, Voice } from '../types';
 import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
+import { Toast } from '../components/ui/Toast';
+import { getUserClips, uploadClip, deleteClip, UserClip } from '../lib/clips';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 // import { Play } from 'lucide-react'; // Uncomment if using Lucide React
 
 // Type definitions
@@ -35,6 +39,8 @@ interface Message {
 interface SceneVideo extends Video {
   file: File;
   localUrl: string;
+  file_path?: string;
+  thumbnail_url?: string;
 }
 
 interface MusicTrack {
@@ -96,7 +102,7 @@ const initialSections: Section[] = [
 
 const assetPanels = [
   { key: 'scenes', label: 'Scenes', icon: '🎬' },
-  { key: 'videos', label: 'Videos', icon: '📹' },
+  { key: 'clips', label: 'Clips', icon: '📹' },
   { key: 'characters', label: 'Characters', icon: '🧑‍🎤' },
   { key: 'voices', label: 'Voices', icon: '🎤' },
   { key: 'music', label: 'Music', icon: '🎵' },
@@ -131,6 +137,7 @@ function TooltipPortal({ children, position }: { children: React.ReactNode, posi
 }
 
 export default function VideoEditor() {
+  const { user } = useAuth();
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [activePanel, setActivePanel] = useState('scenes');
   const [selectedSceneId, setSelectedSceneId] = useState<number>(initialSections[0].scenes[0].id);
@@ -149,6 +156,11 @@ export default function VideoEditor() {
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [userClips, setUserClips] = useState<UserClip[]>([]);
+  const [isLoadingClips, setIsLoadingClips] = useState(false);
+  const [clipToDelete, setClipToDelete] = useState<UserClip | null>(null);
+  const [clipUrls, setClipUrls] = useState<Record<string, { localUrl: string; thumbnail_url?: string }>>({});
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -158,6 +170,46 @@ export default function VideoEditor() {
   useEffect(() => {
     loadVideos();
   }, []);
+
+  // Load user clips on component mount
+  useEffect(() => {
+    if (user) {
+      console.log('Loading user clips on mount...');
+      loadUserClips();
+    }
+  }, [user]);
+
+  // Fetch signed URLs for user clips
+  useEffect(() => {
+    async function fetchClipUrls() {
+      if (!userClips.length) return;
+      const urlMap: Record<string, { localUrl: string; thumbnail_url?: string }> = {};
+      for (const clip of userClips) {
+        // Get signed URL for video file
+        let localUrl = '';
+        if (clip.file_path) {
+          // Extract the path after the bucket name
+          const filePath = clip.file_path.includes('/object/public/user-clips/')
+            ? clip.file_path.split('/object/public/user-clips/')[1]
+            : clip.file_path.split('/user-clips/')[1] || clip.file_path;
+          const { data } = await supabase.storage.from('user-clips').createSignedUrl(filePath, 60);
+          localUrl = data?.signedUrl || '';
+        }
+        // Get signed URL for thumbnail
+        let thumbnail_url = '';
+        if (clip.thumbnail_url) {
+          const thumbPath = clip.thumbnail_url.includes('/object/public/clip-thumbnails/')
+            ? clip.thumbnail_url.split('/object/public/clip-thumbnails/')[1]
+            : clip.thumbnail_url.split('/clip-thumbnails/')[1] || clip.thumbnail_url;
+          const { data } = await supabase.storage.from('clip-thumbnails').createSignedUrl(thumbPath, 60);
+          thumbnail_url = data?.signedUrl || '';
+        }
+        urlMap[clip.id] = { localUrl, thumbnail_url };
+      }
+      setClipUrls(urlMap);
+    }
+    fetchClipUrls();
+  }, [userClips]);
 
   const loadVideos = async () => {
     try {
@@ -169,6 +221,21 @@ export default function VideoEditor() {
       // TODO: Show error notification
     } finally {
       setIsLoadingVideos(false);
+    }
+  };
+
+  const loadUserClips = async () => {
+    try {
+      setIsLoadingClips(true);
+      console.log('Fetching user clips...');
+      const clips = await getUserClips();
+      console.log('Fetched clips:', clips);
+      setUserClips(clips);
+    } catch (error) {
+      console.error('Error loading clips:', error);
+      setToast({ message: 'Error loading clips', type: 'error' });
+    } finally {
+      setIsLoadingClips(false);
     }
   };
 
@@ -360,35 +427,89 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
 
   const handleAddSceneVideo = async (file: File) => {
     try {
-      // Create a local URL for the video
-      const localUrl = URL.createObjectURL(file);
-      
-      // Create a new scene video
-      const newVideo: SceneVideo = {
-        id: crypto.randomUUID(),
-        title: file.name,
-        description: '',
-        status: 'complete',
-        file,
-        localUrl,
-        created_at: new Date().toISOString(),
-      };
+      if (!user) {
+        throw new Error('User must be logged in');
+      }
 
-      setSceneVideos(prev => [...prev, newVideo]);
+      console.log('Starting clip upload process...');
+      console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      // Check file size (10MB limit)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error('File size must be less than 10MB');
+      }
+
+      // Check video duration
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      const durationCheck = new Promise((resolve, reject) => {
+        video.onloadedmetadata = () => {
+          console.log('Video duration:', video.duration);
+          if (video.duration > 10) { // 10 seconds limit
+            reject(new Error('Video duration must be less than 10 seconds'));
+          }
+          resolve(true);
+        };
+        video.onerror = () => reject(new Error('Error loading video'));
+      });
+
+      video.src = URL.createObjectURL(file);
+      await durationCheck;
+      URL.revokeObjectURL(video.src);
+
+      console.log('Uploading clip to Supabase...');
+      // Upload the clip
+      const clip = await uploadClip(file, file.name);
+      console.log('Clip uploaded successfully:', clip);
+      
+      // Refresh clips list
+      console.log('Refreshing clips list...');
+      await loadUserClips();
+      
+      setToast({ message: 'Video clip added successfully', type: 'success' });
     } catch (error) {
-      console.error('Error adding scene video:', error);
-      // TODO: Show error notification
+      console.error('Error adding video clip:', error);
+      setToast({ message: error instanceof Error ? error.message : 'Error adding video clip', type: 'error' });
     }
   };
 
-  const handleRemoveSceneVideo = (id: string) => {
-    setSceneVideos(prev => {
-      const video = prev.find(v => v.id === id);
-      if (video) {
-        URL.revokeObjectURL(video.localUrl);
-      }
-      return prev.filter(v => v.id !== id);
-    });
+  const handleRemoveSceneVideo = async (id: string) => {
+    try {
+      // Find the clip to delete
+      const clip = userClips.find(c => c.id === id);
+      if (!clip) return;
+
+      // Set the clip to delete and show confirmation dialog
+      setClipToDelete(clip);
+    } catch (error) {
+      console.error('Error preparing to remove video clip:', error);
+      setToast({ message: error instanceof Error ? error.message : 'Error preparing to remove video clip', type: 'error' });
+    }
+  };
+
+  const confirmDeleteClip = async () => {
+    if (!clipToDelete) return;
+
+    try {
+      await deleteClip(clipToDelete.id);
+      await loadUserClips();
+      setToast({ message: 'Video clip removed successfully', type: 'success' });
+    } catch (error) {
+      console.error('Error removing video clip:', error);
+      setToast({ message: error instanceof Error ? error.message : 'Error removing video clip', type: 'error' });
+    } finally {
+      setClipToDelete(null);
+    }
+  };
+
+  const cancelDeleteClip = () => {
+    setClipToDelete(null);
   };
 
   const handleVideoSelect = (video: SceneVideo) => {
@@ -523,12 +644,31 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
             </button>
           </aside>
         )}
-        {activePanel === 'videos' && (
+        {activePanel === 'clips' && (
           <VideoPanel
-            videos={sceneVideos}
+            videos={userClips.map(clip => ({
+              id: clip.id,
+              title: clip.title,
+              description: clip.description || '',
+              status: 'complete',
+              file: new File([], clip.file_path || ''),
+              localUrl: clipUrls[clip.id]?.localUrl || '',
+              thumbnail_url: clipUrls[clip.id]?.thumbnail_url,
+              created_at: clip.created_at,
+            }))}
             onAddVideo={handleAddSceneVideo}
             onRemoveVideo={handleRemoveSceneVideo}
-            onVideoSelect={handleVideoSelect}
+            onVideoSelect={(clip) => {
+              setSelectedVideo({
+                id: clip.id,
+                title: clip.title,
+                description: clip.description || '',
+                status: 'complete',
+                file: new File([], clip.file_path || ''),
+                localUrl: clipUrls[clip.id]?.localUrl || '',
+                created_at: clip.created_at,
+              });
+            }}
           />
         )}
         {activePanel === 'music' && (
@@ -556,7 +696,7 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
               />
             ) : (
               <div className="text-slate-400 dark:text-slate-600">
-                Select a video to preview
+                Select a video clip to preview
               </div>
             )}
           </div>
@@ -701,6 +841,41 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
       </DragDropContext>
       {/* Tooltip Portal for section descriptions */}
       <TooltipPortal position={tooltip.position}>{tooltip.text}</TooltipPortal>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {clipToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              Delete Clip
+            </h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-6">
+              Are you sure you want to delete "{clipToDelete.title}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDeleteClip}
+                className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteClip}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
