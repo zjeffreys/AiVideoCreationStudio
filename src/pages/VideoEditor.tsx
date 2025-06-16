@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot, DroppableProvided } from 'react-beautiful-dnd';
 import { createPortal } from 'react-dom';
+import { VideoPanel } from '../components/videos/VideoPanel';
+import { MusicPanel } from '../components/music/MusicPanel';
+import { VoicesPanel } from '../components/voices/VoicesPanel';
+import { Video, MusicTrack, Voice } from '../types';
+import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
 // import { Play } from 'lucide-react'; // Uncomment if using Lucide React
 
 // Type definitions
@@ -25,6 +30,20 @@ interface Section {
 interface Message {
   sender: 'user' | 'ai';
   text: string;
+}
+
+interface SceneVideo extends Video {
+  file: File;
+  localUrl: string;
+}
+
+interface MusicTrack {
+  id: string;
+  title: string;
+  artist?: string;
+  duration: string;
+  file: File;
+  localUrl: string;
 }
 
 const initialSections: Section[] = [
@@ -120,13 +139,79 @@ export default function VideoEditor() {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ text: string, position: { top: number, left: number } | null }>({ text: '', position: null });
+  const [sceneVideos, setSceneVideos] = useState<SceneVideo[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<SceneVideo | null>(null);
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+  const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
   const selectedScene = scenes.find((s: Scene) => s.id === selectedSceneId);
+
+  // Load videos on component mount
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const loadVideos = async () => {
+    try {
+      setIsLoadingVideos(true);
+      const loadedVideos = await getVideos();
+      setVideos(loadedVideos);
+    } catch (error) {
+      console.error('Error loading videos:', error);
+      // TODO: Show error notification
+    } finally {
+      setIsLoadingVideos(false);
+    }
+  };
+
+  const handleAddVideo = async () => {
+    try {
+      // Create a new video with draft status
+      const newVideo = await createVideo({
+        title: 'Untitled Video',
+        description: '',
+        status: 'draft'
+      });
+
+      // Refresh the videos list
+      await loadVideos();
+
+      // TODO: Open video editor or show success notification
+    } catch (error) {
+      console.error('Error creating video:', error);
+      // TODO: Show error notification
+    }
+  };
+
+  const handleEditVideo = async (video: Video) => {
+    try {
+      // TODO: Implement video editing UI/modal
+      console.log('Edit video:', video);
+    } catch (error) {
+      console.error('Error editing video:', error);
+      // TODO: Show error notification
+    }
+  };
+
+  const handleDeleteVideo = async (id: string) => {
+    try {
+      await deleteVideo(id);
+      // Refresh the videos list
+      await loadVideos();
+      // TODO: Show success notification
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      // TODO: Show error notification
+    }
+  };
 
   // Add scroll to bottom effect
   useEffect(() => {
@@ -273,6 +358,94 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
     }
   };
 
+  const handleAddSceneVideo = async (file: File) => {
+    try {
+      // Create a local URL for the video
+      const localUrl = URL.createObjectURL(file);
+      
+      // Create a new scene video
+      const newVideo: SceneVideo = {
+        id: crypto.randomUUID(),
+        title: file.name,
+        description: '',
+        status: 'complete',
+        file,
+        localUrl,
+        created_at: new Date().toISOString(),
+      };
+
+      setSceneVideos(prev => [...prev, newVideo]);
+    } catch (error) {
+      console.error('Error adding scene video:', error);
+      // TODO: Show error notification
+    }
+  };
+
+  const handleRemoveSceneVideo = (id: string) => {
+    setSceneVideos(prev => {
+      const video = prev.find(v => v.id === id);
+      if (video) {
+        URL.revokeObjectURL(video.localUrl);
+      }
+      return prev.filter(v => v.id !== id);
+    });
+  };
+
+  const handleVideoSelect = (video: SceneVideo) => {
+    setSelectedVideo(video);
+  };
+
+  const handleAddMusic = async (file: File) => {
+    try {
+      // Create a local URL for the audio
+      const localUrl = URL.createObjectURL(file);
+      
+      // Create a new music track
+      const newTrack: MusicTrack = {
+        id: crypto.randomUUID(),
+        title: file.name,
+        duration: '0:00', // You might want to get this from the file metadata
+        file,
+        localUrl,
+      };
+
+      setMusicTracks(prev => [...prev, newTrack]);
+    } catch (error) {
+      console.error('Error adding music track:', error);
+      // TODO: Show error notification
+    }
+  };
+
+  const handleRemoveMusic = (id: string) => {
+    setMusicTracks(prev => {
+      const track = prev.find(t => t.id === id);
+      if (track) {
+        URL.revokeObjectURL(track.localUrl);
+      }
+      return prev.filter(t => t.id !== id);
+    });
+  };
+
+  const handleTrackSelect = (track: MusicTrack) => {
+    setSelectedTrack(track);
+  };
+
+  const handleVoiceSelect = (voice: Voice) => {
+    setSelectedVoice(voice);
+  };
+
+  // Clean up local URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      sceneVideos.forEach(video => {
+        URL.revokeObjectURL(video.localUrl);
+      });
+      musicTracks.forEach(track => {
+        URL.revokeObjectURL(track.localUrl);
+      });
+    };
+  }, [sceneVideos, musicTracks]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -350,13 +523,42 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
             </button>
           </aside>
         )}
+        {activePanel === 'videos' && (
+          <VideoPanel
+            videos={sceneVideos}
+            onAddVideo={handleAddSceneVideo}
+            onRemoveVideo={handleRemoveSceneVideo}
+            onVideoSelect={handleVideoSelect}
+          />
+        )}
+        {activePanel === 'music' && (
+          <MusicPanel
+            tracks={musicTracks}
+            onAddMusic={handleAddMusic}
+            onRemoveMusic={handleRemoveMusic}
+            onTrackSelect={handleTrackSelect}
+          />
+        )}
+        {activePanel === 'voices' && (
+          <VoicesPanel
+            onVoiceSelect={handleVoiceSelect}
+            selectedVoice={selectedVoice}
+          />
+        )}
         {/* Main Video Preview */}
         <main className="flex-1 flex flex-col items-center justify-center p-8">
           <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center shadow mb-4">
-            {selectedScene?.type === 'image'
-              ? <img src={selectedScene.content} alt="" className="max-h-full max-w-full rounded-xl" />
-              : <span className="text-2xl text-slate-700 dark:text-white">{selectedScene?.content}</span>
-            }
+            {selectedVideo ? (
+              <video
+                src={selectedVideo.localUrl}
+                controls
+                className="max-w-full max-h-full"
+              />
+            ) : (
+              <div className="text-slate-400 dark:text-slate-600">
+                Select a video to preview
+              </div>
+            )}
           </div>
           {/* Playback Controls */}
           <div className="flex items-center gap-4 mt-2">
@@ -370,57 +572,59 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
             <span className="text-xs text-slate-500">{`Scene ${scenes.findIndex((s: Scene) => s.id === selectedSceneId) + 1} / ${scenes.length}`}</span>
           </div>
         </main>
-        {/* Chatbot Panel */}
-        <aside className="w-80 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 flex flex-col p-4 gap-2">
-          <h2 className="font-bold text-lg text-slate-700 dark:text-white mb-2">AI Storyline Chatbot</h2>
-          <div className="flex flex-col h-[500px]"> {/* Fixed height container */}
-            <div className="h-[400px] overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
-              {chatMessages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.sender === 'ai' ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`rounded-2xl px-4 py-2 max-w-[75%] break-words shadow-sm ${
-                    msg.sender === 'ai' 
-                      ? 'bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] text-slate-700 dark:from-purple-600 dark:to-orange-500 dark:text-white' 
-                      : 'bg-[#e6f0fa] text-slate-700'
-                  }`}>
-                    {msg.text}
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex w-full justify-start mb-2">
-                  <div className="rounded-2xl px-4 py-2 max-w-[75%] bg-gradient-to-r from-blue-400 to-purple-400 text-white dark:from-blue-700 dark:to-purple-700 dark:text-white flex items-center">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        {/* Chatbot Panel - Only show when scenes tab is active */}
+        {activePanel === 'scenes' && (
+          <aside className="w-80 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 flex flex-col p-4 gap-2">
+            <h2 className="font-bold text-lg text-slate-700 dark:text-white mb-2">AI Storyline Chatbot</h2>
+            <div className="flex flex-col h-[500px]"> {/* Fixed height container */}
+              <div className="h-[400px] overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-800 rounded-xl p-3 border border-slate-100 dark:border-slate-700">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.sender === 'ai' ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`rounded-2xl px-4 py-2 max-w-[75%] break-words shadow-sm ${
+                      msg.sender === 'ai' 
+                        ? 'bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] text-slate-700 dark:from-purple-600 dark:to-orange-500 dark:text-white' 
+                        : 'bg-[#e6f0fa] text-slate-700'
+                    }`}>
+                      {msg.text}
                     </div>
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} /> {/* Scroll anchor */}
+                ))}
+                {isLoading && (
+                  <div className="flex w-full justify-start mb-2">
+                    <div className="rounded-2xl px-4 py-2 max-w-[75%] bg-gradient-to-r from-blue-400 to-purple-400 text-white dark:from-blue-700 dark:to-purple-700 dark:text-white flex items-center">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-slate-300 opacity-80 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} /> {/* Scroll anchor */}
+              </div>
+              <div className="flex gap-2 mt-2 items-center">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleSendChat()}
+                  placeholder="Ask AI to restructure your story..."
+                  className="flex-1 rounded-lg border border-[#e5e7eb] dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#a78bfa]"
+                />
+                <button
+                  onClick={handleSendChat}
+                  disabled={isLoading || !chatInput.trim()}
+                  className="p-2 rounded-lg bg-[#a78bfa] hover:bg-[#8b5cf6] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[40px] min-h-[40px]"
+                  aria-label="Send Message"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5L19.5 12 4.5 4.5v15z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-2 items-center">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && handleSendChat()}
-                placeholder="Ask AI to restructure your story..."
-                className="flex-1 rounded-lg border border-[#e5e7eb] dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#a78bfa]"
-              />
-              <button
-                onClick={handleSendChat}
-                disabled={isLoading || !chatInput.trim()}
-                className="p-2 rounded-lg bg-[#a78bfa] hover:bg-[#8b5cf6] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[40px] min-h-[40px]"
-                aria-label="Send Message"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5L19.5 12 4.5 4.5v15z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </aside>
+          </aside>
+        )}
       </div>
       {/* Timeline with Scene, Script, and Music tracks */}
       <DragDropContext onDragEnd={onDragEnd}>

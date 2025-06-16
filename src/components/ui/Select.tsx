@@ -1,63 +1,50 @@
-import React, { forwardRef } from 'react';
-import { cn } from '../../utils/cn';
-import { ChevronDown } from 'lucide-react';
+import React from 'react';
+import { cn } from '../../lib/utils';
 
-export interface SelectOption {
+interface Option {
   value: string;
   label: string;
 }
 
-export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
-  options: SelectOption[];
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
   label?: string;
+  options: Option[];
+  value: string;
+  onChange: (value: string) => void;
   error?: string;
   fullWidth?: boolean;
-  onChange?: (value: string) => void;
-  placeholder?: string;
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, options, fullWidth = false, onChange, placeholder, ...props }, ref) => {
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      if (onChange) {
-        onChange(e.target.value);
-      }
-    };
-
+export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+  ({ className, label, options, value, onChange, error, fullWidth = false, ...props }, ref) => {
     return (
-      <div className={cn('flex flex-col gap-1.5 relative', fullWidth && 'w-full')}>
+      <div className={cn('space-y-2', fullWidth && 'w-full')}>
         {label && (
-          <label 
-            htmlFor={props.id} 
-            className="text-sm font-medium text-white"
-          >
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
             {label}
           </label>
         )}
-        <div className="relative">
-          <select
-            className={cn(
-              'flex h-10 w-full appearance-none rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50',
-              error && 'border-red-500 focus:ring-red-500',
-              className
-            )}
-            ref={ref}
-            onChange={handleChange}
-            {...props}
-          >
-            {placeholder && <option value="" disabled>{placeholder}</option>}
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-slate-600" />
-        </div>
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        <select
+          className={cn(
+            'flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-slate-300',
+            error && 'border-red-500 focus-visible:ring-red-500',
+            className
+          )}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          ref={ref}
+          {...props}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {error && (
+          <p className="text-sm text-red-500">{error}</p>
+        )}
       </div>
     );
   }
 );
-
-Select.displayName = 'Select';
