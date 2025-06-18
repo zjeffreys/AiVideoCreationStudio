@@ -16,6 +16,8 @@ export const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [videoPrompt, setVideoPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -72,6 +74,7 @@ export const Dashboard = () => {
             Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, create your video from
           </h2>
         </div>
+        {/*
         <div className="mt-6 flex justify-start">
           <div
             className="inline-block rounded-xl p-[2px]"
@@ -114,6 +117,7 @@ export const Dashboard = () => {
             </button>
           </div>
         </div>
+        */}
         <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2 w-full">
           <label htmlFor="dashboardVideoPrompt" className="text-sm font-medium text-slate-700 dark:text-white mb-1">Generate a Video from a Prompt</label>
           <textarea
@@ -127,11 +131,126 @@ export const Dashboard = () => {
           <button
             type="button"
             className="mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors self-start"
-            onClick={() => navigate('/video-editor')}
+            onClick={async () => {
+              if (!user) {
+                setGenerateError('You must be logged in to generate a video.');
+                return;
+              }
+              setIsGenerating(true);
+              setGenerateError(null);
+              console.log('Starting video generation from prompt:', videoPrompt);
+              try {
+                // 1. Call OpenAI to generate title and description
+                console.log('Calling OpenAI API...');
+                const prompt = `Generate a concise, catchy video title (max 8 words) and a 1-2 sentence description for an educational video based on this user prompt. Return as JSON: { "title": string, "description": string }\n\nPrompt: ${videoPrompt}`;
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+                  },
+                  body: JSON.stringify({
+                    model: 'gpt-4.1-mini',
+                    messages: [
+                      { role: 'system', content: 'You are a helpful assistant for educational video creators.' },
+                      { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.7,
+                  }),
+                });
+                if (!response.ok) throw new Error('Failed to get response from AI');
+                const data = await response.json();
+                console.log('OpenAI API response:', data);
+                let aiContent = data.choices[0].message.content;
+                let parsed;
+                try {
+                  parsed = JSON.parse(aiContent);
+                  console.log('Parsed AI content:', parsed);
+                } catch {
+                  // fallback: try to extract JSON from text
+                  const match = aiContent.match(/\{[\s\S]*\}/);
+                  parsed = match ? JSON.parse(match[0]) : { title: 'Untitled Video', description: '' };
+                  console.log('Fallback parsed AI content:', parsed);
+                }
+                // 2. Create video in Supabase
+                console.log('Inserting new video into Supabase:', parsed);
+                const defaultSections = [
+                  {
+                    label: 'Hook',
+                    description: 'Captures attention and introduces the main idea.',
+                    scenes: [
+                      {
+                        id: crypto.randomUUID(),
+                        type: 'text',
+                        content: 'Welcome to your video!',
+                        audio: '',
+                        script: 'Script for scene 1',
+                        title: 'Opening Hook',
+                        description: 'Grab attention with key message',
+                      },
+                    ],
+                  },
+                  {
+                    label: 'Exposition',
+                    description: 'Provides background and context for the story.',
+                    scenes: [
+                      {
+                        id: crypto.randomUUID(),
+                        type: 'image',
+                        content: 'https://placekitten.com/200/140',
+                        audio: '',
+                        script: 'Script for scene 2',
+                        title: 'Main Concept',
+                        description: 'Introduce core topic',
+                      },
+                    ],
+                  },
+                  {
+                    label: 'Climax',
+                    description: 'The most intense or important part of the story.',
+                    scenes: [
+                      {
+                        id: crypto.randomUUID(),
+                        type: 'text',
+                        content: 'This is your second scene.',
+                        audio: '',
+                        script: 'Script for scene 3',
+                        title: 'Key Moment',
+                        description: 'Build to main point',
+                      },
+                    ],
+                  },
+                ];
+                const { data: newVideo, error } = await supabase
+                  .from('videos')
+                  .insert({
+                    title: parsed.title || 'Untitled Video',
+                    description: parsed.description || '',
+                    status: 'draft',
+                    user_id: user.id,
+                    sections: defaultSections,
+                  })
+                  .select()
+                  .single();
+                console.log('Supabase insert result:', newVideo, error);
+                if (error || !newVideo) throw error || new Error('Failed to create video');
+                // 3. Navigate to video editor for new video
+                console.log('Navigating to video editor for video id:', newVideo.id);
+                navigate(`/video-editor/${newVideo.id}`);
+              } catch (err: any) {
+                console.error('Error during video generation:', err);
+                setGenerateError(err.message || 'Failed to generate video');
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
             disabled={!videoPrompt.trim()}
           >
-            Generate Video from Prompt
+            {isGenerating ? 'Generating...' : 'Generate Video from Prompt'}
           </button>
+          {generateError && (
+            <div className="text-red-500 text-sm mt-2">{generateError}</div>
+          )}
         </div>
       </div>
       {/* My Videos Section (only if user has videos) */}
@@ -148,7 +267,7 @@ export const Dashboard = () => {
                 <p className="text-sm text-slate-500 dark:text-slate-300 line-clamp-2 mb-2">{video.description}</p>
                 <button
                   className="text-sm text-purple-600 hover:underline font-medium"
-                  onClick={() => window.location.href = `/videos/${video.id}`}
+                  onClick={() => navigate(`/video-editor/${video.id}`)}
                 >
                   View Video
                 </button>

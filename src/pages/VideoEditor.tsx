@@ -1,33 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot, DroppableProvided } from 'react-beautiful-dnd';
 import { createPortal } from 'react-dom';
 import { VideoPanel } from '../components/videos/VideoPanel';
 import { MusicPanel } from '../components/music/MusicPanel';
 import { VoicesPanel } from '../components/voices/VoicesPanel';
-import { Video, MusicTrack, Voice } from '../types';
+import { Video, Voice } from '../types';
 import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
 import { Toast } from '../components/ui/Toast';
 import { getUserClips, uploadClip, deleteClip, UserClip } from '../lib/clips';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { AddMediaModal } from '../components/videos/AddMediaModal';
+import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw } from 'lucide-react';
+import { getVoice, generateSpeech } from '../lib/elevenlabs';
 // import { Play } from 'lucide-react'; // Uncomment if using Lucide React
 
 // Type definitions
+type SceneId = string;
 interface Scene {
-  id: number;
-  type: 'text' | 'image';
+  id: SceneId;
+  type: 'text' | 'image' | 'video';
   content: string;
   audio: string;
   script: string;
   sectionLabel?: string;
   title: string;
   description: string;
+  music?: string;
+  clipId?: string;
+  voiceId?: string;
+  musicId?: string;
 }
 
-interface Section {
+export interface Section {
   label: string;
-  description?: string; // Brief explanation of the section's narrative purpose
+  description: string;
   scenes: Scene[];
 }
 
@@ -58,7 +66,7 @@ const initialSections: Section[] = [
     description: 'Captures attention and introduces the main idea.',
     scenes: [
       { 
-        id: 1, 
+        id: '1', 
         type: 'text', 
         content: 'Welcome to your video!', 
         audio: 'Audio 1', 
@@ -73,7 +81,7 @@ const initialSections: Section[] = [
     description: 'Provides background and context for the story.',
     scenes: [
       { 
-        id: 2, 
+        id: '2', 
         type: 'image', 
         content: 'https://placekitten.com/200/140', 
         audio: 'Audio 2', 
@@ -88,7 +96,7 @@ const initialSections: Section[] = [
     description: 'The most intense or important part of the story.',
     scenes: [
       { 
-        id: 3, 
+        id: '3', 
         type: 'text', 
         content: 'This is your second scene.', 
         audio: 'Audio 3', 
@@ -138,9 +146,10 @@ function TooltipPortal({ children, position }: { children: React.ReactNode, posi
 
 export default function VideoEditor() {
   const { user } = useAuth();
+  const { videoId } = useParams();
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [activePanel, setActivePanel] = useState('scenes');
-  const [selectedSceneId, setSelectedSceneId] = useState<number>(initialSections[0].scenes[0].id);
+  const [selectedSceneId, setSelectedSceneId] = useState<SceneId>(initialSections[0].scenes[0].id);
   const [chatMessages, setChatMessages] = useState<Message[]>([
     { sender: 'ai', text: 'Hi! I can help you restructure your storyline or scenes. Just tell me what you want to change.' },
   ]);
@@ -161,15 +170,58 @@ export default function VideoEditor() {
   const [isLoadingClips, setIsLoadingClips] = useState(false);
   const [clipToDelete, setClipToDelete] = useState<UserClip | null>(null);
   const [clipUrls, setClipUrls] = useState<Record<string, { localUrl: string; thumbnail_url?: string }>>({});
+  const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
+  const [editingScriptSceneId, setEditingScriptSceneId] = useState<string | null>(null);
+  const [editingScriptText, setEditingScriptText] = useState('');
+  const [editingScriptVoiceId, setEditingScriptVoiceId] = useState<string>('');
+  const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
+  const [isEditingVideoInfo, setIsEditingVideoInfo] = useState(false);
+  const [editingVideoTitle, setEditingVideoTitle] = useState('');
+  const [editingVideoDescription, setEditingVideoDescription] = useState('');
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({}); // sceneId -> audioUrl
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
   const selectedScene = scenes.find((s: Scene) => s.id === selectedSceneId);
 
-  // Load videos on component mount
+  // Load a specific video if videoId is present
   useEffect(() => {
-    loadVideos();
-  }, []);
+    if (videoId) {
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('videos')
+            .select('*')
+            .eq('id', videoId)
+            .single();
+          console.log('Loaded video data:', data);
+          if (data && data.sections) {
+            console.log('Loaded sections:', data.sections);
+          } else {
+            console.warn('No sections found in loaded video data.');
+          }
+          if (error) throw error;
+          if (data) {
+            setVideos([data]);
+            // Optionally, load sections from data.sections if present
+            if (data.sections) {
+              setSections(data.sections);
+              console.log('Set sections to:', data.sections);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading video by ID:', err);
+          setVideos([]);
+        }
+      })();
+    } else {
+      loadVideos();
+    }
+  }, [videoId]);
 
   // Load user clips on component mount
   useEffect(() => {
@@ -210,6 +262,19 @@ export default function VideoEditor() {
     }
     fetchClipUrls();
   }, [userClips]);
+
+  // Load voices on mount
+  useEffect(() => {
+    async function fetchVoices() {
+      try {
+        const voices = await getVoice();
+        setAvailableVoices(voices);
+      } catch (error) {
+        setAvailableVoices([]);
+      }
+    }
+    fetchVoices();
+  }, []);
 
   const loadVideos = async () => {
     try {
@@ -339,7 +404,10 @@ export default function VideoEditor() {
           audio: scene.audio,
           script: scene.script,
           title: scene.title,
-          description: scene.description
+          description: scene.description,
+          clipId: scene.clipId || null,
+          voiceId: scene.voiceId || null,
+          musicId: scene.musicId || null,
         }))
       }));
 
@@ -353,13 +421,16 @@ Please analyze their request and return a modified story structure as a JSON arr
 - label (string): The section name (e.g., 'Hook', 'Exposition', 'Climax')
 - description (string): A brief, non-empty explanation of the section's narrative purpose (max 12 words, never omit or leave blank)
 - scenes (array): Each scene should have:
-  - id (number): Unique identifier
-  - type (string): Either 'text' or 'image'
-  - content (string): The main content (text or image URL)
+  - id (string): Unique identifier. IMPORTANT: When reordering, editing, or modifying scenes, always keep the same id for each scene unless a scene is deleted or a new one is added. Never generate new ids for existing scenes.
+  - type (string): Either 'text', 'image', or 'video'
+  - content (string): The main content (text, image URL, or video URL)
   - audio (string): Audio description
   - script (string): The script for this scene
   - title (string): A brief, descriptive title for the scene (max 3-4 words)
   - description (string): A short description of the scene's purpose (max 10 words)
+  - clipId (string|null): If present, this is the id of the attached video clip. Always preserve this value for each scene unless the scene is deleted or the clip is removed.
+  - voiceId (string|null): If present, this is the id of the attached voice. Always preserve this value for each scene unless the scene is deleted or the voice is removed.
+  - musicId (string|null): If present, this is the id of the attached music. Always preserve this value for each scene unless the scene is deleted or the music is removed.
 
 Return ONLY the JSON array, nothing else. The response should be valid JSON that can be parsed directly.`;
 
@@ -388,19 +459,37 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
       try {
         let newSections = JSON.parse(aiResponse);
         if (Array.isArray(newSections)) {
-          // Ensure every section has a non-empty description, fallback to previous or default
+          // Map new sections to existing sections by label, preserving scene IDs and media attachments
           newSections = newSections.map((newSection: any) => {
-            if (!newSection.description || !newSection.description.trim()) {
-              // Try to find previous description by label
-              const prev = sections.find(s => s.label === newSection.label);
-              return {
-                ...newSection,
-                description: prev?.description || 'No description available.'
-              };
+            const existingSection = sections.find(s => s.label === newSection.label);
+            if (existingSection) {
+              // Preserve existing scene IDs and media attachments, update only title, description, and scenes order
+              const updatedScenes = newSection.scenes.map((newScene: any, index: number) => {
+                const existingScene = existingSection.scenes[index];
+                if (existingScene) {
+                  return {
+                    ...existingScene, // This preserves all existing properties including clipId, voiceId, musicId
+                    title: newScene.title,
+                    description: newScene.description
+                  };
+                }
+                return newScene;
+              });
+              return { ...existingSection, scenes: updatedScenes };
             }
             return newSection;
           });
           setSections(newSections);
+          // Automatically save the updated sections to the database
+          if (videos[0]) {
+            updateVideo(videos[0].id, { sections: newSections })
+              .then(() => {
+                setToast({ message: 'Scenes updated and saved successfully', type: 'success' });
+              })
+              .catch((err) => {
+                setToast({ message: 'Failed to save scene updates', type: 'error' });
+              });
+          }
           setChatMessages(prev => [...prev, { 
             sender: 'ai', 
             text: "I've updated your story structure based on your request. The changes have been applied to your timeline." 
@@ -408,8 +497,7 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
         } else {
           throw new Error('Invalid response format');
         }
-      } catch (parseError) {
-        // If JSON parsing fails, show the raw response
+      } catch (error) {
         setChatMessages(prev => [...prev, { 
           sender: 'ai', 
           text: "I had trouble processing the changes. Here's what I was thinking:\n\n" + aiResponse 
@@ -439,9 +527,9 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
       });
 
       // Check file size (10MB limit)
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+      const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB in bytes
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error('File size must be less than 10MB');
+        throw new Error('File size must be less than 100MB');
       }
 
       // Check video duration
@@ -567,6 +655,171 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
     };
   }, [sceneVideos, musicTracks]);
 
+  const handleAddClipToScene = (clip: SceneVideo) => {
+    // Update the scene with the selected clip
+    const newSections = sections.map(section => ({
+      ...section,
+      scenes: section.scenes.map(scene => {
+        if (scene.id === selectedSceneId) {
+          return {
+            ...scene,
+            type: 'video' as const,
+            content: clip.localUrl,
+            title: clip.title,
+            description: clip.description || '',
+          };
+        }
+        return scene;
+      }),
+    }));
+    setSections(newSections);
+    setToast({ message: 'Clip added to scene', type: 'success' });
+  };
+
+  const handleAddVoiceToScene = (voice: Voice) => {
+    // Update the scene with the selected voice
+    const newSections = sections.map(section => ({
+      ...section,
+      scenes: section.scenes.map(scene => {
+        if (scene.id === selectedSceneId) {
+          return {
+            ...scene,
+            audio: voice.id,
+          };
+        }
+        return scene;
+      }),
+    }));
+    setSections(newSections);
+    setToast({ message: 'Voice added to scene', type: 'success' });
+  };
+
+  const handleAddMusicToScene = (track: MusicTrack) => {
+    // Update the scene with the selected music
+    const newSections = sections.map(section => ({
+      ...section,
+      scenes: section.scenes.map(scene => {
+        if (scene.id === selectedSceneId) {
+          return {
+            ...scene,
+            music: track.id,
+          };
+        }
+        return scene;
+      }),
+    }));
+    setSections(newSections);
+    setToast({ message: 'Music added to scene', type: 'success' });
+  };
+
+  // Add duplicate id check before rendering timeline scenes
+  const sceneIds = scenes.map(s => s.id);
+  const duplicateIds = sceneIds.filter((id, idx) => sceneIds.indexOf(id) !== idx);
+  if (duplicateIds.length) {
+    console.warn('Duplicate scene ids found:', duplicateIds);
+  }
+
+  // Timeline scene click handler
+  const handleTimelineSceneClick = (sceneId: string) => {
+    setSelectedSceneId(sceneId);
+    setIsAddMediaModalOpen(true);
+  };
+
+  // Add media to scene by id in nested sections
+  const handleAddMediaToScene = async (sceneId: string, media: { clipId?: string; voiceId?: string; musicId?: string; type?: 'video' | 'text' | 'image' }) => {
+    setSections(prevSections => {
+      const newSections = prevSections.map(section => ({
+        ...section,
+        scenes: section.scenes.map(scene =>
+          scene.id === sceneId ? { ...scene, ...media } : scene
+        )
+      }));
+      // Save to DB if a video is loaded
+      if (videos[0]) {
+        updateVideo(videos[0].id, { sections: newSections })
+          .then(() => {
+            // Optionally show a toast or notification
+          })
+          .catch((err) => {
+            setToast({ message: 'Failed to save scene media', type: 'error' });
+          });
+      }
+      return newSections;
+    });
+    setIsAddMediaModalOpen(false);
+  };
+
+  const tabs = [
+    { id: 'clips', label: 'Clips', icon: <VideoIcon className="h-4 w-4" /> },
+  ];
+
+  // Gather ordered list of video URLs from scenes with a valid clipId
+  const previewClips = scenes
+    .map(scene => scene.clipId && clipUrls[scene.clipId]?.localUrl ? ({
+      sceneId: scene.id,
+      url: clipUrls[scene.clipId].localUrl,
+      title: scene.title || 'Untitled Scene',
+    }) : null)
+    .filter(Boolean) as { sceneId: string, url: string, title: string }[];
+
+  // Handle advancing to next clip
+  const handlePreviewEnded = () => {
+    if (previewIndex < previewClips.length - 1) {
+      setPreviewIndex(previewIndex + 1);
+      setIsPreviewPlaying(true);
+    } else {
+      setIsPreviewPlaying(false);
+    }
+  };
+
+  // Auto-play next video when previewIndex changes
+  useEffect(() => {
+    if (isPreviewPlaying && previewVideoRef.current) {
+      previewVideoRef.current.play();
+    }
+  }, [previewIndex, isPreviewPlaying]);
+
+  // Generate or fetch voice preview for the current preview scene
+  useEffect(() => {
+    const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
+    if (!scene || !scene.voiceId || !scene.script) return;
+    if (voicePreviews[scene.id]) return; // Already cached
+    setIsVoiceLoading(true);
+    (async () => {
+      try {
+        // generateSpeech returns a URL to the generated audio
+        if (typeof scene.voiceId === 'string' && scene.voiceId) {
+          const audioUrl = await generateSpeech(scene.script, scene.voiceId);
+          setVoicePreviews(prev => ({ ...prev, [scene.id]: audioUrl }));
+        }
+      } catch (err) {
+        setVoicePreviews(prev => ({ ...prev, [scene.id]: '' }));
+      } finally {
+        setIsVoiceLoading(false);
+      }
+    })();
+  }, [previewIndex, previewClips, scenes, voicePreviews]);
+
+  // Play audio in sync with video
+  useEffect(() => {
+    const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
+    if (!scene || !scene.voiceId || !scene.script) return;
+    const audioUrl = voicePreviews[scene.id];
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    if (isPreviewPlaying) {
+      audio.play();
+    }
+    // Pause audio when video is paused
+    const handlePause = () => audio.pause();
+    previewVideoRef.current?.addEventListener('pause', handlePause);
+    // Clean up
+    return () => {
+      audio.pause();
+      previewVideoRef.current?.removeEventListener('pause', handlePause);
+    };
+  }, [previewIndex, isPreviewPlaying, previewClips, scenes, voicePreviews]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -639,7 +892,33 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
                 </div>
               ))}
             </div>
-            <button className="m-4 px-4 py-2 rounded bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors">
+            <button
+              className="m-4 px-4 py-2 rounded bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors"
+              onClick={() => {
+                // Add a new scene to the first section for demo (customize as needed)
+                setSections(prevSections => {
+                  const newSections = [...prevSections];
+                  if (newSections.length > 0) {
+                    newSections[0] = {
+                      ...newSections[0],
+                      scenes: [
+                        ...newSections[0].scenes,
+                        {
+                          id: crypto.randomUUID(),
+                          type: 'text',
+                          content: '',
+                          audio: '',
+                          script: '',
+                          title: 'Untitled Scene',
+                          description: '',
+                        },
+                      ],
+                    };
+                  }
+                  return newSections;
+                });
+              }}
+            >
               + Add Scene
             </button>
           </aside>
@@ -687,29 +966,112 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
         )}
         {/* Main Video Preview */}
         <main className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center shadow mb-4">
-            {selectedVideo ? (
-              <video
-                src={selectedVideo.localUrl}
-                controls
-                className="max-w-full max-h-full"
-              />
+          {/* Playlist Preview Player */}
+          <div className="w-full max-w-2xl mb-4 relative">
+            <div className="rounded-lg border p-4 bg-white dark:bg-slate-800 shadow relative">
+              <button
+                className="absolute top-2 right-2 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => {
+                  setEditingVideoTitle(videos[0]?.title || '');
+                  setEditingVideoDescription(videos[0]?.description || '');
+                  setIsEditingVideoInfo(true);
+                }}
+                aria-label="Edit video info"
+              >
+                <Pencil className="w-5 h-5 text-slate-500" />
+              </button>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {videos[0]?.title?.trim() ? videos[0].title : 'Untitled Video'}
+              </h1>
+              <p className="text-slate-500 dark:text-slate-300 mt-1">
+                {videos[0]?.description?.trim() ? videos[0].description : 'No description provided.'}
+              </p>
+            </div>
+          </div>
+          {/* Playlist Video Player */}
+          <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center shadow mb-4">
+            {previewClips.length > 0 ? (
+              <>
+                <video
+                  ref={previewVideoRef}
+                  src={previewClips[previewIndex].url}
+                  controls
+                  autoPlay={isPreviewPlaying}
+                  onEnded={handlePreviewEnded}
+                  className="max-w-full max-h-full"
+                  onPlay={() => setIsPreviewPlaying(true)}
+                  onPause={() => setIsPreviewPlaying(false)}
+                />
+                {isVoiceLoading && (
+                  <div className="mt-2 text-xs text-slate-500">Generating voice preview...</div>
+                )}
+                <div className="flex gap-2 mt-2 items-center">
+                  <button
+                    className="p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white"
+                    onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
+                    disabled={previewIndex === 0}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-white shadow hover:bg-purple-200"
+                    onClick={() => {
+                      if (isPreviewPlaying) {
+                        previewVideoRef.current?.pause();
+                      } else {
+                        previewVideoRef.current?.play();
+                      }
+                    }}
+                  >
+                    {isPreviewPlaying ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 5.25v13.5m10.5-13.5v13.5" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.25v13.5l13.5-6.75-13.5-6.75z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    className="p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-white"
+                    onClick={() => setPreviewIndex(Math.min(previewClips.length - 1, previewIndex + 1))}
+                    disabled={previewIndex === previewClips.length - 1}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                  <span className="ml-2 text-xs text-slate-500 dark:text-slate-300">
+                    {previewClips[previewIndex].title}
+                  </span>
+                  {/* Reload/Regenerate voice preview icon */}
+                  <button
+                    className="ml-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                    title="Regenerate voice preview for this scene"
+                    onClick={() => {
+                      const sceneId = previewClips[previewIndex]?.sceneId;
+                      if (sceneId) {
+                        setVoicePreviews(prev => {
+                          const newPreviews = { ...prev };
+                          delete newPreviews[sceneId];
+                          return newPreviews;
+                        });
+                      }
+                    }}
+                    aria-label="Regenerate voice preview"
+                  >
+                    <RefreshCw className="w-4 h-4 text-slate-500" />
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="text-slate-400 dark:text-slate-600">
-                Select a video clip to preview
+                No video clips to preview
               </div>
             )}
-          </div>
-          {/* Playback Controls */}
-          <div className="flex items-center gap-4 mt-2">
-            <button className="p-2 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-white shadow hover:bg-purple-200 flex items-center justify-center">
-              {/* Replace with Lucide or SVG play icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.25v13.5l13.5-6.75-13.5-6.75z" />
-              </svg>
-            </button>
-            <input type="range" min={0} max={scenes.length - 1} value={scenes.findIndex((s: Scene) => s.id === selectedSceneId)} onChange={e => setSelectedSceneId(scenes[Number(e.target.value)].id)} />
-            <span className="text-xs text-slate-500">{`Scene ${scenes.findIndex((s: Scene) => s.id === selectedSceneId) + 1} / ${scenes.length}`}</span>
           </div>
         </main>
         {/* Chatbot Panel - Only show when scenes tab is active */}
@@ -793,36 +1155,93 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
                 {/* Scene Track */}
                 <div className="flex items-center gap-2 overflow-x-auto">
                   {scenes.map((scene: Scene, idx: number) => (
-                    <Draggable key={scene.id} draggableId={scene.id.toString()} index={idx}>
+                    <Draggable key={scene.id} draggableId={scene.id} index={idx}>
                       {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`flex flex-col items-center justify-end w-24 h-16 rounded border-2 ${selectedSceneId === scene.id ? 'border-purple-500' : 'border-slate-200 dark:border-slate-700'} bg-slate-100 dark:bg-slate-800 mx-1 cursor-pointer`}
-                          onClick={() => setSelectedSceneId(scene.id)}
+                          className={`flex flex-col items-center justify-end w-24 h-16 rounded border-2 ${selectedSceneId === scene.id ? 'border-purple-500' : 'border-slate-200 dark:border-slate-700'} bg-slate-100 dark:bg-slate-800 mx-1 cursor-pointer overflow-hidden`}
+                          onClick={() => handleTimelineSceneClick(scene.id)}
                         >
-                          <span className="font-semibold text-xs text-slate-700 dark:text-white mb-1">{scene.sectionLabel || 'Scene'}</span>
-                          {scene.type === 'image'
-                            ? <span className="text-xs text-slate-400">Image</span>
-                            : <span className="text-xs text-slate-400">Text</span>
-                          }
-                          <span className="text-[10px] text-slate-400">Scene {idx + 1}</span>
+                          {scene.type === 'video' && scene.clipId ? (
+                            (() => {
+                              const localUrl = clipUrls[scene.clipId]?.localUrl;
+                              const thumbnailUrl = clipUrls[scene.clipId]?.thumbnail_url;
+                              return localUrl ? (
+                                <div className="w-full h-full relative">
+                                  <img
+                                    src={thumbnailUrl || localUrl}
+                                    alt={scene.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                    <span className="text-white text-xs font-medium">Edit Media</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">No video</span>
+                              );
+                            })()
+                          ) : (
+                            <>
+                              <span className="font-semibold text-xs text-slate-700 dark:text-white mb-1">{scene.sectionLabel || 'Scene'}</span>
+                              {scene.type === 'image'
+                                ? <span className="text-xs text-slate-400">Image</span>
+                                : <span className="text-xs text-slate-400">Text</span>
+                              }
+                              <span className="text-[10px] text-slate-400">Scene {idx + 1}</span>
+                            </>
+                          )}
                         </div>
                       )}
                     </Draggable>
                   ))}
                   {provided.placeholder}
                 </div>
+
+                {/* Media Indicators Track */}
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {scenes.map((scene: Scene, idx: number) => (
+                    <div
+                      key={scene.id}
+                      className="w-24 h-8 flex items-center justify-center gap-2"
+                    >
+                      {scene.type === 'video' && (
+                        <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                          <VideoIcon className="w-3 h-3" />
+                          <span>Video</span>
+                        </div>
+                      )}
+                      {scene.audio && (
+                        <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                          <Mic className="w-3 h-3" />
+                          <span>Voice</span>
+                        </div>
+                      )}
+                      {scene.music && (
+                        <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                          <Music className="w-3 h-3" />
+                          <span>Music</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
                 {/* Script Track */}
                 <div className="flex items-center gap-2 overflow-x-auto">
                   {scenes.map((scene: Scene, idx: number) => (
                     <div
                       key={scene.id}
                       className={`flex items-center justify-center w-24 h-10 rounded border-2 border-dashed ${selectedSceneId === scene.id ? 'border-purple-500' : 'border-slate-200 dark:border-slate-700'} bg-orange-50 dark:bg-orange-900 mx-1 cursor-pointer`}
-                      onClick={() => setSelectedSceneId(scene.id)}
+                      onClick={() => {
+                        setEditingScriptSceneId(scene.id);
+                        setEditingScriptText(scene.script || '');
+                        setEditingScriptVoiceId(scene.voiceId || '');
+                      }}
                     >
-                      <span className="text-xs text-orange-700 dark:text-orange-200 truncate">{scene.script}</span>
+                      <span className="text-xs text-orange-700 dark:text-orange-200 truncate">{scene.script || 'Click to add script'}</span>
                     </div>
                   ))}
                 </div>
@@ -871,6 +1290,147 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <AddMediaModal
+        isOpen={isAddMediaModalOpen}
+        onClose={() => setIsAddMediaModalOpen(false)}
+        sceneId={selectedSceneId}
+        onAddClip={clip => handleAddMediaToScene(selectedSceneId, { type: 'video', clipId: clip.id })}
+        onAddVoice={voice => handleAddMediaToScene(selectedSceneId, { voiceId: voice.id })}
+        onAddMusic={track => handleAddMediaToScene(selectedSceneId, { musicId: track.id })}
+        availableClips={userClips.map(clip => ({
+          id: clip.id,
+          title: clip.title,
+          description: clip.description || '',
+          status: 'complete',
+          file: new File([], clip.file_path || ''),
+          localUrl: clipUrls[clip.id]?.localUrl || '',
+          thumbnail_url: clipUrls[clip.id]?.thumbnail_url,
+          created_at: clip.created_at,
+        }))}
+        availableVoices={availableVoices}
+        availableMusic={musicTracks}
+        tabs={tabs}
+      />
+
+      {editingScriptSceneId && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Edit Script</h3>
+            <textarea
+              value={editingScriptText}
+              onChange={e => setEditingScriptText(e.target.value)}
+              className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-white bg-white dark:bg-slate-900"
+              rows={4}
+              placeholder="Enter script for this scene..."
+            />
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Voice</label>
+              <select
+                value={editingScriptVoiceId}
+                onChange={e => setEditingScriptVoiceId(e.target.value)}
+                className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-white bg-white dark:bg-slate-900"
+              >
+                <option value="">No Voice</option>
+                {Array.isArray(availableVoices) && availableVoices.map(voice => (
+                  <option key={voice.id} value={voice.id}>{voice.name || voice.id}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                onClick={async () => {
+                  setSections(prevSections =>
+                    prevSections.map(section => ({
+                      ...section,
+                      scenes: section.scenes.map(scene =>
+                        scene.id === editingScriptSceneId
+                          ? { ...scene, script: editingScriptText, voiceId: editingScriptVoiceId }
+                          : scene
+                      )
+                    }))
+                  );
+                  setEditingScriptSceneId(null);
+                  // Save to DB if a video is loaded
+                  if (videos[0]) {
+                    try {
+                      await updateVideo(videos[0].id, { sections: sections.map(section => ({
+                        ...section,
+                        scenes: section.scenes.map(scene =>
+                          scene.id === editingScriptSceneId
+                            ? { ...scene, script: editingScriptText, voiceId: editingScriptVoiceId }
+                            : scene
+                        )
+                      })) });
+                      setToast({ message: 'Script updated and saved successfully', type: 'success' });
+                    } catch (err) {
+                      setToast({ message: 'Failed to save script', type: 'error' });
+                    }
+                  }
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingScriptSceneId(null)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg shadow"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Video Info Modal */}
+      {isEditingVideoInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Edit Video Info</h3>
+            <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Title</label>
+            <input
+              type="text"
+              value={editingVideoTitle}
+              onChange={e => setEditingVideoTitle(e.target.value)}
+              className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-white bg-white dark:bg-slate-900 mb-4"
+              placeholder="Enter video title"
+            />
+            <label className="block text-sm font-medium text-slate-700 dark:text-white mb-1">Description</label>
+            <textarea
+              value={editingVideoDescription}
+              onChange={e => setEditingVideoDescription(e.target.value)}
+              className="w-full border border-slate-300 dark:border-slate-700 rounded-lg p-2 text-slate-700 dark:text-white bg-white dark:bg-slate-900"
+              rows={3}
+              placeholder="Enter video description"
+            />
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                onClick={async () => {
+                  if (!videos[0]) return;
+                  const updated = { ...videos[0], title: editingVideoTitle, description: editingVideoDescription };
+                  setVideos([updated, ...videos.slice(1)]);
+                  setIsEditingVideoInfo(false);
+                  try {
+                    await updateVideo(videos[0].id, { title: editingVideoTitle, description: editingVideoDescription });
+                  } catch (err) {
+                    setToast({ message: 'Failed to update video info', type: 'error' });
+                  }
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setIsEditingVideoInfo(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg shadow"
+              >
+                Cancel
               </button>
             </div>
           </div>

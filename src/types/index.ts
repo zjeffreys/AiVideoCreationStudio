@@ -1,3 +1,21 @@
+// Define Section type inline to avoid circular dependencies
+interface Section {
+  label: string;
+  description: string;
+  scenes: Array<{
+    id: string;
+    type: 'text' | 'image' | 'video';
+    content: string;
+    audio: string;
+    script: string;
+    title: string;
+    description: string;
+    clipId?: string;
+    voiceId?: string;
+    musicId?: string;
+  }>;
+}
+
 export type User = {
   id: string;
   email?: string;
@@ -15,6 +33,7 @@ export type Video = {
   video_url?: string;
   file_path?: string;
   created_at: string;
+  sections?: Section[];
 };
 
 export type Character = {
@@ -64,3 +83,12 @@ export interface VideoScript {
   }[];
   style: string;
 }
+
+export type MusicTrack = {
+  id: string;
+  title: string;
+  artist?: string;
+  duration: string;
+  file: File;
+  localUrl: string;
+};

@@ -68,6 +68,7 @@ function App() {
         
         {/* VideoEditor route OUTSIDE layout for full-viewport */}
         <Route path="/video-editor" element={<ProtectedRoute><VideoEditor /></ProtectedRoute>} />
+        <Route path="/video-editor/:videoId" element={<ProtectedRoute><VideoEditor /></ProtectedRoute>} />
         
         {/* Protected routes with sidebar/topbar */}
         <Route
