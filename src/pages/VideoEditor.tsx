@@ -5,16 +5,20 @@ import { createPortal } from 'react-dom';
 import { VideoPanel } from '../components/videos/VideoPanel';
 import { MusicPanel } from '../components/music/MusicPanel';
 import { VoicesPanel } from '../components/voices/VoicesPanel';
-import { Video, Voice } from '../types';
+import { Video, Voice, Character } from '../types';
 import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
 import { Toast } from '../components/ui/Toast';
 import { getUserClips, uploadClip, deleteClip, UserClip } from '../lib/clips';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { AddMediaModal } from '../components/videos/AddMediaModal';
-import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw } from 'lucide-react';
+import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw, PlusCircle, Search, Users, Trash } from 'lucide-react';
 import { getVoice, generateSpeech } from '../lib/elevenlabs';
 import { getUserMusic, uploadMusic, UserMusic } from '../lib/music';
+import { CharacterCard } from '../components/characters/CharacterCard';
+import { CharacterForm } from '../components/characters/CharacterForm';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
 // import { Play } from 'lucide-react'; // Uncomment if using Lucide React
 
 // Type definitions
@@ -191,6 +195,13 @@ export default function VideoEditor() {
   const [musicUrl, setMusicUrl] = useState<string | null>(null);
   const [isLoadingMusic, setIsLoadingMusic] = useState(false);
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [characterSearchQuery, setCharacterSearchQuery] = useState('');
+  const [characterLoading, setCharacterLoading] = useState(true);
+  const [characterError, setCharacterError] = useState<string | null>(null);
+  const [isCharacterFormOpen, setIsCharacterFormOpen] = useState(false);
+  const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -887,6 +898,83 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
     }
   }, [musicUrl]);
 
+  // Fetch characters and voices
+  const fetchCharactersData = async () => {
+    setCharacterLoading(true);
+    setCharacterError(null);
+    try {
+      const { data: charactersData, error: charactersError } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('name');
+      if (charactersError) throw charactersError;
+      const voicesData = await getVoice();
+      setCharacters(charactersData as Character[]);
+      setVoices(voicesData);
+    } catch (error) {
+      if (error instanceof Error) {
+        setCharacterError(error.message);
+      } else {
+        setCharacterError('An error occurred while fetching data');
+      }
+    } finally {
+      setCharacterLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && activePanel === 'characters') {
+      fetchCharactersData();
+    }
+  }, [user, activePanel]);
+
+  const handleCharacterSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
+  const handleEditCharacter = (character: Character) => {
+    setEditingCharacter(character);
+    setIsCharacterFormOpen(true);
+  };
+
+  const handleDeleteCharacter = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this character?')) {
+      try {
+        const { error } = await supabase
+          .from('characters')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+        fetchCharactersData();
+      } catch (error) {
+        if (error instanceof Error) {
+          setCharacterError(error.message);
+        } else {
+          setCharacterError('An error occurred while deleting the character');
+        }
+      }
+    }
+  };
+
+  const handleCharacterFormSubmit = () => {
+    setIsCharacterFormOpen(false);
+    setEditingCharacter(undefined);
+    fetchCharactersData();
+  };
+
+  const handleCharacterFormCancel = () => {
+    setIsCharacterFormOpen(false);
+    setEditingCharacter(undefined);
+  };
+
+  const filteredCharacters = characterSearchQuery
+    ? characters.filter(character =>
+        character.name.toLowerCase().includes(characterSearchQuery.toLowerCase()) ||
+        (character.personality && character.personality.toLowerCase().includes(characterSearchQuery.toLowerCase()))
+      )
+    : characters;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -1024,6 +1112,111 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
             onRemoveMusic={() => {}}
             onTrackSelect={handleTrackSelect}
           />
+        )}
+        {activePanel === 'characters' && (
+          <aside className="w-64 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col relative">
+            <h2 className="p-4 font-bold text-slate-700 dark:text-white">Characters</h2>
+            {isCharacterFormOpen ? (
+              <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 p-4 m-4 shadow-sm">
+                <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-white">
+                  {editingCharacter ? 'Edit Character' : 'Create New Character'}
+                </h2>
+                <CharacterForm
+                  character={editingCharacter}
+                  voices={voices}
+                  onSubmit={handleCharacterFormSubmit}
+                  onCancel={handleCharacterFormCancel}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 px-4 pb-2">
+                  <form onSubmit={handleCharacterSearch} className="relative max-w-md">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search characters..."
+                      value={characterSearchQuery}
+                      onChange={(e) => setCharacterSearchQuery(e.target.value)}
+                      className="pl-9 bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder:text-slate-400"
+                    />
+                  </form>
+                  <Button
+                    leftIcon={<PlusCircle className="h-5 w-5" />}
+                    onClick={() => setIsCharacterFormOpen(true)}
+                  >
+                    New Character
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-2 pb-4">
+                  {characterLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-400"></div>
+                        <p className="text-lg font-medium text-slate-500 dark:text-slate-300">Loading characters...</p>
+                      </div>
+                    </div>
+                  ) : characterError ? (
+                    <div className="rounded-lg bg-red-50 dark:bg-red-900/50 p-4 text-red-600 dark:text-red-400">
+                      <p className="font-medium">Error loading characters</p>
+                      <p className="text-sm">{characterError}</p>
+                    </div>
+                  ) : filteredCharacters.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50 p-6 text-center">
+                      <div className="mb-4 rounded-full bg-slate-200 dark:bg-slate-700 p-3">
+                        <Users className="h-6 w-6 text-slate-400" />
+                      </div>
+                      <h3 className="mb-1 text-lg font-medium text-slate-700 dark:text-white">No characters found</h3>
+                      <p className="mb-4 max-w-md text-slate-500 dark:text-slate-400">
+                        {characterSearchQuery
+                          ? `No characters matching "${characterSearchQuery}"`
+                          : "You haven't created any characters yet. Create your first character!"}
+                      </p>
+                      <Button
+                        leftIcon={<PlusCircle className="h-5 w-5" />}
+                        onClick={() => setIsCharacterFormOpen(true)}
+                      >
+                        Create New Character
+                      </Button>
+                    </div>
+                  ) : (
+                    <ul className="flex flex-col gap-1">
+                      {filteredCharacters.map((character) => (
+                        <li key={character.id} className="flex items-center gap-2 px-2 py-2 rounded hover:bg-purple-100 dark:hover:bg-purple-900 group transition-colors">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                            {character.avatar_url ? (
+                              <img src={character.avatar_url} alt={character.name} className="w-8 h-8 object-cover" />
+                            ) : (
+                              <span className="text-purple-400 font-bold text-lg">{character.name?.[0] || '?'}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-slate-800 dark:text-white text-sm truncate">{character.name}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-300 truncate">
+                              {character.personality || character.description || 'No description'}
+                            </div>
+                          </div>
+                          <button
+                            className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                            title="Edit"
+                            onClick={() => handleEditCharacter(character)}
+                          >
+                            <Pencil className="w-4 h-4 text-slate-500" />
+                          </button>
+                          <button
+                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900"
+                            title="Delete"
+                            onClick={() => handleDeleteCharacter(character.id)}
+                          >
+                            <Trash className="w-4 h-4 text-red-500" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
+            )}
+          </aside>
         )}
         {activePanel === 'voices' && (
           <VoicesPanel
