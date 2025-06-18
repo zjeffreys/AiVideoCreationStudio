@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { AddMediaModal } from '../components/videos/AddMediaModal';
 import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw } from 'lucide-react';
 import { getVoice, generateSpeech } from '../lib/elevenlabs';
+import { getUserMusic, uploadMusic, UserMusic } from '../lib/music';
 // import { Play } from 'lucide-react'; // Uncomment if using Lucide React
 
 // Type definitions
@@ -31,6 +32,7 @@ interface Scene {
   clipId?: string;
   voiceId?: string;
   musicId?: string;
+  subtitles?: string;
 }
 
 export interface Section {
@@ -181,8 +183,14 @@ export default function VideoEditor() {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const musicAudioRef = useRef<HTMLAudioElement>(null);
   const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({}); // sceneId -> audioUrl
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [userMusic, setUserMusic] = useState<UserMusic[]>([]);
+  const [selectedMusicId, setSelectedMusicId] = useState<string | null>(null);
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+  const [isLoadingMusic, setIsLoadingMusic] = useState(false);
+  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -275,6 +283,42 @@ export default function VideoEditor() {
     }
     fetchVoices();
   }, []);
+
+  // Load user music on mount
+  useEffect(() => {
+    if (user) {
+      setIsLoadingMusic(true);
+      getUserMusic()
+        .then(setUserMusic)
+        .catch(() => setUserMusic([]))
+        .finally(() => setIsLoadingMusic(false));
+    }
+  }, [user]);
+
+  // When selectedMusicId changes, set musicUrl
+  useEffect(() => {
+    async function fetchMusicUrl() {
+      const track = userMusic.find(m => m.id === selectedMusicId);
+      if (track?.file_path) {
+        // Extract the path after the bucket name
+        const filePath = track.file_path.includes('/object/public/user-music/')
+          ? track.file_path.split('/object/public/user-music/')[1]
+          : track.file_path.split('/user-music/')[1] || track.file_path;
+        const { data } = await supabase.storage.from('user-music').createSignedUrl(filePath, 60);
+        setMusicUrl(data?.signedUrl || null);
+      } else {
+        setMusicUrl(null);
+      }
+    }
+    fetchMusicUrl();
+  }, [selectedMusicId, userMusic]);
+
+  // On load, if the video has a musicid, set it as the selected music
+  useEffect(() => {
+    if (videos[0]?.musicid) {
+      setSelectedMusicId(videos[0].musicid);
+    }
+  }, [videos]);
 
   const loadVideos = async () => {
     try {
@@ -606,37 +650,30 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
 
   const handleAddMusic = async (file: File) => {
     try {
-      // Create a local URL for the audio
-      const localUrl = URL.createObjectURL(file);
-      
-      // Create a new music track
-      const newTrack: MusicTrack = {
-        id: crypto.randomUUID(),
-        title: file.name,
-        duration: '0:00', // You might want to get this from the file metadata
-        file,
-        localUrl,
-      };
-
-      setMusicTracks(prev => [...prev, newTrack]);
+      setIsLoadingMusic(true);
+      const newTrack = await uploadMusic(file);
+      setUserMusic(prev => [newTrack, ...prev]);
+      setToast({ message: 'Music uploaded successfully', type: 'success' });
     } catch (error) {
-      console.error('Error adding music track:', error);
-      // TODO: Show error notification
+      setToast({ message: 'Error uploading music', type: 'error' });
+    } finally {
+      setIsLoadingMusic(false);
     }
   };
 
-  const handleRemoveMusic = (id: string) => {
-    setMusicTracks(prev => {
-      const track = prev.find(t => t.id === id);
-      if (track) {
-        URL.revokeObjectURL(track.localUrl);
+  // Handle music select and save to DB
+  const handleTrackSelect = async (track: UserMusic) => {
+    setSelectedMusicId(track.id);
+    setToast({ message: 'Music selected for preview', type: 'success' });
+    // Save to DB if a video is loaded
+    if (videos[0]) {
+      try {
+        await updateVideo(videos[0].id, { musicid: track.id });
+        setToast({ message: 'Music selection saved', type: 'success' });
+      } catch (err) {
+        setToast({ message: 'Failed to save music selection', type: 'error' });
       }
-      return prev.filter(t => t.id !== id);
-    });
-  };
-
-  const handleTrackSelect = (track: MusicTrack) => {
-    setSelectedTrack(track);
+    }
   };
 
   const handleVoiceSelect = (voice: Voice) => {
@@ -820,6 +857,36 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
     };
   }, [previewIndex, isPreviewPlaying, previewClips, scenes, voicePreviews]);
 
+  // Sync music playback with preview controls
+  useEffect(() => {
+    if (!musicAudioRef.current) return;
+    if (isPreviewPlaying) {
+      // If starting preview from the first clip, reset music to start
+      if (previewIndex === 0) {
+        musicAudioRef.current.currentTime = 0;
+      }
+      musicAudioRef.current.play();
+    } else {
+      musicAudioRef.current.pause();
+    }
+  }, [isPreviewPlaying, previewIndex, musicUrl]);
+
+  // Stop music at the end of the last clip
+  useEffect(() => {
+    if (!musicAudioRef.current) return;
+    if (previewIndex === previewClips.length - 1 && !isPreviewPlaying) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current.currentTime = 0;
+    }
+  }, [previewIndex, isPreviewPlaying, previewClips.length]);
+
+  // Set music audio volume when musicUrl changes
+  useEffect(() => {
+    if (musicAudioRef.current) {
+      musicAudioRef.current.volume = 0.2; // 20% volume for background music
+    }
+  }, [musicUrl]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -952,9 +1019,9 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
         )}
         {activePanel === 'music' && (
           <MusicPanel
-            tracks={musicTracks}
+            tracks={userMusic}
             onAddMusic={handleAddMusic}
-            onRemoveMusic={handleRemoveMusic}
+            onRemoveMusic={() => {}}
             onTrackSelect={handleTrackSelect}
           />
         )}
@@ -989,7 +1056,7 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
             </div>
           </div>
           {/* Playlist Video Player */}
-          <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center shadow mb-4">
+          <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center shadow mb-4 relative">
             {previewClips.length > 0 ? (
               <>
                 <video
@@ -1002,6 +1069,25 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
                   onPlay={() => setIsPreviewPlaying(true)}
                   onPause={() => setIsPreviewPlaying(false)}
                 />
+                {/* Music Audio Overlay - single audio element for all preview */}
+                {musicUrl && (
+                  <audio
+                    ref={musicAudioRef}
+                    src={musicUrl}
+                    className="hidden"
+                    preload="auto"
+                  />
+                )}
+                {/* Subtitles Overlay */}
+                {(() => {
+                  const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
+                  const subtitleText = scene?.subtitles || scene?.script;
+                  return subtitleText ? (
+                    <div className="absolute left-1/2 transform -translate-x-1/2 w-[90%] text-center text-yellow-400 text-lg font-bold pointer-events-none select-none" style={{ bottom: '64px' }}>
+                      {subtitleText}
+                    </div>
+                  ) : null;
+                })()}
                 {isVoiceLoading && (
                   <div className="mt-2 text-xs text-slate-500">Generating voice preview...</div>
                 )}
@@ -1249,9 +1335,14 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
               {/* Music Track at the very bottom, full width */}
               <div className="mt-4 flex flex-col">
                 <div className="text-xs font-semibold text-slate-500 mb-1">Music</div>
-                <div className="w-full h-8 rounded bg-blue-200 dark:bg-blue-900 flex items-center pl-4 font-semibold text-blue-800 dark:text-blue-200 shadow-inner">
+                <button
+                  className="w-full h-8 rounded bg-blue-200 dark:bg-blue-900 flex items-center pl-4 font-semibold text-blue-800 dark:text-blue-200 shadow-inner cursor-pointer hover:bg-blue-300 dark:hover:bg-blue-800 transition-colors"
+                  onClick={() => setIsMusicModalOpen(true)}
+                  type="button"
+                  aria-label="Select music for video"
+                >
                   🎵 Music Track (extends full video)
-                </div>
+                </button>
               </div>
               {/* (Optional) Add time ruler, playhead, and drag-and-drop here */}
             </div>
@@ -1428,6 +1519,66 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
               </button>
               <button
                 onClick={() => setIsEditingVideoInfo(false)}
+                className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg shadow"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Music Selection Modal */}
+      {isMusicModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Select Music Track</h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {userMusic.length === 0 && <div className="text-slate-500">No music uploaded yet.</div>}
+              {userMusic.map(track => (
+                <div key={track.id} className={`flex items-center gap-3 p-2 rounded ${selectedMusicId === track.id ? 'bg-blue-100 dark:bg-blue-900' : ''}`}>
+                  <button
+                    className="p-2 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900"
+                    onClick={async () => {
+                      // Play preview
+                      const filePath = track.file_path.split('/user-music/')[1] || track.file_path;
+                      const { data } = await supabase.storage.from('user-music').createSignedUrl(filePath, 60);
+                      if (data?.signedUrl) {
+                        const audio = new Audio(data.signedUrl);
+                        audio.play();
+                      }
+                    }}
+                    aria-label="Play preview"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.25v13.5l13.5-6.75-13.5-6.75z" />
+                    </svg>
+                  </button>
+                  <span className="flex-1 truncate">{track.file_path.split('/').pop() || 'Untitled'}</span>
+                  <button
+                    className="px-3 py-1 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
+                    onClick={async () => {
+                      setSelectedMusicId(track.id);
+                      setIsMusicModalOpen(false);
+                      // Save to DB if a video is loaded
+                      if (videos[0]) {
+                        try {
+                          await updateVideo(videos[0].id, { musicid: track.id });
+                          setToast({ message: 'Music selection saved', type: 'success' });
+                        } catch (err) {
+                          setToast({ message: 'Failed to save music selection', type: 'error' });
+                        }
+                      }
+                    }}
+                  >
+                    Select
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-6 justify-end">
+              <button
+                onClick={() => setIsMusicModalOpen(false)}
                 className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg shadow"
               >
                 Cancel

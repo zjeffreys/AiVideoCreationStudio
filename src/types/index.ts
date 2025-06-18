@@ -13,6 +13,7 @@ interface Section {
     clipId?: string;
     voiceId?: string;
     musicId?: string;
+    subtitles?: string;
   }>;
 }
 
@@ -34,6 +35,7 @@ export type Video = {
   file_path?: string;
   created_at: string;
   sections?: Section[];
+  musicid?: string;
 };
 
 export type Character = {
