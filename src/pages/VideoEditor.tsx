@@ -473,22 +473,32 @@ ${JSON.stringify(storyContext, null, 2)}
 
 User's request: ${chatInput}
 
-Please analyze their request and return a modified story structure as a JSON array of sections. Each section MUST have:
-- label (string): The section name (e.g., 'Hook', 'Exposition', 'Climax')
-- description (string): A brief, non-empty explanation of the section's narrative purpose (max 12 words, never omit or leave blank)
-- scenes (array): Each scene should have:
-  - id (string): Unique identifier. IMPORTANT: When reordering, editing, or modifying scenes, always keep the same id for each scene unless a scene is deleted or a new one is added. Never generate new ids for existing scenes.
-  - type (string): Either 'text', 'image', or 'video'
-  - content (string): The main content (text, image URL, or video URL)
-  - audio (string): Audio description
-  - script (string): The script for this scene
-  - title (string): A brief, descriptive title for the scene (max 3-4 words)
-  - description (string): A short description of the scene's purpose (max 10 words)
-  - clipId (string|null): If present, this is the id of the attached video clip. Always preserve this value for each scene unless the scene is deleted or the clip is removed.
-  - voiceId (string|null): If present, this is the id of the attached voice. Always preserve this value for each scene unless the scene is deleted or the voice is removed.
-  - musicId (string|null): If present, this is the id of the attached music. Always preserve this value for each scene unless the scene is deleted or the music is removed.
+CRITICAL INSTRUCTIONS:
+1. You can modify ANY aspect of the story structure including scripts, titles, descriptions, and scene order
+2. When writing scripts, make them engaging, conversational, and appropriate for video narration (2-3 sentences max per scene)
+3. ALWAYS preserve existing scene IDs unless you're deleting a scene or adding a new one
+4. ALWAYS preserve existing media attachments (clipId, voiceId, musicId) unless explicitly asked to remove them
+5. Return ONLY valid JSON - no explanations, no markdown formatting, just pure JSON
 
-Return ONLY the JSON array, nothing else. The response should be valid JSON that can be parsed directly.`;
+Return a JSON array of sections. Each section MUST have:
+- label (string): Section name (e.g., 'Hook', 'Exposition', 'Climax')
+- description (string): Brief explanation of section purpose (max 12 words)
+- scenes (array): Each scene must have:
+  - id (string): Unique identifier (PRESERVE existing IDs)
+  - type (string): 'text', 'image', or 'video'
+  - content (string): Main content (text, image URL, or video URL)
+  - audio (string): Audio description or voice ID
+  - script (string): Engaging narration script for this scene (2-3 sentences, conversational tone)
+  - title (string): Brief descriptive title (3-4 words)
+  - description (string): Scene purpose description (max 10 words)
+  - clipId (string|null): PRESERVE existing video clip ID
+  - voiceId (string|null): PRESERVE existing voice ID
+  - musicId (string|null): PRESERVE existing music ID
+
+EXAMPLE SCRIPT FORMAT:
+"Welcome to our comprehensive guide on video creation. Today we'll explore the essential techniques that will transform your content from ordinary to extraordinary."
+
+Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -497,12 +507,16 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
           'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-mini',
+          model: 'gpt-4o-mini', // Updated to latest model
           messages: [
-            { role: 'system', content: 'You are an expert video content planner and story coach.' },
+            { 
+              role: 'system', 
+              content: 'You are an expert video content planner and story coach. You ALWAYS return valid JSON arrays. You NEVER use markdown formatting or add explanations outside the JSON.' 
+            },
             { role: 'user', content: prompt }
           ],
           temperature: 0.7,
+          max_tokens: 2000,
         }),
       });
 
@@ -511,55 +525,135 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
       const data = await response.json();
       const aiResponse = data.choices[0].message.content;
 
-      // Try to parse the response as JSON
+      // Enhanced JSON parsing with better error handling
+      let newSections;
       try {
-        let newSections = JSON.parse(aiResponse);
-        if (Array.isArray(newSections)) {
-          // Map new sections to existing sections by label, preserving scene IDs and media attachments
-          newSections = newSections.map((newSection: any) => {
-            const existingSection = sections.find(s => s.label === newSection.label);
-            if (existingSection) {
-              // Preserve existing scene IDs and media attachments, update only title, description, and scenes order
-              const updatedScenes = newSection.scenes.map((newScene: any, index: number) => {
-                const existingScene = existingSection.scenes[index];
-                if (existingScene) {
-                  return {
-                    ...existingScene, // This preserves all existing properties including clipId, voiceId, musicId
-                    title: newScene.title,
-                    description: newScene.description
-                  };
-                }
-                return newScene;
-              });
-              return { ...existingSection, scenes: updatedScenes };
-            }
-            return newSection;
-          });
-          setSections(newSections);
-          // Automatically save the updated sections to the database
-          if (videos[0]) {
-            updateVideo(videos[0].id, { sections: newSections })
-              .then(() => {
-                setToast({ message: 'Scenes updated and saved successfully', type: 'success' });
-              })
-              .catch((err) => {
-                setToast({ message: 'Failed to save scene updates', type: 'error' });
-              });
-          }
-          setChatMessages(prev => [...prev, { 
-            sender: 'ai', 
-            text: "I've updated your story structure based on your request. The changes have been applied to your timeline." 
-          }]);
-        } else {
-          throw new Error('Invalid response format');
+        // Clean the response to extract JSON
+        let jsonString = aiResponse.trim();
+        
+        // Remove markdown code blocks if present
+        if (jsonString.startsWith('```json')) {
+          jsonString = jsonString.replace(/```json\n?/, '').replace(/\n?```/, '');
+        } else if (jsonString.startsWith('```')) {
+          jsonString = jsonString.replace(/```\n?/, '').replace(/\n?```/, '');
         }
-      } catch (error) {
+        
+        // Try to find JSON array in the response
+        const jsonMatch = jsonString.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+        
+        newSections = JSON.parse(jsonString);
+        
+        if (!Array.isArray(newSections)) {
+          throw new Error('Response is not an array');
+        }
+        
+        // Validate and normalize the structure
+        newSections = newSections.map((section: any, sectionIndex: number) => {
+          if (!section || typeof section !== 'object') {
+            throw new Error(`Invalid section at index ${sectionIndex}`);
+          }
+          
+          return {
+            label: section.label || `Section ${sectionIndex + 1}`,
+            description: section.description || 'No description',
+            scenes: Array.isArray(section.scenes) ? section.scenes.map((scene: any, sceneIndex: number) => {
+              if (!scene || typeof scene !== 'object') {
+                throw new Error(`Invalid scene at section ${sectionIndex}, scene ${sceneIndex}`);
+              }
+              
+              return {
+                id: scene.id || `scene-${sectionIndex}-${sceneIndex}-${Date.now()}`,
+                type: ['text', 'image', 'video'].includes(scene.type) ? scene.type : 'text',
+                content: scene.content || '',
+                audio: scene.audio || '',
+                script: scene.script || '',
+                title: scene.title || `Scene ${sceneIndex + 1}`,
+                description: scene.description || 'No description',
+                clipId: scene.clipId || null,
+                voiceId: scene.voiceId || null,
+                musicId: scene.musicId || null,
+              };
+            }) : []
+          };
+        });
+        
+        // Map new sections to existing sections, preserving IDs and media attachments
+        newSections = newSections.map((newSection: any) => {
+          const existingSection = sections.find(s => s.label === newSection.label);
+          if (existingSection) {
+            const updatedScenes = newSection.scenes.map((newScene: any, index: number) => {
+              const existingScene = existingSection.scenes[index];
+              if (existingScene) {
+                return {
+                  ...existingScene, // Preserve all existing properties
+                  title: newScene.title,
+                  description: newScene.description,
+                  script: newScene.script, // Allow script updates
+                  content: newScene.content, // Allow content updates
+                  type: newScene.type, // Allow type updates
+                };
+              }
+              return newScene;
+            });
+            return { ...existingSection, scenes: updatedScenes };
+          }
+          return newSection;
+        });
+        
+        setSections(newSections);
+        
+        // Automatically save the updated sections to the database
+        if (videos[0]) {
+          updateVideo(videos[0].id, { sections: newSections })
+            .then(() => {
+              setToast({ message: 'Scenes updated and saved successfully', type: 'success' });
+            })
+            .catch((err) => {
+              setToast({ message: 'Failed to save scene updates', type: 'error' });
+            });
+        }
+        
+        // Provide more specific feedback based on what was changed
+        const scriptChanges = newSections.some(section => 
+          section.scenes.some((scene: any) => scene.script && scene.script.trim())
+        );
+        
+        const responseText = scriptChanges 
+          ? "I've updated your story structure and added engaging scripts to your scenes. The changes have been applied to your timeline."
+          : "I've updated your story structure based on your request. The changes have been applied to your timeline.";
+        
         setChatMessages(prev => [...prev, { 
           sender: 'ai', 
-          text: "I had trouble processing the changes. Here's what I was thinking:\n\n" + aiResponse 
+          text: responseText
+        }]);
+        
+      } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        console.error('Raw AI response:', aiResponse);
+        
+        // Try to provide helpful error message
+        let errorMessage = "I had trouble processing the changes. ";
+        
+        if (aiResponse.includes('```') || aiResponse.includes('json')) {
+          errorMessage += "The response contained formatting that couldn't be parsed. ";
+        } else if (aiResponse.includes('[') && aiResponse.includes(']')) {
+          errorMessage += "The JSON structure was invalid. ";
+        } else {
+          errorMessage += "The response wasn't in the expected format. ";
+        }
+        
+        errorMessage += "Here's what I was thinking:\n\n" + aiResponse;
+        
+        setChatMessages(prev => [...prev, { 
+          sender: 'ai', 
+          text: errorMessage
         }]);
       }
     } catch (error) {
+      console.error('Chat error:', error);
       setChatMessages(prev => [...prev, { 
         sender: 'ai', 
         text: 'Sorry, I encountered an error while processing your request. Please try again.' 
