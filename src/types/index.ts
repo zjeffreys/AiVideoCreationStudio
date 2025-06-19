@@ -36,6 +36,7 @@ export type Video = {
   created_at: string;
   sections?: Section[];
   musicid?: string;
+  original_prompt?: string;
 };
 
 export type Character = {

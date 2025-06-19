@@ -5,14 +5,14 @@ import { createPortal } from 'react-dom';
 import { VideoPanel } from '../components/videos/VideoPanel';
 import { MusicPanel } from '../components/music/MusicPanel';
 import { VoicesPanel } from '../components/voices/VoicesPanel';
-import { Video, Voice, Character } from '../types';
+import { Video as VideoType, Voice, Character } from '../types';
 import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
 import { Toast } from '../components/ui/Toast';
 import { getUserClips, uploadClip, deleteClip, UserClip } from '../lib/clips';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { AddMediaModal } from '../components/videos/AddMediaModal';
-import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw, PlusCircle, Search, Users, Trash } from 'lucide-react';
+import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw, PlusCircle, Search, Users, Trash, Sparkles } from 'lucide-react';
 import { getVoice, generateSpeech } from '../lib/elevenlabs';
 import { getUserMusic, uploadMusic, UserMusic } from '../lib/music';
 import { CharacterCard } from '../components/characters/CharacterCard';
@@ -50,7 +50,7 @@ interface Message {
   text: string;
 }
 
-interface SceneVideo extends Video {
+interface SceneVideo extends VideoType {
   file: File;
   localUrl: string;
   file_path?: string;
@@ -161,7 +161,7 @@ export default function VideoEditor() {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videos, setVideos] = useState<VideoType[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -202,6 +202,7 @@ export default function VideoEditor() {
   const [characterError, setCharacterError] = useState<string | null>(null);
   const [isCharacterFormOpen, setIsCharacterFormOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
+  const [isGeneratingAIScenes, setIsGeneratingAIScenes] = useState(false);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -378,7 +379,7 @@ export default function VideoEditor() {
     }
   };
 
-  const handleEditVideo = async (video: Video) => {
+  const handleEditVideo = async (video: VideoType) => {
     try {
       // TODO: Implement video editing UI/modal
       console.log('Edit video:', video);
@@ -975,6 +976,161 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
       )
     : characters;
 
+  const generateAIScenes = async () => {
+    if (!videos[0]?.description) {
+      setToast({ message: 'No description found for this video', type: 'error' });
+      return;
+    }
+    setIsGeneratingAIScenes(true);
+    try {
+      const prompt = `Based on this video description: "${videos[0].description}"
+
+Generate a structured video outline with 3-5 sections (like Hook, Exposition, Climax, etc.) and 2-3 scenes per section. 
+
+Return as a JSON array of sections. Each section must have:
+- label (string): The section name (e.g., 'Hook', 'Exposition', 'Climax')
+- description (string): A brief explanation of the section's purpose
+- scenes (array): Each scene must have:
+  - id (string): Unique identifier (use crypto.randomUUID() format)
+  - type (string): Either 'text', 'image', or 'video'
+  - content (string): The main content (text content, image URL, or video URL)
+  - audio (string): Audio description or voice ID
+  - script (string): The script for this scene
+  - title (string): A brief, descriptive title for the scene (3-4 words)
+  - description (string): A short description of the scene's purpose
+  - music (string): Optional music ID
+  - clipId (string): Optional video clip ID
+  - voiceId (string): Optional voice ID
+  - musicId (string): Optional music ID
+  - subtitles (string): Optional subtitle text
+
+Example structure:
+[
+  {
+    "label": "Hook",
+    "description": "Captures attention and introduces the main idea",
+    "scenes": [
+      {
+        "id": "scene-1",
+        "type": "text",
+        "content": "Welcome to our video about...",
+        "audio": "",
+        "script": "Welcome to our comprehensive guide on...",
+        "title": "Opening Hook",
+        "description": "Grab attention with key message",
+        "music": "",
+        "clipId": "",
+        "voiceId": "",
+        "musicId": "",
+        "subtitles": ""
+      }
+    ]
+  }
+]
+
+Return ONLY the JSON array, nothing else.`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are an expert video content planner. Generate structured video outlines with proper JSON formatting.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to generate scenes');
+      const data = await response.json();
+      console.log('OpenAI API response:', data);
+      
+      const aiResponse = data.choices[0].message.content;
+      console.log('AI Response content:', aiResponse);
+      
+      try {
+        // Try to extract JSON from the response (in case AI added extra text)
+        let jsonString = aiResponse.trim();
+        
+        // Remove markdown code blocks if present
+        if (jsonString.startsWith('```json')) {
+          jsonString = jsonString.replace(/```json\n?/, '').replace(/\n?```/, '');
+        } else if (jsonString.startsWith('```')) {
+          jsonString = jsonString.replace(/```\n?/, '').replace(/\n?```/, '');
+        }
+        
+        // Try to find JSON array in the response
+        const jsonMatch = jsonString.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+        
+        console.log('Extracted JSON string:', jsonString);
+        
+        const newSections = JSON.parse(jsonString);
+        console.log('Parsed sections:', newSections);
+        
+        // Validate that we have an array of sections
+        if (!Array.isArray(newSections)) {
+          throw new Error('AI response is not an array of sections');
+        }
+        
+        // Validate and ensure all required fields are present
+        const validatedSections = newSections.map((section: any, sectionIndex: number) => {
+          if (!section.scenes || !Array.isArray(section.scenes)) {
+            console.warn(`Section ${sectionIndex} has no scenes array:`, section);
+            return {
+              label: section.label || `Section ${sectionIndex + 1}`,
+              description: section.description || 'No description',
+              scenes: []
+            };
+          }
+          
+          return {
+            label: section.label || `Section ${sectionIndex + 1}`,
+            description: section.description || 'No description',
+            scenes: section.scenes.map((scene: any, sceneIndex: number) => ({
+              id: scene.id || `scene-${sectionIndex}-${sceneIndex}-${Date.now()}`,
+              type: scene.type || 'text',
+              content: scene.content || '',
+              audio: scene.audio || '',
+              script: scene.script || '',
+              title: scene.title || `Scene ${sceneIndex + 1}`,
+              description: scene.description || 'No description',
+              music: scene.music || '',
+              clipId: scene.clipId || '',
+              voiceId: scene.voiceId || '',
+              musicId: scene.musicId || '',
+              subtitles: scene.subtitles || '',
+            }))
+          };
+        });
+        
+        console.log('Validated sections:', validatedSections);
+        
+        setSections(validatedSections);
+        if (videos[0]) {
+          await updateVideo(videos[0].id, { sections: validatedSections });
+          setToast({ message: 'AI scenes generated and saved!', type: 'success' });
+        }
+      } catch (error) {
+        console.error('Error parsing AI response:', error);
+        console.error('Raw AI response:', aiResponse);
+        setToast({ message: `Failed to parse AI response: ${error instanceof Error ? error.message : 'Unknown error'}`, type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error generating AI scenes:', error);
+      setToast({ message: 'Failed to generate AI scenes', type: 'error' });
+    } finally {
+      setIsGeneratingAIScenes(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -988,7 +1144,7 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
         <span className="mx-1">/</span>
         <span className="text-slate-700 dark:text-white">Video Editor</span>
       </nav>
-      <div className="flex flex-1 w-full max-w-7xl mx-auto mt-2 rounded-2xl shadow-lg overflow-hidden bg-white dark:bg-slate-900">
+      <div className="flex w-full max-w-7xl mx-auto mt-2 rounded-2xl shadow-lg overflow-hidden bg-white dark:bg-slate-900" style={{ height: '600px' }}>
         {/* Asset Navigation Side Panel */}
         <nav className="w-16 bg-gradient-to-b from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-700 dark:to-orange-900 flex flex-col items-center py-4 gap-2 border-r border-slate-200 dark:border-slate-700">
           {assetPanels.map(panel => (
@@ -1005,9 +1161,30 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
         </nav>
         {/* Sidebar (only show if Scenes is selected) */}
         {activePanel === 'scenes' && (
-          <aside className="w-64 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col relative">
-            <h2 className="p-4 font-bold text-slate-700 dark:text-white">Scenes</h2>
-            <div className="flex-1 overflow-y-auto">
+          <aside className="w-64 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col" style={{ height: '600px' }}>
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+              <h2 className="font-bold text-slate-700 dark:text-white mb-2">Scenes</h2>
+              {videos[0]?.description && (
+                <button
+                  onClick={generateAIScenes}
+                  disabled={isGeneratingAIScenes}
+                  className="w-full px-3 py-2 text-sm bg-gradient-to-r from-purple-500 to-orange-400 text-white rounded-lg hover:from-purple-600 hover:to-orange-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingAIScenes ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate AI Scenes
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="overflow-y-auto" style={{ height: 'calc(600px - 120px)' }}>
               {sections.map((section: Section, sIdx: number) => (
                 <div key={section.label} className="mb-4">
                   <div className="px-4 py-2 text-xs font-bold uppercase text-purple-700 dark:text-purple-300 tracking-wide flex items-center gap-1">
@@ -1047,37 +1224,10 @@ Return ONLY the JSON array, nothing else. The response should be valid JSON that
                 </div>
               ))}
             </div>
-            <button
-              className="m-4 px-4 py-2 rounded bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors"
-              onClick={() => {
-                // Add a new scene to the first section for demo (customize as needed)
-                setSections(prevSections => {
-                  const newSections = [...prevSections];
-                  if (newSections.length > 0) {
-                    newSections[0] = {
-                      ...newSections[0],
-                      scenes: [
-                        ...newSections[0].scenes,
-                        {
-                          id: crypto.randomUUID(),
-                          type: 'text',
-                          content: '',
-                          audio: '',
-                          script: '',
-                          title: 'Untitled Scene',
-                          description: '',
-                        },
-                      ],
-                    };
-                  }
-                  return newSections;
-                });
-              }}
-            >
-              + Add Scene
-            </button>
           </aside>
         )}
+        {/* Placeholder for other panels */}
+        
         {activePanel === 'clips' && (
           <VideoPanel
             videos={userClips.map(clip => ({

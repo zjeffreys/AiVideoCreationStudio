@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -18,6 +18,8 @@ export const Dashboard = () => {
   const [videoPrompt, setVideoPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -64,6 +66,54 @@ export const Dashboard = () => {
   const handleVideoCreated = () => {
     fetchData();
     setShowCreateForm(false);
+  };
+
+  const enhanceVideoPrompt = async () => {
+    if (!videoPrompt.trim()) {
+      setEnhanceError('Please enter a video description first.');
+      return;
+    }
+
+    setIsEnhancing(true);
+    setEnhanceError(null);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert video content creator. Help users improve their video descriptions by making them more detailed, engaging, and specific. Keep the enhanced description concise but comprehensive.'
+            },
+            {
+              role: 'user',
+              content: `Please enhance this video description to make it more detailed and engaging for educational video creation: "${videoPrompt}"`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enhance description');
+      }
+
+      const data = await response.json();
+      const enhancedPrompt = data.choices[0].message.content;
+      setVideoPrompt(enhancedPrompt);
+    } catch (error) {
+      console.error('Error enhancing prompt:', error);
+      setEnhanceError('Failed to enhance description. Please try again.');
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   return (
@@ -120,14 +170,28 @@ export const Dashboard = () => {
         */}
         <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2 w-full">
           <label htmlFor="dashboardVideoPrompt" className="text-sm font-medium text-slate-700 dark:text-white mb-1">Generate a Video from a Prompt</label>
-          <textarea
-            id="dashboardVideoPrompt"
-            placeholder="Describe your educational video idea..."
-            rows={4}
-            className="w-full px-3 py-2 rounded border bg-white dark:bg-slate-900 text-slate-700 dark:text-white resize-vertical min-h-[80px]"
-            value={videoPrompt}
-            onChange={e => setVideoPrompt(e.target.value)}
-          />
+          <div className="relative">
+            <textarea
+              id="dashboardVideoPrompt"
+              placeholder="Describe your educational video idea..."
+              rows={4}
+              className="w-full px-3 py-2 rounded border bg-white dark:bg-slate-900 text-slate-700 dark:text-white resize-vertical min-h-[80px] pr-12"
+              value={videoPrompt}
+              onChange={e => setVideoPrompt(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={enhanceVideoPrompt}
+              disabled={!videoPrompt.trim() || isEnhancing}
+              className="absolute right-2 top-2 p-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white hover:from-purple-600 hover:to-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="AI Enhance Description"
+            >
+              <Sparkles size={16} />
+            </button>
+          </div>
+          {enhanceError && (
+            <div className="text-red-500 text-sm">{enhanceError}</div>
+          )}
           <button
             type="button"
             className="mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors self-start"
