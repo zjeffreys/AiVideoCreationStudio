@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Upload, X, Sparkles, Video as VideoIcon, Trash2 } from 'lucide-react';
+import { Plus, Upload, X, Sparkles, Video as VideoIcon, Trash2, Loader2, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Video } from '../../types';
+import { generateRunwayVideo, imageToOptimizedDataUri } from '../../lib/runway';
+import { supabase } from '../../lib/supabase';
+import { uploadClip } from '../../lib/clips';
 
 interface SceneVideo extends Video {
   file: File;
@@ -29,7 +32,16 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upload');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageMode, setImageMode] = useState<'upload' | 'generate'>('generate'); // Default to ChatGPT generation
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -60,12 +72,237 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     }
   };
 
+  const handleImageInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setSelectedImage(files[0]);
+    }
+  };
+
   const handleVideoClick = (video: SceneVideo, event: React.MouseEvent) => {
     if (isDeleteMode) {
       event.stopPropagation();
       onRemoveVideo(video.id);
     } else {
       onVideoSelect(video);
+    }
+  };
+
+  // Function to upload image to temp bucket and get public URL
+  const uploadImageToTempBucket = async (file: File): Promise<string> => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${timestamp}.${fileExt}`;
+      
+      // Upload to temp-images-for-video-generation bucket
+      const { error: uploadError } = await supabase.storage
+        .from('temp-images-for-video-generation')
+        .upload(fileName, file, {
+          contentType: file.type,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('temp-images-for-video-generation')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image to temp bucket:', error);
+      throw error;
+    }
+  };
+
+  // Function to generate image with ChatGPT
+  const generateImageWithChatGPT = async (prompt: string): Promise<string> => {
+    if (!prompt.trim()) {
+      throw new Error('Please enter a description for the image');
+    }
+
+    if (!import.meta.env.VITE_OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is required for image generation. Please add it to your environment variables.');
+    }
+
+    setIsGeneratingImage(true);
+    setGenerationStatus('Generating image with DALL-E...');
+    
+    try {
+      // Use OpenAI DALL-E API for image generation
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+          response_format: 'url'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`DALL-E API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.data || !data.data[0] || !data.data[0].url) {
+        throw new Error('No image URL received from DALL-E API');
+      }
+
+      const imageUrl = data.data[0].url;
+      
+      setGeneratedImageUrl(imageUrl);
+      setIsGeneratingImage(false);
+      setGenerationStatus('');
+      
+      return imageUrl;
+    } catch (error) {
+      setIsGeneratingImage(false);
+      setGenerationStatus('');
+      throw error;
+    }
+  };
+
+  const resetImageSelection = () => {
+    setSelectedImage(null);
+    setGeneratedImageUrl(null);
+    setImagePrompt('');
+  };
+
+  // Function to handle image generation button click
+  const handleGenerateImage = async () => {
+    try {
+      await generateImageWithChatGPT(imagePrompt);
+    } catch (error) {
+      console.error('Error generating image:', error);
+      setGenerationStatus(`Error generating image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setGenerationStatus(''), 3000);
+    }
+  };
+
+  // Function to get the current image (either uploaded or generated)
+  const getCurrentImage = (): string | null => {
+    if (imageMode === 'upload' && selectedImage) {
+      return URL.createObjectURL(selectedImage);
+    } else if (imageMode === 'generate' && generatedImageUrl) {
+      return generatedImageUrl;
+    }
+    return null;
+  };
+
+  // Function to get the image for upload (either File or URL)
+  const getImageForUpload = async (): Promise<string> => {
+    if (imageMode === 'upload' && selectedImage) {
+      return await uploadImageToTempBucket(selectedImage);
+    } else if (imageMode === 'generate' && generatedImageUrl) {
+      return generatedImageUrl;
+    }
+    throw new Error('No image available');
+  };
+
+  const handleGenerateAIVideo = async () => {
+    if (!aiPrompt.trim()) {
+      alert('Please enter a description for your video');
+      return;
+    }
+
+    // Check if we have an image
+    if (imageMode === 'upload' && !selectedImage) {
+      alert('Please select an image or switch to ChatGPT generation');
+      return;
+    }
+    if (imageMode === 'generate' && !generatedImageUrl) {
+      alert('Please generate an image first');
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    setGenerationStatus('Starting video generation...');
+
+    try {
+      let promptImageUrl: string;
+      
+      // Get the image URL (either uploaded to temp bucket or generated)
+      setGenerationStatus('Preparing image for video generation...');
+      promptImageUrl = await getImageForUpload();
+      console.log('Image ready for video generation:', promptImageUrl);
+
+      setGenerationStatus('Generating video with Runway ML...');
+
+      // Generate video using Runway ML via proxy backend
+      const result = await generateRunwayVideo({
+        promptText: aiPrompt,
+        promptImage: promptImageUrl,
+        duration: 5,
+        ratio: '1280:720',
+        model: 'gen4_turbo',
+        title: `AI Generated: ${aiPrompt.substring(0, 50)}...`,
+        description: aiPrompt,
+      });
+
+      if (result.status === 'completed' && result.url) {
+        setGenerationStatus('Video generated! Saving to your clips...');
+        
+        try {
+          // Download the video from Runway URL
+          const response = await fetch(result.url);
+          if (!response.ok) {
+            throw new Error(`Failed to download video: ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          const file = new File([blob], `runway-generated-${Date.now()}.mp4`, { type: 'video/mp4' });
+          
+          // Save to user clips using existing uploadClip function
+          const clip = await uploadClip(file, `AI Generated: ${aiPrompt.substring(0, 50)}...`);
+          
+          setGenerationStatus('Video saved to your clips!');
+          setAiPrompt('');
+          setSelectedImage(null);
+          setGeneratedImageUrl(null);
+          
+          // Show success message
+          setTimeout(() => {
+            setGenerationStatus('');
+          }, 2000);
+          
+        } catch (downloadError) {
+          console.error('Error downloading or saving video:', downloadError);
+          setGenerationStatus(`Error saving video: ${downloadError instanceof Error ? downloadError.message : 'Unknown error'}`);
+        }
+      } else {
+        throw new Error(result.error || 'Video generation failed');
+      }
+
+    } catch (error) {
+      console.error('Error generating AI video:', error);
+      setGenerationStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Keep the error message visible for a bit longer
+      setTimeout(() => {
+        setGenerationStatus('');
+      }, 5000);
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -109,18 +346,157 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         return (
           <div className="space-y-4">
             <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-lg">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Generate Video with AI</h3>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Generate Video with Runway ML</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Describe the video you want to create and our AI will generate it for you.
+                {getCurrentImage() ? 'Step 2: Describe your video' : 'Step 1: Provide an image'}
               </p>
-              <textarea
-                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-300 resize-none"
-                rows={3}
-                placeholder="Describe your video scene..."
-              />
-              <Button className="w-full mt-2" leftIcon={<Sparkles className="h-4 w-4" />}>
-                Generate Video
-              </Button>
+              
+              {!getCurrentImage() ? (
+                <>
+                  {/* Image Mode Selection */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Image Source
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setImageMode('generate')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          imageMode === 'generate'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        Generate
+                      </button>
+                      <button
+                        onClick={() => setImageMode('upload')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          imageMode === 'upload'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                        Upload
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Image Upload Section */}
+                  {imageMode === 'upload' && (
+                    <div className="mb-4">
+                      <input
+                        type="file"
+                        ref={imageInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageInput}
+                      />
+                      <Button
+                        onClick={() => imageInputRef.current?.click()}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        {selectedImage ? selectedImage.name : 'Select Image'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* ChatGPT Image Generation Section */}
+                  {imageMode === 'generate' && (
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Describe the image to generate
+                      </label>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={imagePrompt}
+                          onChange={(e) => setImagePrompt(e.target.value)}
+                          placeholder="e.g., a crab on a beach in hawaii"
+                          className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-300"
+                          disabled={isGeneratingImage}
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          leftIcon={isGeneratingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                          onClick={handleGenerateImage}
+                          disabled={isGeneratingImage || !imagePrompt.trim()}
+                        >
+                          Generate Image
+                        </Button>
+                      </div>
+                      {isGeneratingImage && (
+                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {generationStatus}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Image Preview */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Your Image
+                    </label>
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700">
+                      <img
+                        src={getCurrentImage()!}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-2 right-2 bg-black/50 text-white hover:bg-black/70 hover:text-white"
+                        onClick={resetImageSelection}
+                      >
+                        Change Image
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Text Prompt */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Describe the video motion
+                    </label>
+                    <textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-300 resize-none"
+                      rows={3}
+                      placeholder="e.g., A cinematic shot of the crab walking"
+                      disabled={isGeneratingAI}
+                    />
+                  </div>
+                  
+                  {isGeneratingAI && (
+                    <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {generationStatus}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button 
+                    className="w-full mt-2" 
+                    leftIcon={isGeneratingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    onClick={handleGenerateAIVideo}
+                    disabled={isGeneratingAI || !aiPrompt.trim()}
+                  >
+                    {isGeneratingAI ? 'Generating...' : 'Generate Video'}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         );
