@@ -474,26 +474,26 @@ ${JSON.stringify(storyContext, null, 2)}
 User's request: ${chatInput}
 
 CRITICAL INSTRUCTIONS:
-1. You can modify ANY aspect of the story structure including scripts, titles, descriptions, and scene order
-2. When writing scripts, make them engaging, conversational, and appropriate for video narration (2-3 sentences max per scene)
-3. ALWAYS preserve existing scene IDs unless you're deleting a scene or adding a new one
-4. ALWAYS preserve existing media attachments (clipId, voiceId, musicId) unless explicitly asked to remove them
-5. Return ONLY valid JSON - no explanations, no markdown formatting, just pure JSON
+1. You can modify ANY aspect of the story structure including scripts, titles, descriptions, and scene order.
+2. When writing scripts, make them engaging, conversational, and appropriate for video narration (2-3 sentences max per scene).
+3. You can add, remove, or reorder scenes. Scene 'id' values will be automatically re-numbered based on their final position, so you do not need to preserve them.
+4. When moving or modifying a scene, you MUST preserve its associated media attachments (clipId, voiceId, musicId) unless the user explicitly asks you to remove or change them.
+5. Return ONLY valid JSON - no explanations, no markdown formatting, just pure JSON.
 
 Return a JSON array of sections. Each section MUST have:
 - label (string): Section name (e.g., 'Hook', 'Exposition', 'Climax')
 - description (string): Brief explanation of section purpose (max 12 words)
 - scenes (array): Each scene must have:
-  - id (string): Unique identifier (PRESERVE existing IDs)
+  - id (string): A unique identifier for the scene. You can use the original ID for existing scenes and a placeholder for new ones. This will be re-numbered automatically.
   - type (string): 'text', 'image', or 'video'
   - content (string): Main content (text, image URL, or video URL)
   - audio (string): Audio description or voice ID
   - script (string): Engaging narration script for this scene (2-3 sentences, conversational tone)
   - title (string): Brief descriptive title (3-4 words)
   - description (string): Scene purpose description (max 10 words)
-  - clipId (string|null): PRESERVE existing video clip ID
-  - voiceId (string|null): PRESERVE existing voice ID
-  - musicId (string|null): PRESERVE existing music ID
+  - clipId (string|null): PRESERVE existing video clip ID.
+  - voiceId (string|null): PRESERVE existing voice ID.
+  - musicId (string|null): PRESERVE existing music ID.
 
 EXAMPLE SCRIPT FORMAT:
 "Welcome to our comprehensive guide on video creation. Today we'll explore the essential techniques that will transform your content from ordinary to extraordinary."
@@ -550,7 +550,8 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
           throw new Error('Response is not an array');
         }
         
-        // Validate and normalize the structure
+        // Renumber all scenes sequentially and validate structure
+        let sceneCounter = 1;
         newSections = newSections.map((section: any, sectionIndex: number) => {
           if (!section || typeof section !== 'object') {
             throw new Error(`Invalid section at index ${sectionIndex}`);
@@ -565,7 +566,7 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
               }
               
               return {
-                id: scene.id || `scene-${sectionIndex}-${sceneIndex}-${Date.now()}`,
+                id: String(sceneCounter++), // Always re-number
                 type: ['text', 'image', 'video'].includes(scene.type) ? scene.type : 'text',
                 content: scene.content || '',
                 audio: scene.audio || '',
@@ -578,29 +579,6 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
               };
             }) : []
           };
-        });
-        
-        // Map new sections to existing sections, preserving IDs and media attachments
-        newSections = newSections.map((newSection: any) => {
-          const existingSection = sections.find(s => s.label === newSection.label);
-          if (existingSection) {
-            const updatedScenes = newSection.scenes.map((newScene: any, index: number) => {
-              const existingScene = existingSection.scenes[index];
-              if (existingScene) {
-                return {
-                  ...existingScene, // Preserve all existing properties
-                  title: newScene.title,
-                  description: newScene.description,
-                  script: newScene.script, // Allow script updates
-                  content: newScene.content, // Allow content updates
-                  type: newScene.type, // Allow type updates
-                };
-              }
-              return newScene;
-            });
-            return { ...existingSection, scenes: updatedScenes };
-          }
-          return newSection;
         });
         
         setSections(newSections);
@@ -1085,7 +1063,7 @@ Return as a JSON array of sections. Each section must have:
 - label (string): The section name (e.g., 'Hook', 'Exposition', 'Climax')
 - description (string): A brief explanation of the section's purpose
 - scenes (array): Each scene must have:
-  - id (string): Unique identifier (use crypto.randomUUID() format)
+  - id (string): A placeholder scene identifier (e.g., 'scene-1'). This will be automatically re-numbered.
   - type (string): Either 'text', 'image', or 'video'
   - content (string): The main content (text content, image URL, or video URL)
   - audio (string): Audio description or voice ID
@@ -1174,7 +1152,8 @@ Return ONLY the JSON array, nothing else.`;
           throw new Error('AI response is not an array of sections');
         }
         
-        // Validate and ensure all required fields are present
+        // Validate, ensure all required fields are present, and re-number scenes
+        let sceneCounter = 1;
         const validatedSections = newSections.map((section: any, sectionIndex: number) => {
           if (!section.scenes || !Array.isArray(section.scenes)) {
             console.warn(`Section ${sectionIndex} has no scenes array:`, section);
@@ -1189,7 +1168,7 @@ Return ONLY the JSON array, nothing else.`;
             label: section.label || `Section ${sectionIndex + 1}`,
             description: section.description || 'No description',
             scenes: section.scenes.map((scene: any, sceneIndex: number) => ({
-              id: scene.id || `scene-${sectionIndex}-${sceneIndex}-${Date.now()}`,
+              id: String(sceneCounter++), // Re-number sequentially
               type: scene.type || 'text',
               content: scene.content || '',
               audio: scene.audio || '',
