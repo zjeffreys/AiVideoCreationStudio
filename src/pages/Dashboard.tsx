@@ -7,6 +7,12 @@ import { CreateVideoForm } from '../components/dashboard/CreateVideoForm';
 import { Character, Video } from '../types';
 import { useNavigate } from 'react-router-dom';
 
+// Add interface for clip data
+interface ClipData {
+  id: string;
+  thumbnail_url?: string;
+}
+
 export const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +26,9 @@ export const Dashboard = () => {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [clipData, setClipData] = useState<Record<string, ClipData>>({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -31,8 +40,7 @@ export const Dashboard = () => {
         .from('videos')
         .select('*')
         .eq('user_id', user!.id)
-        .order('created_at', { ascending: false })
-        .limit(3);
+        .order('created_at', { ascending: false });
       
       if (videosError) throw videosError;
       
@@ -46,6 +54,9 @@ export const Dashboard = () => {
       
       setRecentVideos(videosData as Video[]);
       setCharacters(charactersData as Character[]);
+      
+      // Fetch clip data for thumbnails
+      await fetchClipData(videosData as Video[]);
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -54,6 +65,123 @@ export const Dashboard = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClipData = async (videos: Video[]) => {
+    try {
+      // Collect all unique clip IDs from video scenes
+      const clipIds = new Set<string>();
+      videos.forEach(video => {
+        video.sections?.forEach(section => {
+          section.scenes?.forEach(scene => {
+            if (scene.clipId) {
+              clipIds.add(scene.clipId);
+              console.log('Found clipId in scene:', scene.clipId, 'for video:', video.title);
+            }
+          });
+        });
+      });
+
+      console.log('Total unique clipIds found:', clipIds.size, Array.from(clipIds));
+
+      if (clipIds.size === 0) {
+        console.log('No clipIds found in any videos');
+        return;
+      }
+
+      // Fetch clip data from user_clips table
+      const { data: clipsData, error: clipsError } = await supabase
+        .from('user_clips')
+        .select('id, thumbnail_url')
+        .in('id', Array.from(clipIds));
+
+      if (clipsError) throw clipsError;
+
+      console.log('Fetched clips data:', clipsData);
+
+      // Create a map of clip data with signed URLs for thumbnails
+      const clipMap: Record<string, ClipData> = {};
+      for (const clip of clipsData || []) {
+        let signedThumbnailUrl = clip.thumbnail_url;
+        
+        // Get signed URL for thumbnail if it exists
+        if (clip.thumbnail_url) {
+          console.log('Processing thumbnail for clip:', clip.id, 'URL:', clip.thumbnail_url);
+          const thumbPath = clip.thumbnail_url.includes('/object/public/clip-thumbnails/')
+            ? clip.thumbnail_url.split('/object/public/clip-thumbnails/')[1]
+            : clip.thumbnail_url.split('/clip-thumbnails/')[1] || clip.thumbnail_url;
+          
+          console.log('Extracted thumbPath:', thumbPath);
+          
+          const { data } = await supabase.storage
+            .from('clip-thumbnails')
+            .createSignedUrl(thumbPath, 3600); // 1 hour expiry
+          
+          signedThumbnailUrl = data?.signedUrl || clip.thumbnail_url;
+          console.log('Signed thumbnail URL:', signedThumbnailUrl);
+        }
+
+        clipMap[clip.id] = {
+          id: clip.id,
+          thumbnail_url: signedThumbnailUrl,
+        };
+      }
+
+      console.log('Final clipMap:', clipMap);
+      setClipData(clipMap);
+    } catch (error) {
+      console.error('Error fetching clip data:', error);
+      // Don't throw here as this is not critical for the main functionality
+    }
+  };
+
+  const fetchSingleClip = async (clipId: string) => {
+    try {
+      console.log('Fetching single clip:', clipId);
+      
+      // Fetch clip data from user_clips table
+      const { data: clipData, error: clipsError } = await supabase
+        .from('user_clips')
+        .select('id, thumbnail_url')
+        .eq('id', clipId)
+        .single();
+
+      if (clipsError) throw clipsError;
+
+      console.log('Fetched single clip data:', clipData);
+
+      if (clipData) {
+        let signedThumbnailUrl = clipData.thumbnail_url;
+        
+        // Get signed URL for thumbnail if it exists
+        if (clipData.thumbnail_url) {
+          console.log('Processing thumbnail for single clip:', clipData.id, 'URL:', clipData.thumbnail_url);
+          const thumbPath = clipData.thumbnail_url.includes('/object/public/clip-thumbnails/')
+            ? clipData.thumbnail_url.split('/object/public/clip-thumbnails/')[1]
+            : clipData.thumbnail_url.split('/clip-thumbnails/')[1] || clipData.thumbnail_url;
+          
+          console.log('Extracted thumbPath for single clip:', thumbPath);
+          
+          const { data } = await supabase.storage
+            .from('clip-thumbnails')
+            .createSignedUrl(thumbPath, 3600); // 1 hour expiry
+          
+          signedThumbnailUrl = data?.signedUrl || clipData.thumbnail_url;
+          console.log('Signed thumbnail URL for single clip:', signedThumbnailUrl);
+        }
+
+        // Update the clipData state with the new clip
+        setClipData(prev => ({
+          ...prev,
+          [clipId]: {
+            id: clipData.id,
+            thumbnail_url: signedThumbnailUrl,
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching single clip data:', error);
     }
   };
 
@@ -66,6 +194,30 @@ export const Dashboard = () => {
   const handleVideoCreated = () => {
     fetchData();
     setShowCreateForm(false);
+  };
+
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingVideoId(videoId);
+    try {
+      const { error } = await supabase
+        .from('videos')
+        .delete()
+        .eq('id', videoId);
+
+      if (error) throw error;
+
+      // Remove the video from the local state
+      setRecentVideos(prev => prev.filter(video => video.id !== videoId));
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      alert('Failed to delete video. Please try again.');
+    } finally {
+      setDeletingVideoId(null);
+    }
   };
 
   const enhanceVideoPrompt = async () => {
@@ -169,11 +321,14 @@ export const Dashboard = () => {
         </div>
         */}
         <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2 w-full">
-          <label htmlFor="dashboardVideoPrompt" className="text-sm font-medium text-slate-700 dark:text-white mb-1">Generate a Video from a Prompt</label>
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">Create Your Next Educational Video</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">Transform your ideas into engaging educational content with AI-powered video creation</p>
+          </div>
           <div className="relative">
             <textarea
               id="dashboardVideoPrompt"
-              placeholder="Describe your educational video idea..."
+              placeholder="Describe your educational video concept, topic, or learning objective..."
               rows={4}
               className="w-full px-3 py-2 rounded border bg-white dark:bg-slate-900 text-slate-700 dark:text-white resize-vertical min-h-[80px] pr-12"
               value={videoPrompt}
@@ -194,7 +349,7 @@ export const Dashboard = () => {
           )}
           <button
             type="button"
-            className="mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow hover:from-purple-600 hover:to-orange-500 transition-colors self-start"
+            className="mt-2 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white font-semibold shadow-lg hover:from-purple-600 hover:to-orange-500 transition-all duration-200 self-start transform hover:scale-105"
             onClick={async () => {
               if (!user) {
                 setGenerateError('You must be logged in to generate a video.');
@@ -310,7 +465,17 @@ export const Dashboard = () => {
             }}
             disabled={!videoPrompt.trim()}
           >
-            {isGenerating ? 'Generating...' : 'Generate Video from Prompt'}
+            {isGenerating ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Creating Your Video...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Sparkles size={16} />
+                Generate Video
+              </span>
+            )}
           </button>
           {generateError && (
             <div className="text-red-500 text-sm mt-2">{generateError}</div>
@@ -320,31 +485,133 @@ export const Dashboard = () => {
       {/* My Videos Section (only if user has videos) */}
       {recentVideos.length > 0 && (
         <section>
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">My Videos</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-slate-700">My Videos</h2>
+            <button
+              onClick={() => setIsEditMode(!isEditMode)}
+              className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+            >
+              {isEditMode ? 'Done' : 'Edit'}
+            </button>
+          </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {recentVideos.map((video) => (
-              <div 
-                key={video.id}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm"
-              >
-                <h3 className="font-medium text-slate-900 dark:text-white mb-1">{video.title}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-300 line-clamp-2 mb-2">{video.description}</p>
-                <button
-                  className="text-sm text-purple-600 hover:underline font-medium"
-                  onClick={() => navigate(`/video-editor/${video.id}`)}
+            {recentVideos.map((video) => {
+              // Find the first scene with a clipId for thumbnail
+              let thumbnailUrl: string | undefined;
+              let foundScene = null;
+              
+              // Look through all sections and scenes to find the first one with a clipId
+              for (const section of video.sections || []) {
+                for (const scene of section.scenes || []) {
+                  if (scene.type === 'image') {
+                    thumbnailUrl = scene.content;
+                    foundScene = scene;
+                    break;
+                  } else if (scene.type === 'video' && scene.clipId) {
+                    console.log('Found video scene with clipId:', scene.clipId, 'for video:', video.title);
+                    thumbnailUrl = clipData[scene.clipId]?.thumbnail_url;
+                    foundScene = scene;
+                    break;
+                  }
+                }
+                if (foundScene) break;
+              }
+              
+              // If we found a scene with clipId but no thumbnail, try to fetch it directly
+              if (foundScene?.clipId && !thumbnailUrl) {
+                console.log('Clip not found in clipData, attempting direct fetch for:', foundScene.clipId);
+                // This will trigger a re-render when the clip is fetched
+                fetchSingleClip(foundScene.clipId);
+              }
+              
+              console.log(`Video ${video.title}:`, {
+                hasSections: !!video.sections,
+                sectionsCount: video.sections?.length,
+                foundScene,
+                thumbnailUrl,
+                clipDataKeys: Object.keys(clipData),
+                clipDataForScene: foundScene?.clipId ? clipData[foundScene.clipId] : null
+              });
+              
+              return (
+                <div 
+                  key={video.id}
+                  className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer relative"
+                  onClick={() => !isEditMode && navigate(`/video-editor/${video.id}`)}
                 >
-                  View Video
-                </button>
-              </div>
-            ))}
+                  {/* Delete button overlay when in edit mode */}
+                  {isEditMode && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVideo(video.id);
+                        }}
+                        disabled={deletingVideoId === video.id}
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors disabled:opacity-50"
+                        title="Delete video"
+                      >
+                        {deletingVideoId === video.id ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Thumbnail */}
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-900 relative">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log('Image failed to load:', thumbnailUrl);
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-600 ${thumbnailUrl ? 'hidden' : ''}`}>
+                      <div className="text-center">
+                        <div className="text-2xl mb-2">🎬</div>
+                        <span className="text-sm">No thumbnail</span>
+                        <div className="text-xs mt-1 text-slate-500">
+                          {foundScene ? `Scene type: ${foundScene.type}${foundScene.clipId ? ` (clipId: ${foundScene.clipId})` : ''}` : 'No scenes found'}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Play button overlay */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                      <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <svg className="w-6 h-6 text-slate-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Video info */}
+                  <div className="p-4">
+                    <h3 className="font-medium text-slate-900 dark:text-white mb-1 line-clamp-1">{video.title}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-300 line-clamp-2 mb-2">{video.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 capitalize">{video.status}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                        {new Date(video.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
-      {/* Templates Section (always show) */}
-      <section>
-        <h2 className="text-xl font-semibold text-slate-700 mb-4">Templates</h2>
-        <div className="text-slate-400 text-base italic">Coming soon...</div>
-      </section>
     </div>
   );
 };

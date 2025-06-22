@@ -24,6 +24,20 @@ export const TopBar: React.FC<TopBarProps> = ({ toggleMobileSidebar }) => {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 lg:px-6">
+      <div className="flex items-center">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
+        >
+          <img 
+            src="/EduMotionLogo.png" 
+            alt="EduMotion Logo" 
+            className="h-8 w-auto"
+          />
+          <span className="ml-2 text-xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">EduMotion</span>
+        </button>
+      </div>
+      
       <button
         className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
         onClick={toggleMobileSidebar}

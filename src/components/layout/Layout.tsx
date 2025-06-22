@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,8 +25,6 @@ export const Layout: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-slate-900">
-      <Sidebar isMobileOpen={isMobileOpen} toggleMobileSidebar={toggleMobileSidebar} />
-      
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar toggleMobileSidebar={toggleMobileSidebar} />
         
