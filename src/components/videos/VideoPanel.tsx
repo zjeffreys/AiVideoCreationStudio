@@ -19,6 +19,11 @@ type VideoPanelProps = {
   onRemoveVideo: (id: string) => void;
   videos: SceneVideo[];
   onVideoSelect: (video: SceneVideo) => void;
+  currentSceneContext?: {
+    title?: string;
+    description?: string;
+    script?: string;
+  };
 };
 
 type TabType = 'upload' | 'ai' | 'stock';
@@ -28,6 +33,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   onRemoveVideo,
   videos,
   onVideoSelect,
+  currentSceneContext,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upload');
@@ -42,6 +48,39 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   const [generationStatus, setGenerationStatus] = useState<string>('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Update image prompt when scene context changes
+  React.useEffect(() => {
+    if (currentSceneContext && !imagePrompt) {
+      let contextPrompt = '';
+      if (currentSceneContext.title) {
+        contextPrompt += currentSceneContext.title;
+      }
+      if (currentSceneContext.description) {
+        contextPrompt += contextPrompt ? ': ' + currentSceneContext.description : currentSceneContext.description;
+      }
+      if (contextPrompt) {
+        setImagePrompt(contextPrompt);
+      }
+    }
+  }, [currentSceneContext]);
+
+  // Update AI prompt when scene context changes
+  React.useEffect(() => {
+    if (currentSceneContext && !aiPrompt) {
+      let contextPrompt = '';
+      if (currentSceneContext.script) {
+        contextPrompt = `Create a video showing: ${currentSceneContext.script}`;
+      } else if (currentSceneContext.description) {
+        contextPrompt = `Create a video of: ${currentSceneContext.description}`;
+      } else if (currentSceneContext.title) {
+        contextPrompt = `Create a video about: ${currentSceneContext.title}`;
+      }
+      if (contextPrompt) {
+        setAiPrompt(contextPrompt);
+      }
+    }
+  }, [currentSceneContext]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -408,15 +447,48 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
                   {/* ChatGPT Image Generation Section */}
                   {imageMode === 'generate' && (
                     <div className="mb-4">
-                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Describe the image to generate
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                          Describe the image to generate
+                        </label>
+                        {currentSceneContext && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              let contextPrompt = '';
+                              if (currentSceneContext.title) {
+                                contextPrompt += currentSceneContext.title;
+                              }
+                              if (currentSceneContext.description) {
+                                contextPrompt += contextPrompt ? ': ' + currentSceneContext.description : currentSceneContext.description;
+                              }
+                              if (contextPrompt) {
+                                setImagePrompt(contextPrompt);
+                              }
+                            }}
+                            className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                          >
+                            Use Scene Context
+                          </button>
+                        )}
+                      </div>
+                      {currentSceneContext && (
+                        <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                          <strong>Current Scene:</strong> {currentSceneContext.title || 'Untitled'}
+                          {currentSceneContext.description && (
+                            <div className="mt-1 text-blue-600 dark:text-blue-400">
+                              {currentSceneContext.description}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       </label>
                       <div className="space-y-2">
                         <input
                           type="text"
                           value={imagePrompt}
                           onChange={(e) => setImagePrompt(e.target.value)}
-                          placeholder="e.g., a crab on a beach in hawaii"
+                          placeholder={currentSceneContext ? "Describe the image for this scene..." : "e.g., a crab on a beach in hawaii"}
                           className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-300"
                           disabled={isGeneratingImage}
                         />
@@ -465,15 +537,53 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
 
                   {/* Text Prompt */}
                   <div className="mb-4">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Describe the video motion
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Describe the video motion
+                      </label>
+                      {currentSceneContext && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            let contextPrompt = '';
+                            if (currentSceneContext.script) {
+                              contextPrompt = `Create a video showing: ${currentSceneContext.script}`;
+                            } else if (currentSceneContext.description) {
+                              contextPrompt = `Create a video of: ${currentSceneContext.description}`;
+                            } else if (currentSceneContext.title) {
+                              contextPrompt = `Create a video about: ${currentSceneContext.title}`;
+                            }
+                            if (contextPrompt) {
+                              setAiPrompt(contextPrompt);
+                            }
+                          }}
+                          className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                        >
+                          Use Scene Context
+                        </button>
+                      )}
+                    </div>
+                    {currentSceneContext && (
+                      <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                        <strong>Current Scene:</strong> {currentSceneContext.title || 'Untitled'}
+                        {currentSceneContext.script && (
+                          <div className="mt-1 text-blue-600 dark:text-blue-400">
+                            <strong>Script:</strong> {currentSceneContext.script}
+                          </div>
+                        )}
+                        {currentSceneContext.description && (
+                          <div className="mt-1 text-blue-600 dark:text-blue-400">
+                            <strong>Description:</strong> {currentSceneContext.description}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2 text-sm text-slate-700 dark:text-slate-300 resize-none"
                       rows={3}
-                      placeholder="e.g., A cinematic shot of the crab walking"
+                      placeholder={currentSceneContext ? "Describe the motion for this scene..." : "e.g., A cinematic shot of the crab walking"}
                       disabled={isGeneratingAI}
                     />
                   </div>

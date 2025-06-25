@@ -1772,6 +1772,13 @@ Return ONLY the JSON array, nothing else.`;
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+          currentSceneContext={
+            selectedScene ? {
+              title: selectedScene.title,
+              description: selectedScene.description,
+              script: selectedScene.script,
+            } : undefined
+          }
         />
       )}
 
