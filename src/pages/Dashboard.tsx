@@ -90,33 +90,11 @@ export const Dashboard = () => {
         return;
       }
 
-      // Helper function to validate UUID format
-      const isValidUUID = (str: string): boolean => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        return uuidRegex.test(str);
-      };
-
-      // Filter out non-UUID clipIds
-      const validClipIds = Array.from(clipIds).filter(clipId => {
-        const isValid = isValidUUID(clipId);
-        if (!isValid) {
-          console.log('Skipping non-UUID clipId:', clipId);
-        }
-        return isValid;
-      });
-
-      console.log('Valid UUID clipIds:', validClipIds);
-
-      if (validClipIds.length === 0) {
-        console.log('No valid UUID clipIds found');
-        return;
-      }
-
       // Fetch clip data from user_clips table
       const { data: clipsData, error: clipsError } = await supabase
         .from('user_clips')
         .select('id, thumbnail_url')
-        .in('id', validClipIds);
+        .in('id', Array.from(clipIds));
 
       if (clipsError) throw clipsError;
 
@@ -162,18 +140,6 @@ export const Dashboard = () => {
     try {
       console.log('Fetching single clip:', clipId);
       
-      // Helper function to validate UUID format
-      const isValidUUID = (str: string): boolean => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        return uuidRegex.test(str);
-      };
-
-      // Skip if not a valid UUID
-      if (!isValidUUID(clipId)) {
-        console.log('Skipping non-UUID clipId in fetchSingleClip:', clipId);
-        return;
-      }
-
       // Fetch clip data from user_clips table
       const { data: clipData, error: clipsError } = await supabase
         .from('user_clips')
