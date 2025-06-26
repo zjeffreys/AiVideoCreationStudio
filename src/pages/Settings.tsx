@@ -573,6 +573,11 @@ export const Settings = () => {
                     isLoading={isUpdating}
                     loadingText="Saving..."
                     leftIcon={!isUpdating ? <Save className="h-5 w-5" /> : undefined}
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
             </>
           )}
         </div>
