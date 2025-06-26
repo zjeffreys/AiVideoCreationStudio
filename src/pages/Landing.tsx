@@ -102,15 +102,7 @@ export const LandingPage = () => {
                   Become an Early Adopter
                 </Button>
               </Link>
-              <Link to="/login">
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="h-14 px-8 text-lg border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
-                >
-                  Sign In
-                </Button>
-              </Link>
+             
             </div>
             <div className="mt-12 flex items-center justify-center gap-8 text-slate-300">
               <div className="flex items-center gap-2">
