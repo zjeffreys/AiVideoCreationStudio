@@ -23,6 +23,20 @@ export type User = {
   avatar_url?: string;
 };
 
+export type MembershipType = 'free' | 'early_adopter' | 'paid';
+
+export type UserProfile = {
+  id: string;
+  user_id: string;
+  membership_type: MembershipType;
+  video_generation_count: number;
+  video_generation_limit: number;
+  subscription_start_date?: string;
+  subscription_end_date?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Video = {
   id: string;
   title: string;
