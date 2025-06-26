@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Save, User, Lock, Bell } from 'lucide-react';
+import { Save, User, Lock, Bell, Crown, Star, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
+import { MembershipType } from '../types';
 
 export const Settings = () => {
-  const { user, signOut } = useAuth();
+  const { user, userProfile, signOut, refreshUserProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState(user?.email || '');
@@ -18,6 +20,7 @@ export const Settings = () => {
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
+  const [isUpdatingMembership, setIsUpdatingMembership] = useState(false);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +103,63 @@ export const Settings = () => {
     }
   };
 
+  const handleMembershipChange = async (newMembershipType: MembershipType) => {
+    if (!user || !userProfile) return;
+    
+    setIsUpdatingMembership(true);
+    setUpdateError(null);
+    setUpdateSuccess(null);
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ 
+          membership_type: newMembershipType,
+          subscription_start_date: newMembershipType !== 'free' ? new Date().toISOString() : null
+        })
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      await refreshUserProfile();
+      setUpdateSuccess(`Successfully ${newMembershipType === 'free' ? 'downgraded to' : 'upgraded to'} ${newMembershipType.replace('_', ' ')} membership!`);
+    } catch (error) {
+      if (error instanceof Error) {
+        setUpdateError(error.message);
+      } else {
+        setUpdateError('An error occurred while updating membership');
+      }
+    } finally {
+      setIsUpdatingMembership(false);
+    }
+  };
+
+  const getMembershipIcon = (type: MembershipType) => {
+    switch (type) {
+      case 'free':
+        return <User className="h-5 w-5" />;
+      case 'early_adopter':
+        return <Star className="h-5 w-5" />;
+      case 'paid':
+        return <Crown className="h-5 w-5" />;
+      default:
+        return <User className="h-5 w-5" />;
+    }
+  };
+
+  const getMembershipColor = (type: MembershipType) => {
+    switch (type) {
+      case 'free':
+        return 'text-slate-500';
+      case 'early_adopter':
+        return 'text-yellow-500';
+      case 'paid':
+        return 'text-purple-500';
+      default:
+        return 'text-slate-500';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 space-y-8">
       <div className="flex flex-col space-y-2">
@@ -150,6 +210,17 @@ export const Settings = () => {
           >
             <Bell className="h-5 w-5" />
             Notifications
+          </button>
+          <button
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium ${
+              activeTab === 'membership' 
+                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400' 
+                : 'text-slate-700 hover:bg-slate-100 hover:text-purple-700 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white'
+            }`}
+            onClick={() => setActiveTab('membership')}
+          >
+            <Crown className="h-5 w-5" />
+            Membership
           </button>
         </div>
         
@@ -240,6 +311,120 @@ export const Settings = () => {
                   </Button>
                 </div>
               </form>
+            </>
+          )}
+          
+          {activeTab === 'membership' && (
+            <>
+              <h2 className="mb-6 text-xl font-semibold text-slate-900 dark:text-white">Membership Settings</h2>
+              
+              {/* Current Membership Status */}
+              <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`${getMembershipColor(userProfile?.membership_type || 'free')}`}>
+                    {getMembershipIcon(userProfile?.membership_type || 'free')}
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Current Plan: {userProfile?.membership_type?.replace('_', ' ').toUpperCase() || 'FREE'}
+                  </h3>
+                </div>
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  <p>Video Generation: {userProfile?.video_generation_count || 0} / {userProfile?.video_generation_limit || 3} used</p>
+                  {userProfile?.subscription_start_date && (
+                    <p>Member since: {new Date(userProfile.subscription_start_date).toLocaleDateString()}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Membership Options */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Available Plans</h3>
+                
+                {/* Free Plan */}
+                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'free' ? 'border-slate-400 bg-slate-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-slate-500" />
+                      <div>
+                        <h4 className="font-medium text-slate-900 dark:text-white">Free</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">3 video generations</p>
+                      </div>
+                    </div>
+                    {userProfile?.membership_type !== 'free' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMembershipChange('free')}
+                        disabled={isUpdatingMembership}
+                        className="border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700"
+                      >
+                        Downgrade
+                      </Button>
+                    )}
+                    {userProfile?.membership_type === 'free' && (
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Early Adopter Plan */}
+                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'early_adopter' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Star className="h-5 w-5 text-yellow-500" />
+                      <div>
+                        <h4 className="font-medium text-slate-900 dark:text-white">Early Adopter</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">$50/month - Unlimited videos + feedback channel</p>
+                      </div>
+                    </div>
+                    {userProfile?.membership_type !== 'early_adopter' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleMembershipChange('early_adopter')}
+                        disabled={isUpdatingMembership}
+                        className="bg-yellow-500 text-white hover:bg-yellow-600"
+                      >
+                        {userProfile?.membership_type === 'free' ? 'Upgrade' : 'Switch'}
+                      </Button>
+                    )}
+                    {userProfile?.membership_type === 'early_adopter' && (
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Paid Plan */}
+                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'paid' ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Crown className="h-5 w-5 text-purple-500" />
+                      <div>
+                        <h4 className="font-medium text-slate-900 dark:text-white">Paid</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">$100/month - Unlimited videos + premium features</p>
+                      </div>
+                    </div>
+                    {userProfile?.membership_type !== 'paid' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleMembershipChange('paid')}
+                        disabled={isUpdatingMembership}
+                        className="bg-purple-500 text-white hover:bg-purple-600"
+                      >
+                        {userProfile?.membership_type === 'free' ? 'Upgrade' : 'Switch'}
+                      </Button>
+                    )}
+                    {userProfile?.membership_type === 'paid' && (
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Note:</strong> This is a demo implementation. In production, payment processing would be handled through a secure payment provider like Stripe or RevenueCat.
+                </p>
+              </div>
             </>
           )}
           
