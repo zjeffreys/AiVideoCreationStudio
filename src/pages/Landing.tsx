@@ -26,6 +26,22 @@ import { Button } from '../components/ui/Button';
 export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white">
+      {/* Bolt.new Badge - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <a 
+          href="https://bolt.new/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block transition-transform hover:scale-105"
+        >
+          <img 
+            src="https://tpeqefpratvytsqnmsst.supabase.co/storage/v1/object/public/assets//black_circle_360x360.png" 
+            alt="Built with Bolt.new" 
+            className="h-12 w-12 sm:h-16 sm:w-16 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          />
+        </a>
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3769714/pexels-photo-3769714.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
