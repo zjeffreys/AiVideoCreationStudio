@@ -27,17 +27,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (userId: string) => {
     console.log('🔍 Fetching user profile for:', userId);
     try {
-      const { data, error } = await supabase
+      // Add a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000);
+      });
+      
+      const fetchPromise = supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
         .single();
       
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      
       if (error) {
+        console.log('❌ Profile fetch error:', error);
         // If profile doesn't exist, create one
         if (error.code === 'PGRST116') {
           console.log('📝 Creating new user profile for:', userId);
-          const { data: newProfile, error: createError } = await supabase
+          const createPromise = supabase
             .from('user_profiles')
             .insert({
               user_id: userId,
@@ -47,6 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             })
             .select()
             .single();
+          
+          const { data: newProfile, error: createError } = await Promise.race([
+            createPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Profile creation timeout')), 5000))
+          ]);
           
           if (createError) throw createError;
           console.log('✅ Created user profile:', newProfile);
@@ -59,8 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
       setUserProfile(null);
+      // Don't let profile errors block the auth flow
+      return;
     }
   };
 
@@ -97,19 +112,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Set loading to false first, then fetch profile in background
+      setLoading(false);
+      
       if (session?.user) {
         console.log('🔍 Fetching profile for auth change...');
-        await fetchUserProfile(session.user.id);
+        // Fetch profile in background, don't block the UI
+        fetchUserProfile(session.user.id).catch(error => {
+          console.error('Background profile fetch failed:', error);
+        });
       } else {
         console.log('🧹 Clearing user profile');
         setUserProfile(null);
       }
       
-      if (initialized) {
-        setLoading(false);
-      }
       console.log('✅ Auth state change processed');
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
