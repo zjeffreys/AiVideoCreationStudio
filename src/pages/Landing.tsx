@@ -93,7 +93,7 @@ export const LandingPage = () => {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link to="/signup">
+              <Link to="/login">
                 <Button 
                   size="lg" 
                   className="group h-14 px-8 text-lg bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600"
