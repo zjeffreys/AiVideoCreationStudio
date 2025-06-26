@@ -19,7 +19,7 @@ export const getStripe = () => {
 
 // Stripe price IDs - these should match your Stripe dashboard configuration
 export const STRIPE_PRICES = {
-  EARLY_ADOPTER_MONTHLY: 'price_early_adopter_monthly', // Replace with actual price ID
+  EARLY_ADOPTER_MONTHLY: 'price_YOUR_ACTUAL_PRICE_ID_HERE', // Replace with the price ID you just created
   EARLY_ADOPTER_YEARLY: 'price_early_adopter_yearly',   // Replace with actual price ID
 } as const;
 
