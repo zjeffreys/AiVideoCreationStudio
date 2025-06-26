@@ -19,13 +19,14 @@ import {
   Settings,
   BarChart,
   MessageSquare,
-  Heart
+  Heart,
+  Mic2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 export const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-900">
       {/* Bolt.new Badge - Top Right */}
       <div className="fixed top-4 right-4 z-50">
         <a 
@@ -51,29 +52,46 @@ export const LandingPage = () => {
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3769714/pexels-photo-3769714.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-screen flex-col items-center justify-center py-16 text-center">
-            <div className="mb-8 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="mb-8 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
                 🚀 AI-Powered Education
               </span>
             </div>
-            <h1 className="mb-6 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl md:text-7xl">
+            <h1 className="mb-6 text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl">
               Transform Your Teaching with
-              <span className="relative mt-2 block bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+              <span className="relative mt-2 block bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
                 AI-Generated Videos
                 <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 338 12" fill="none">
                   <path d="M1 5.26C47.65 4.4 94.29 4.35 140.94 5.11c43.86 0.72 87.71 1.45 131.57 2.17 21.44 0.35 42.88 0.7 64.31 1.06" stroke="url(#gradient)" strokeWidth="2" strokeLinecap="round"/>
                   <defs>
                     <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#9333EA" />
-                      <stop offset="100%" stopColor="#EA580C" />
+                      <stop offset="0%" stopColor="#C084FC" />
+                      <stop offset="100%" stopColor="#F97316" />
                     </linearGradient>
                   </defs>
                 </svg>
               </span>
             </h1>
-            <p className="mb-12 max-w-2xl text-lg leading-relaxed text-slate-600">
+            <p className="mb-8 max-w-2xl text-lg leading-relaxed text-slate-300">
               Create stunning educational content in minutes, not hours. Our AI-powered platform helps you generate professional videos with custom characters, engaging animations, and natural voices.
             </p>
+            
+            {/* Early Adopter Pricing Highlight */}
+            <div className="mb-8 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/30 to-orange-900/30 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Sparkles className="h-5 w-5 text-yellow-400" />
+                <span className="text-sm font-semibold text-yellow-400 uppercase tracking-wide">Limited Time Offer</span>
+                <Sparkles className="h-5 w-5 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">
+                $50/month for the first 100 early adopters
+              </h3>
+              <p className="text-slate-300 text-sm">
+                Help us shape the future of AI education tools with your feedback. 
+                <span className="text-purple-300 font-medium"> Regular price will be $100/month.</span>
+              </p>
+            </div>
+
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link to="/signup">
                 <Button 
@@ -81,27 +99,27 @@ export const LandingPage = () => {
                   className="group h-14 px-8 text-lg bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600"
                   leftIcon={<Sparkles className="h-5 w-5 transition-transform group-hover:scale-110" />}
                 >
-                  Start Creating Now
+                  Become an Early Adopter
                 </Button>
               </Link>
               <Link to="/login">
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="h-14 px-8 text-lg border-slate-300 text-slate-700 hover:bg-slate-50"
+                  className="h-14 px-8 text-lg border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white"
                 >
                   Sign In
                 </Button>
               </Link>
             </div>
-            <div className="mt-12 flex items-center justify-center gap-8 text-slate-600">
+            <div className="mt-12 flex items-center justify-center gap-8 text-slate-300">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <CheckCircle2 className="h-5 w-5 text-green-400" />
                 <span>Professional Quality</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span>Dedicated Support</span>
+                <CheckCircle2 className="h-5 w-5 text-green-400" />
+                <span>Direct Feedback Channel</span>
               </div>
             </div>
           </div>
@@ -109,93 +127,144 @@ export const LandingPage = () => {
       </div>
 
       {/* Stats Section */}
-      <div className="border-y border-slate-200 bg-slate-50">
+      <div className="border-y border-slate-700 bg-slate-800">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">85%</div>
-              <div className="mt-2 text-sm text-slate-600">Improved Information Retention</div>
+              <div className="text-4xl font-bold text-purple-400">85%</div>
+              <div className="mt-2 text-sm text-slate-300">Improved Information Retention</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">2x</div>
-              <div className="mt-2 text-sm text-slate-600">Faster Learning Progress</div>
+              <div className="text-4xl font-bold text-purple-400">2x</div>
+              <div className="mt-2 text-sm text-slate-300">Faster Learning Progress</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">40%</div>
-              <div className="mt-2 text-sm text-slate-600">Higher Student Engagement</div>
+              <div className="text-4xl font-bold text-purple-400">40%</div>
+              <div className="mt-2 text-sm text-slate-300">Higher Student Engagement</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">75%</div>
-              <div className="mt-2 text-sm text-slate-600">Time Saved Creating Content</div>
+              <div className="text-4xl font-bold text-purple-400">75%</div>
+              <div className="mt-2 text-sm text-slate-300">Time Saved Creating Content</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="py-24 bg-white">
+      <div className="py-24 bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
                 Powerful Features
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Everything You Need to Create Amazing Educational Content
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
               Our platform provides all the tools and features you need to create engaging educational videos that your students will love.
             </p>
           </div>
 
           <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* AI Video Generation */}
-            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-300">
-              <div className="mb-6 inline-flex rounded-xl bg-gradient-to-r from-purple-100 to-orange-100 p-3 text-purple-600 ring-8 ring-purple-50">
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-gradient-to-r from-purple-900/50 to-orange-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
                 <Video className="h-6 w-6" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">
+              <h3 className="mb-3 text-xl font-semibold text-white">
                 AI Video Generation
               </h3>
-              <p className="text-slate-600">
+              <p className="text-slate-300">
                 Transform your scripts into professional videos with our advanced AI technology. Add animations, transitions, and visual effects automatically.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
                 Learn more
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
             </div>
 
             {/* Smart Script Writing */}
-            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-300">
-              <div className="mb-6 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 ring-8 ring-purple-50">
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
                 <Brain className="h-6 w-6" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">
-                Smart Script Writing
+              <h3 className="mb-3 text-xl font-semibold text-white">
+                AI Script Generation
               </h3>
-              <p className="text-slate-600">
+              <p className="text-slate-300">
                 Get AI assistance in writing and optimizing your educational scripts. Ensure clear, engaging, and effective content delivery.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-600">
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
                 Learn more
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
             </div>
 
-            {/* Custom Characters */}
-            <div className="group relative rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-300">
-              <div className="mb-6 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600 ring-8 ring-purple-50">
-                <Users className="h-6 w-6" />
+            {/* ElevenLabs Voices */}
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
+                <Mic2 className="h-6 w-6" />
               </div>
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">
-                Custom Characters
+              <h3 className="mb-3 text-xl font-semibold text-white">
+                ElevenLabs AI Voices
               </h3>
-              <p className="text-slate-600">
-                Create and customize teaching characters with unique personalities, voices, and appearances to make your content more engaging.
+              <p className="text-slate-300">
+                Premium AI-generated voices powered by ElevenLabs technology. Create natural-sounding narration for your educational content.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-600">
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* AI Storyboarding */}
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
+                <Layers className="h-6 w-6" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-white">
+                AI Storyboarding
+              </h3>
+              <p className="text-slate-300">
+                Automatically generate visual storyboards from your content. Plan your video structure with AI-powered scene suggestions.
+              </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* AI Generated Clips */}
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
+                <Wand2 className="h-6 w-6" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-white">
+                AI Generated Clips
+              </h3>
+              <p className="text-slate-300">
+                Generate custom video clips and animations using AI. Create unique visual content tailored to your educational material.
+              </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
+                Learn more
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* Royalty Free Music */}
+            <div className="group relative rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm transition-all hover:shadow-lg hover:border-purple-500">
+              <div className="mb-6 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400 ring-8 ring-purple-900/20">
+                <Music className="h-6 w-6" />
+              </div>
+              <h3 className="mb-3 text-xl font-semibold text-white">
+                Royalty Free Music
+              </h3>
+              <p className="text-slate-300">
+                Access a library of high-quality, royalty-free music tracks. Perfect background music for any educational video style.
+              </p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
                 Learn more
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -205,19 +274,19 @@ export const LandingPage = () => {
       </div>
 
       {/* How It Works */}
-      <div className="relative overflow-hidden bg-slate-50 py-24">
+      <div className="relative overflow-hidden bg-slate-800 py-24">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/4778611/pexels-photo-4778611.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
                 Simple Process
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Create Videos in 3 Simple Steps
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
               Our streamlined process makes it easy to create professional educational videos in minutes.
             </p>
           </div>
@@ -229,8 +298,8 @@ export const LandingPage = () => {
                   1
                 </div>
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">Write Your Script</h3>
-              <p className="text-slate-600">
+              <h3 className="mb-2 text-xl font-semibold text-white">Write Your Script</h3>
+              <p className="text-slate-300">
                 Enter your content or use our AI to help generate an engaging educational script.
               </p>
             </div>
@@ -241,8 +310,8 @@ export const LandingPage = () => {
                   2
                 </div>
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">Choose Your Style</h3>
-              <p className="text-slate-600">
+              <h3 className="mb-2 text-xl font-semibold text-white">Choose Your Style</h3>
+              <p className="text-slate-300">
                 Select characters, voices, and visual style to match your content.
               </p>
             </div>
@@ -253,8 +322,8 @@ export const LandingPage = () => {
                   3
                 </div>
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-slate-900">Generate & Share</h3>
-              <p className="text-slate-600">
+              <h3 className="mb-2 text-xl font-semibold text-white">Generate & Share</h3>
+              <p className="text-slate-300">
                 Let our AI create your video and share it with your students.
               </p>
             </div>
@@ -263,19 +332,19 @@ export const LandingPage = () => {
       </div>
 
       {/* Benefits Section */}
-      <div className="relative overflow-hidden py-24 bg-white">
+      <div className="relative overflow-hidden py-24 bg-slate-900">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5212703/pexels-photo-5212703.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
                 Why Choose Us
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Benefits That Make a Difference
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
               Discover how our platform can transform your teaching experience and enhance student engagement.
             </p>
           </div>
@@ -303,12 +372,12 @@ export const LandingPage = () => {
                 description: "Help students learn better with personalized, engaging content."
               }
             ].map((benefit, index) => (
-              <div key={index} className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-                <div className="mx-auto mb-4 inline-flex rounded-xl bg-purple-100 p-3 text-purple-600">
+              <div key={index} className="rounded-2xl border border-slate-700 bg-slate-800 p-8 text-center shadow-sm">
+                <div className="mx-auto mb-4 inline-flex rounded-xl bg-purple-900/50 p-3 text-purple-400">
                   {benefit.icon}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">{benefit.title}</h3>
-                <p className="text-slate-600">{benefit.description}</p>
+                <h3 className="mb-2 text-lg font-semibold text-white">{benefit.title}</h3>
+                <p className="text-slate-300">{benefit.description}</p>
               </div>
             ))}
           </div>
@@ -316,19 +385,19 @@ export const LandingPage = () => {
       </div>
 
       {/* Testimonials */}
-      <div className="relative overflow-hidden bg-slate-50 py-24">
+      <div className="relative overflow-hidden bg-slate-800 py-24">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/5905502/pexels-photo-5905502.jpeg')] bg-cover bg-center bg-no-repeat opacity-5"></div>
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
                 Testimonials
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Loved by Educators Worldwide
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
               See what teachers and instructors are saying about our platform.
             </p>
           </div>
@@ -354,7 +423,7 @@ export const LandingPage = () => {
                 quote: "This tool has helped me scale my online course production. The AI script writing feature is particularly helpful."
               }
             ].map((testimonial, index) => (
-              <div key={index} className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+              <div key={index} className="rounded-2xl border border-slate-700 bg-slate-800 p-8 shadow-sm">
                 <div className="flex items-center gap-4">
                   <img
                     src={testimonial.image}
@@ -362,8 +431,8 @@ export const LandingPage = () => {
                     className="h-12 w-12 rounded-full object-cover"
                   />
                   <div>
-                    <div className="font-semibold text-slate-900">{testimonial.name}</div>
-                    <div className="text-sm text-slate-600">{testimonial.role}</div>
+                    <div className="font-semibold text-white">{testimonial.name}</div>
+                    <div className="text-sm text-slate-300">{testimonial.role}</div>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-1">
@@ -371,7 +440,7 @@ export const LandingPage = () => {
                     <Star key={i} className="h-5 w-5 fill-current text-yellow-400" />
                   ))}
                 </div>
-                <p className="mt-4 text-slate-600">"{testimonial.quote}"</p>
+                <p className="mt-4 text-slate-300">"{testimonial.quote}"</p>
               </div>
             ))}
           </div>
@@ -379,82 +448,84 @@ export const LandingPage = () => {
       </div>
 
       {/* Pricing Section */}
-      <div className="py-24 bg-white">
+      <div className="py-24 bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-100 to-orange-100 px-4 py-1.5">
-              <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
-                Pricing Plans
+            <div className="mb-4 inline-flex items-center rounded-full bg-gradient-to-r from-purple-900/50 to-orange-900/50 px-4 py-1.5">
+              <span className="text-sm font-medium bg-gradient-to-r from-purple-200 to-orange-200 bg-clip-text text-transparent">
+                Early Adopter Pricing
               </span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Professional Tools for Professional Educators
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Join the First 100 Early Adopters
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-600">
-              Invest in your teaching with our powerful AI video creation platform.
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
+              Help us build the future of AI-powered educational content creation. Your feedback will shape our product.
             </p>
           </div>
 
-          <div className="mt-16 grid gap-8 lg:grid-cols-2">
-            {[
-              {
-                name: "Professional",
-                price: "$100",
-                description: "Perfect for individual educators",
-                features: [
-                  "Unlimited video creation",
-                  "Full HD 1080p quality",
-                  "Custom AI characters",
-                  "Advanced script generation",
-                  "Priority rendering",
-                  "Premium voice options",
-                  "Analytics dashboard",
-                  "Priority email support",
-                  "Access to template library",
-                  "Regular feature updates"
-                ]
-              },
-              {
-                name: "Enterprise",
-                price: "Custom",
-                description: "For institutions and organizations",
-                features: [
-                  "Everything in Professional",
-                  "Custom video limits",
-                  "4K video quality",
-                  "Custom branding",
-                  "Team collaboration",
-                  "API access",
-                  "Dedicated account manager",
-                  "Custom integration support",
-                  "Training sessions",
-                  "SLA guarantees"
-                ]
-              }
-            ].map((plan, index) => (
-              <div key={index} className={`rounded-2xl border ${index === 0 ? 'border-purple-300 bg-purple-50' : 'border-slate-200 bg-white'} p-8 shadow-sm`}>
-                <h3 className="text-xl font-semibold text-slate-900">{plan.name}</h3>
-                <div className="mt-4 flex items-baseline">
-                  <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
-                  {plan.price !== "Custom" && <span className="ml-1 text-slate-600">/month</span>}
+          <div className="mt-16 flex justify-center">
+            <div className="w-full max-w-lg">
+              <div className="rounded-2xl border border-purple-500 bg-gradient-to-br from-purple-900/30 to-orange-900/30 p-8 shadow-lg backdrop-blur-sm">
+                <div className="text-center">
+                  <div className="mb-4 inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1">
+                    <span className="text-sm font-semibold text-yellow-400">LIMITED TIME</span>
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white mb-2">Early Adopter</h3>
+                  <div className="mb-4">
+                    <span className="text-5xl font-bold text-white">$50</span>
+                    <span className="text-slate-300 ml-2">/month</span>
+                  </div>
+                  <p className="text-slate-300 mb-6">
+                    Special pricing for the first 100 users who help us improve the platform
+                  </p>
+                  
+                  <div className="space-y-4 mb-8">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">ElevenLabs AI-Generated Voices</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">AI Storyboarding Assistant</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">AI Generated Video Clips</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">Royalty Free Music Library</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">AI Script Generation</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">Direct Feedback Channel</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">Priority Support</span>
+                    </div>
+                  </div>
+
+                  <Link to="/signup">
+                    <Button
+                      className="w-full bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600 text-lg py-3"
+                      leftIcon={<Sparkles className="h-5 w-5" />}
+                    >
+                      Become an Early Adopter
+                    </Button>
+                  </Link>
+                  
+                  <p className="mt-4 text-sm text-slate-400">
+                    Regular price will be $100/month after early adopter period
+                  </p>
                 </div>
-                <p className="mt-2 text-slate-600">{plan.description}</p>
-                <ul className="mt-6 space-y-4">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      <span className="text-slate-600">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className={`mt-8 w-full ${index === 0 ? 'bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}
-                  variant={index === 0 ? 'default' : 'outline'}
-                >
-                  {index === 1 ? 'Contact Sales' : 'Get Started'}
-                </Button>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -468,7 +539,7 @@ export const LandingPage = () => {
               Ready to Transform Your Teaching?
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-purple-100">
-              Join thousands of educators who are already creating engaging video content with our AI-powered platform.
+              Join the first 100 educators who will help shape the future of AI-powered educational content creation.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link to="/signup">
@@ -477,7 +548,7 @@ export const LandingPage = () => {
                   className="group h-14 bg-white px-8 text-lg text-purple-600 hover:bg-purple-50"
                   leftIcon={<Zap className="h-5 w-5 transition-transform group-hover:scale-110" />}
                 >
-                  Get Started Free
+                  Join Early Adopters
                 </Button>
               </Link>
               <a 
