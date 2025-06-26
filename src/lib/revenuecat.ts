@@ -1,5 +1,4 @@
-import * as Purchases from '@revenuecat/purchases-js';
-import { PurchasesOffering, PurchasesPackage, CustomerInfo } from '@revenuecat/purchases-js';
+import Purchases, { PurchasesOffering, PurchasesPackage, CustomerInfo } from '@revenuecat/purchases-js';
 import { supabase } from './supabase';
 
 // RevenueCat configuration
