@@ -32,12 +32,16 @@ export const LandingPage = () => {
           href="https://bolt.new/" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="block transition-transform hover:scale-105"
+          className="block transition-transform hover:scale-110"
         >
           <img 
             src="https://tpeqefpratvytsqnmsst.supabase.co/storage/v1/object/public/assets//black_circle_360x360.png" 
             alt="Built with Bolt.new" 
-            className="h-12 w-12 sm:h-16 sm:w-16 rounded-full shadow-lg hover:shadow-xl transition-shadow"
+            className="h-12 w-12 sm:h-16 sm:w-16 rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 animate-spin hover:animate-pulse"
+            style={{
+              filter: 'drop-shadow(0 0 10px rgba(147, 51, 234, 0.5)) drop-shadow(0 0 20px rgba(234, 88, 12, 0.3))',
+              animationDuration: '8s'
+            }}
           />
         </a>
       </div>
