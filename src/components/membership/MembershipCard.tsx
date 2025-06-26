@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Star, Crown, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { MembershipTier } from '../../lib/revenuecat';
+import { MembershipTier } from '../../lib/stripe';
 
 interface MembershipCardProps {
   tier: MembershipTier;
@@ -34,6 +34,8 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
         return <Crown className="h-5 w-5 text-slate-500" />;
       case 'early_adopter':
         return <Star className="h-5 w-5 text-yellow-500" />;
+      case 'paid':
+        return <Crown className="h-5 w-5 text-purple-500" />;
       default:
         return <Crown className="h-5 w-5 text-slate-500" />;
     }

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
-import { initializeRevenueCat } from '../lib/revenuecat';
 
 type AuthContextType = {
   session: Session | null;
