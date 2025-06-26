@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 interface CheckoutRequest {
-  priceId: string
+  productId: string
   successUrl: string
   cancelUrl: string
 }
@@ -54,9 +54,9 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { priceId, successUrl, cancelUrl }: CheckoutRequest = await req.json()
+    const { productId, successUrl, cancelUrl }: CheckoutRequest = await req.json()
 
-    if (!priceId || !successUrl || !cancelUrl) {
+    if (!productId || !successUrl || !cancelUrl) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
         {
@@ -65,6 +65,25 @@ serve(async (req) => {
         }
       )
     }
+
+    // Get the default price for the product
+    const product = await stripe.products.retrieve(productId, {
+      expand: ['default_price']
+    })
+
+    if (!product.default_price) {
+      return new Response(
+        JSON.stringify({ error: 'Product has no default price' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const priceId = typeof product.default_price === 'string' 
+      ? product.default_price 
+      : product.default_price.id
 
     // Get or create Stripe customer
     let customerId: string
@@ -110,6 +129,7 @@ serve(async (req) => {
       cancel_url: cancelUrl,
       metadata: {
         user_id: user.id,
+        product_id: productId,
       },
     })
 

@@ -151,9 +151,9 @@ async function handleSubscriptionChange(
   // Determine membership type based on subscription
   let membershipType = 'free'
   if (subscription.status === 'active') {
-    // Check the price ID to determine membership type
-    const priceId = subscription.items.data[0]?.price.id
-    if (priceId === Deno.env.get('STRIPE_EARLY_ADOPTER_LIFETIME_PRICE_ID')) {
+    // Check the product ID to determine membership type
+    const productId = subscription.items.data[0]?.price.product
+    if (productId === 'prod_SZIXEBTZAkmQAN') {
       membershipType = 'early_adopter'
     } else {
       membershipType = 'paid'

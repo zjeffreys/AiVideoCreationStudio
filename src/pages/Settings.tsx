@@ -27,7 +27,7 @@ export const Settings = () => {
   
   // Stripe state
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [selectedPriceId, setSelectedPriceId] = useState<string>('');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [selectedPlanName, setSelectedPlanName] = useState<string>('');
 
   // Check for success/cancel URL parameters
@@ -164,7 +164,7 @@ export const Settings = () => {
   };
 
   const handleEarlyAdopterUpgrade = () => {
-    setSelectedPriceId(STRIPE_PRICES.EARLY_ADOPTER_LIFETIME);
+    setSelectedProductId(STRIPE_PRICES.EARLY_ADOPTER_LIFETIME);
     setSelectedPlanName('Early Adopter');
     setShowCheckoutModal(true);
   };
@@ -191,7 +191,7 @@ export const Settings = () => {
 
   const handleCheckoutSuccess = async () => {
     setShowCheckoutModal(false);
-    setSelectedPriceId('');
+    setSelectedProductId('');
     setSelectedPlanName('');
     
     // Refresh user profile to get updated membership status
@@ -472,10 +472,10 @@ export const Settings = () => {
                 isOpen={showCheckoutModal}
                 onClose={() => {
                   setShowCheckoutModal(false);
-                  setSelectedPriceId('');
+                  setSelectedProductId('');
                   setSelectedPlanName('');
                 }}
-                priceId={selectedPriceId}
+                productId={selectedProductId}
                 planName={selectedPlanName}
                 price="$50"
                 duration="month"

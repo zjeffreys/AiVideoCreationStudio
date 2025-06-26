@@ -19,7 +19,7 @@ export const getStripe = () => {
 
 // Stripe price IDs - these should match your Stripe dashboard configuration
 export const STRIPE_PRICES = {
-  EARLY_ADOPTER_LIFETIME: 'price_1QZpQnP8ZjvjQQQQQQQQQQQQ', // Early adopter lifetime price
+  EARLY_ADOPTER_LIFETIME: 'prod_SZIXEBTZAkmQAN', // Early adopter product ID
   REGULAR_MONTHLY: 'price_regular_monthly',   // Future regular pricing
 } as const;
 
@@ -38,7 +38,7 @@ export interface CustomerPortalResponse {
 
 class StripeService {
   async createCheckoutSession(
-    priceId: string,
+    productId: string,
     successUrl: string,
     cancelUrl: string
   ): Promise<CheckoutSessionResponse> {
@@ -51,7 +51,7 @@ class StripeService {
 
       const response = await supabase.functions.invoke('create-checkout-session', {
         body: {
-          priceId,
+          productId,
           successUrl,
           cancelUrl,
         },
@@ -118,7 +118,7 @@ class StripeService {
 
   getMembershipTierFromPriceId(priceId: string): MembershipTier {
     switch (priceId) {
-      case STRIPE_PRICES.EARLY_ADOPTER_LIFETIME:
+      case 'prod_SZIXEBTZAkmQAN':
         return 'early_adopter';
       case STRIPE_PRICES.REGULAR_MONTHLY:
       default:
@@ -131,8 +131,8 @@ class StripeService {
 export const stripeService = new StripeService();
 
 // Utility functions
-export const createCheckoutSession = (priceId: string, successUrl: string, cancelUrl: string) =>
-  stripeService.createCheckoutSession(priceId, successUrl, cancelUrl);
+export const createCheckoutSession = (productId: string, successUrl: string, cancelUrl: string) =>
+  stripeService.createCheckoutSession(productId, successUrl, cancelUrl);
 
 export const createCustomerPortalSession = (returnUrl: string) =>
   stripeService.createCustomerPortalSession(returnUrl);

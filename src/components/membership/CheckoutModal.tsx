@@ -6,7 +6,7 @@ import { stripeService, STRIPE_PRICES } from '../../lib/stripe';
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  priceId: string;
+  productId: string;
   planName: string;
   price: string;
   duration: string;
@@ -16,7 +16,7 @@ interface CheckoutModalProps {
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isOpen,
   onClose,
-  priceId,
+  productId,
   planName,
   price,
   duration,
@@ -36,7 +36,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const cancelUrl = `${window.location.origin}/settings?canceled=true`;
 
       const result = await stripeService.createCheckoutSession(
-        priceId,
+        productId,
         successUrl,
         cancelUrl
       );
