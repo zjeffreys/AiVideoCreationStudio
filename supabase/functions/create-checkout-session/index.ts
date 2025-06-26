@@ -12,6 +12,7 @@ interface CheckoutRequest {
   productId: string
   successUrl: string
   cancelUrl: string
+  promotionCode?: string
 }
 
 serve(async (req) => {
@@ -54,7 +55,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { productId, successUrl, cancelUrl }: CheckoutRequest = await req.json()
+    const { productId, successUrl, cancelUrl, promotionCode }: CheckoutRequest = await req.json()
 
     if (!productId || !successUrl || !cancelUrl) {
       return new Response(
@@ -84,6 +85,76 @@ serve(async (req) => {
     const priceId = typeof product.default_price === 'string' 
       ? product.default_price 
       : product.default_price.id
+
+    // Handle promotion code if provided
+    let discounts: Array<{ promotion_code: string }> = []
+    if (promotionCode && promotionCode.trim()) {
+      try {
+        // List promotion codes to find the one with the matching code
+        const promotionCodes = await stripe.promotionCodes.list({
+          code: promotionCode.trim(),
+          active: true,
+          limit: 1,
+        })
+
+        if (promotionCodes.data.length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid or expired promotion code' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        const promoCode = promotionCodes.data[0]
+        
+        // Check if the promotion code is still valid
+        if (!promoCode.active) {
+          return new Response(
+            JSON.stringify({ error: 'Promotion code is no longer active' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        // Check expiration date
+        if (promoCode.expires_at && promoCode.expires_at < Math.floor(Date.now() / 1000)) {
+          return new Response(
+            JSON.stringify({ error: 'Promotion code has expired' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        // Check usage limits
+        if (promoCode.max_redemptions && promoCode.times_redeemed >= promoCode.max_redemptions) {
+          return new Response(
+            JSON.stringify({ error: 'Promotion code has reached its usage limit' }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        discounts = [{ promotion_code: promoCode.id }]
+        console.log('Applied promotion code:', promoCode.code)
+      } catch (error) {
+        console.error('Error validating promotion code:', error)
+        return new Response(
+          JSON.stringify({ error: 'Error validating promotion code' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
 
     // Get or create Stripe customer
     let customerId: string
@@ -115,7 +186,7 @@ serve(async (req) => {
     }
 
     // Create Checkout Session
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
@@ -131,7 +202,14 @@ serve(async (req) => {
         user_id: user.id,
         product_id: productId,
       },
-    })
+    }
+
+    // Add discounts if promotion code was provided and validated
+    if (discounts.length > 0) {
+      sessionParams.discounts = discounts
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams)
 
     return new Response(
       JSON.stringify({ sessionId: session.id, url: session.url }),

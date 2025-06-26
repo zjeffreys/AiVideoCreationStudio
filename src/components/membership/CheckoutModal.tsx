@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, CheckCircle, Loader2, CreditCard } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, Loader2, CreditCard, Tag } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 import { stripeService, STRIPE_PRICES } from '../../lib/stripe';
 
 interface CheckoutModalProps {
@@ -24,6 +25,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [showCouponField, setShowCouponField] = useState(false);
 
   if (!isOpen) return null;
 
@@ -38,7 +41,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const result = await stripeService.createCheckoutSession(
         productId,
         successUrl,
-        cancelUrl
+        cancelUrl,
+        couponCode.trim() || undefined
       );
 
       if (result.error) {
@@ -104,6 +108,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <p>✅ Premium templates</p>
             <p>✅ Help shape the product roadmap</p>
           </div>
+        </div>
+
+        {/* Coupon Code Section */}
+        <div className="mb-4">
+          {!showCouponField ? (
+            <button
+              type="button"
+              onClick={() => setShowCouponField(true)}
+              className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+              disabled={isProcessing}
+            >
+              <Tag className="h-4 w-4" />
+              Have a coupon code?
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Coupon Code
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter coupon code"
+                  disabled={isProcessing}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCouponField(false);
+                    setCouponCode('');
+                  }}
+                  disabled={isProcessing}
+                  className="px-3"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              {couponCode && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Coupon will be applied at checkout
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {error && (

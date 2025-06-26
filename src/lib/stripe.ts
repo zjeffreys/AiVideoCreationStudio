@@ -40,7 +40,8 @@ class StripeService {
   async createCheckoutSession(
     productId: string,
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    promotionCode?: string
   ): Promise<CheckoutSessionResponse> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -54,6 +55,7 @@ class StripeService {
           productId,
           successUrl,
           cancelUrl,
+          promotionCode,
         },
       });
 
@@ -131,8 +133,8 @@ class StripeService {
 export const stripeService = new StripeService();
 
 // Utility functions
-export const createCheckoutSession = (productId: string, successUrl: string, cancelUrl: string) =>
-  stripeService.createCheckoutSession(productId, successUrl, cancelUrl);
+export const createCheckoutSession = (productId: string, successUrl: string, cancelUrl: string, promotionCode?: string) =>
+  stripeService.createCheckoutSession(productId, successUrl, cancelUrl, promotionCode);
 
 export const createCustomerPortalSession = (returnUrl: string) =>
   stripeService.createCustomerPortalSession(returnUrl);
