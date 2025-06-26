@@ -493,7 +493,7 @@ export const LandingPage = () => {
                     </div>
                   </div>
 
-                  <Link to="/signup">
+                  <Link to="/login">
                     <Button
                       className="w-full bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600 text-lg py-3"
                       leftIcon={<Sparkles className="h-5 w-5" />}
