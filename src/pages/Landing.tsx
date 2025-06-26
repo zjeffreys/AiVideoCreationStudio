@@ -104,16 +104,6 @@ export const LandingPage = () => {
               </Link>
              
             </div>
-            <div className="mt-12 flex items-center justify-center gap-8 text-slate-300">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-400" />
-                <span>Professional Quality</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-400" />
-                <span>Direct Feedback Channel</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
