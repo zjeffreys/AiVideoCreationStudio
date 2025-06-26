@@ -19,39 +19,62 @@ import VideoEditor from './pages/VideoEditor';
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
+  console.log('🛡️ ProtectedRoute render - Loading:', loading, 'User:', user?.email || 'None');
+  
   if (loading) return null;
   
   if (!user) {
+    console.log('🚫 ProtectedRoute: No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
+  console.log('✅ ProtectedRoute: User authenticated, rendering children');
   return <>{children}</>;
 };
 
 const AuthCallback = () => {
   const { user, loading } = useAuth();
   
+  console.log('🔄 AuthCallback render - Loading:', loading, 'User:', user?.email || 'None');
+  
   if (loading) return null;
   
   if (user) {
+    console.log('✅ AuthCallback: User found, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
   
+  console.log('🏠 AuthCallback: No user, redirecting to home');
   return <Navigate to="/" replace />;
 };
 
 function App() {
   const { user, loading } = useAuth();
 
+  console.log('🎯 App render - Loading:', loading, 'User:', user?.email || 'None');
+
   if (loading) {
-    return null;
+    console.log('⏳ App: Still loading, showing spinner');
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-600"></div>
+          <p className="text-lg font-medium text-slate-700">Loading...</p>
+        </div>
+      </div>
+    );
   }
+
+  console.log('🎨 App: Rendering router');
 
   return (
     <Router>
       <Routes>
         {/* Landing page for non-authenticated users */}
-        <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} />
+        <Route 
+          path="/" 
+          element={!user ? <LandingPage /> : <Navigate to="/dashboard" replace />} 
+        />
         
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
