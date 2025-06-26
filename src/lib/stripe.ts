@@ -19,7 +19,7 @@ export const getStripe = () => {
 
 // Stripe price IDs - these should match your Stripe dashboard configuration
 export const STRIPE_PRICES = {
-  EARLY_ADOPTER_LIFETIME: 'price_YOUR_ACTUAL_PRICE_ID_HERE', // Replace with the price ID you just created for $50/month lifetime
+  EARLY_ADOPTER_LIFETIME: 'price_1QZpQnP8ZjvjQQQQQQQQQQQQ', // Early adopter lifetime price
   REGULAR_MONTHLY: 'price_regular_monthly',   // Future regular pricing
 } as const;
 
