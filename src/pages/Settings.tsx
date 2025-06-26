@@ -164,7 +164,7 @@ export const Settings = () => {
   };
 
   const handleEarlyAdopterUpgrade = () => {
-    setSelectedPriceId(STRIPE_PRICES.EARLY_ADOPTER_MONTHLY);
+    setSelectedPriceId(STRIPE_PRICES.EARLY_ADOPTER_LIFETIME);
     setSelectedPlanName('Early Adopter');
     setShowCheckoutModal(true);
   };
@@ -444,16 +444,19 @@ export const Settings = () => {
                   {/* Early Adopter Plan */}
                   <MembershipCard
                     tier="early_adopter"
-                    title="Early Adopter"
+                    title="Early Adopter - Lifetime Deal"
                     price="$50"
-                    duration="month"
+                    duration="month for life"
                     features={[
                       "Unlimited video generations",
+                      "🔥 LIFETIME pricing - locked in forever",
+                      "Limited to first 100 customers only",
                       "Priority support",
                       "Early access to new features",
                       "Direct feedback channel",
                       "Advanced AI features",
-                      "Premium templates"
+                      "Premium templates",
+                      "Help shape the product roadmap"
                     ]}
                     isCurrentPlan={userProfile?.membership_type === 'early_adopter'}
                     isPopular={true}
@@ -481,12 +484,12 @@ export const Settings = () => {
 
               {/* Development Note */}
               <div className="mt-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
-                <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Stripe Integration</h4>
+                <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Early Adopter Program</h4>
                 <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                  <p><strong>Platform:</strong> Web (Stripe Checkout)</p>
-                  <p><strong>Price IDs needed:</strong> {STRIPE_PRICES.EARLY_ADOPTER_MONTHLY}</p>
-                  <p><strong>Environment:</strong> {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Configured' : 'Missing API key'}</p>
-                  <p><strong>Webhooks:</strong> Configured for subscription lifecycle</p>
+                  <p><strong>Special Offer:</strong> $50/month for life (first 100 customers only)</p>
+                  <p><strong>Regular Price:</strong> Will be $100/month after early adopter period</p>
+                  <p><strong>Benefits:</strong> Lifetime pricing lock + direct input on product development</p>
+                  <p><strong>Status:</strong> {import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ? 'Ready to accept payments' : 'Payment setup needed'}</p>
                 </div>
               </div>
             </>

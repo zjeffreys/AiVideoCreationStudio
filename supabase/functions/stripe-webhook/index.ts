@@ -153,7 +153,7 @@ async function handleSubscriptionChange(
   if (subscription.status === 'active') {
     // Check the price ID to determine membership type
     const priceId = subscription.items.data[0]?.price.id
-    if (priceId === Deno.env.get('STRIPE_EARLY_ADOPTER_PRICE_ID')) {
+    if (priceId === Deno.env.get('STRIPE_EARLY_ADOPTER_LIFETIME_PRICE_ID')) {
       membershipType = 'early_adopter'
     } else {
       membershipType = 'paid'

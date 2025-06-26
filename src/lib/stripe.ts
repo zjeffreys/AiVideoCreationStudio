@@ -19,8 +19,8 @@ export const getStripe = () => {
 
 // Stripe price IDs - these should match your Stripe dashboard configuration
 export const STRIPE_PRICES = {
-  EARLY_ADOPTER_MONTHLY: 'price_YOUR_ACTUAL_PRICE_ID_HERE', // Replace with the price ID you just created
-  EARLY_ADOPTER_YEARLY: 'price_early_adopter_yearly',   // Replace with actual price ID
+  EARLY_ADOPTER_LIFETIME: 'price_YOUR_ACTUAL_PRICE_ID_HERE', // Replace with the price ID you just created for $50/month lifetime
+  REGULAR_MONTHLY: 'price_regular_monthly',   // Future regular pricing
 } as const;
 
 export type MembershipTier = 'free' | 'early_adopter' | 'paid';
@@ -118,9 +118,9 @@ class StripeService {
 
   getMembershipTierFromPriceId(priceId: string): MembershipTier {
     switch (priceId) {
-      case STRIPE_PRICES.EARLY_ADOPTER_MONTHLY:
-      case STRIPE_PRICES.EARLY_ADOPTER_YEARLY:
+      case STRIPE_PRICES.EARLY_ADOPTER_LIFETIME:
         return 'early_adopter';
+      case STRIPE_PRICES.REGULAR_MONTHLY:
       default:
         return 'paid';
     }

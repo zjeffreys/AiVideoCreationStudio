@@ -80,15 +80,15 @@ export const LandingPage = () => {
             <div className="mb-8 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/30 to-orange-900/30 p-6 backdrop-blur-sm">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-400" />
-                <span className="text-sm font-semibold text-yellow-400 uppercase tracking-wide">Limited Time Offer</span>
+                <span className="text-sm font-semibold text-yellow-400 uppercase tracking-wide">First 100 Customers Only</span>
                 <Sparkles className="h-5 w-5 text-yellow-400" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-2">
-                $50/month for the first 100 early adopters
+                $50/month LIFETIME for first 100 customers
               </h3>
               <p className="text-slate-300 text-sm">
-                Help us shape the future of AI education tools with your feedback. 
-                <span className="text-purple-300 font-medium"> Regular price will be $100/month.</span>
+                Lock in this special pricing forever! Help us shape the future of AI education tools. 
+                <span className="text-purple-300 font-medium"> Regular price will be $100/month after early adopter period.</span>
               </p>
             </div>
 
@@ -451,18 +451,26 @@ export const LandingPage = () => {
               <div className="rounded-2xl border border-purple-500 bg-gradient-to-br from-purple-900/30 to-orange-900/30 p-8 shadow-lg backdrop-blur-sm">
                 <div className="text-center">
                   <div className="mb-4 inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1">
-                    <span className="text-sm font-semibold text-yellow-400">LIMITED TIME</span>
+                    <span className="text-sm font-semibold text-yellow-400">FIRST 100 ONLY</span>
                   </div>
-                  <h3 className="text-2xl font-semibold text-white mb-2">Early Adopter</h3>
+                  <h3 className="text-2xl font-semibold text-white mb-2">Early Adopter Lifetime</h3>
                   <div className="mb-4">
                     <span className="text-5xl font-bold text-white">$50</span>
-                    <span className="text-slate-300 ml-2">/month</span>
+                    <span className="text-slate-300 ml-2">/month for life</span>
                   </div>
                   <p className="text-slate-300 mb-6">
-                    Special pricing for the first 100 users who help us improve the platform
+                    Lifetime pricing locked in forever - only for our first 100 customers
                   </p>
                   
                   <div className="space-y-4 mb-8">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">🔥 Lifetime $50/month pricing lock</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
+                      <span className="text-slate-300">Unlimited video generations</span>
+                    </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
                       <span className="text-slate-300">ElevenLabs AI-Generated Voices</span>
@@ -503,7 +511,7 @@ export const LandingPage = () => {
                   </Link>
                   
                   <p className="mt-4 text-sm text-slate-400">
-                    Regular price will be $100/month after early adopter period
+                    Regular price will be $100/month. Your rate stays $50/month forever!
                   </p>
                 </div>
               </div>

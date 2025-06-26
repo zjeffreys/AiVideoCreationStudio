@@ -94,12 +94,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
 
           <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <p>🔥 <strong>LIFETIME DEAL</strong> - Price locked in forever!</p>
+            <p>📈 Regular price will be $100/month after early adopter period</p>
             <p>✅ Unlimited video generations</p>
             <p>✅ Priority support</p>
             <p>✅ Early access to new features</p>
             <p>✅ Direct feedback channel</p>
             <p>✅ Advanced AI features</p>
             <p>✅ Premium templates</p>
+            <p>✅ Help shape the product roadmap</p>
           </div>
         </div>
 
@@ -136,7 +139,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </div>
 
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 text-center">
-          Secure payment powered by Stripe. You can cancel your subscription at any time.
+          Secure payment powered by Stripe. Limited to first 100 customers. Your $50/month rate is locked in for life!
         </p>
       </div>
     </div>
