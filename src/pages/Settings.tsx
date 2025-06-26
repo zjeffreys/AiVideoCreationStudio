@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Save, User, Lock, Bell, Crown, Star, Zap } from 'lucide-react';
+import { Save, User, Lock, Bell, Crown, Star, Zap, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { MembershipType } from '../types';
+import { MembershipCard } from '../components/membership/MembershipCard';
+import { PurchaseModal } from '../components/membership/PurchaseModal';
+import { revenueCatService, initializeRevenueCat, getCurrentOffering, getCustomerInfo } from '../lib/revenuecat';
+import { PurchasesPackage, PurchasesOffering } from '@revenuecat/purchases-js';
 
 export const Settings = () => {
   const { user, userProfile, signOut, refreshUserProfile } = useAuth();
@@ -21,6 +25,42 @@ export const Settings = () => {
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
   const [isUpdatingMembership, setIsUpdatingMembership] = useState(false);
+  
+  // RevenueCat state
+  const [revenueCatInitialized, setRevenueCatInitialized] = useState(false);
+  const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null);
+  const [loadingOfferings, setLoadingOfferings] = useState(false);
+  const [revenueCatError, setRevenueCatError] = useState<string | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+  const [processingPurchase, setProcessingPurchase] = useState(false);
+
+  // Initialize RevenueCat when component mounts
+  React.useEffect(() => {
+    const initRC = async () => {
+      if (!user || revenueCatInitialized) return;
+      
+      try {
+        setLoadingOfferings(true);
+        setRevenueCatError(null);
+        
+        await initializeRevenueCat(user.id);
+        setRevenueCatInitialized(true);
+        
+        const offering = await getCurrentOffering();
+        setCurrentOffering(offering);
+        
+        console.log('✅ RevenueCat initialized with offering:', offering);
+      } catch (error) {
+        console.error('❌ Failed to initialize RevenueCat:', error);
+        setRevenueCatError(error instanceof Error ? error.message : 'Failed to load subscription options');
+      } finally {
+        setLoadingOfferings(false);
+      }
+    };
+
+    initRC();
+  }, [user, revenueCatInitialized]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +143,7 @@ export const Settings = () => {
     }
   };
 
-  const handleMembershipChange = async (newMembershipType: MembershipType) => {
+  const handleFreeMembershipDowngrade = async () => {
     if (!user || !userProfile) return;
     
     setIsUpdatingMembership(true);
@@ -113,22 +153,76 @@ export const Settings = () => {
     try {
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
-          membership_type: newMembershipType,
-          subscription_start_date: newMembershipType !== 'free' ? new Date().toISOString() : null
+        .update({
+          membership_type: 'free',
+          subscription_start_date: null,
+          subscription_end_date: null,
         })
         .eq('user_id', user.id);
       
       if (error) throw error;
       
       await refreshUserProfile();
-      setUpdateSuccess(`Successfully ${newMembershipType === 'free' ? 'downgraded to' : 'upgraded to'} ${newMembershipType.replace('_', ' ')} membership!`);
+      setUpdateSuccess('Successfully downgraded to free membership!');
     } catch (error) {
       if (error instanceof Error) {
         setUpdateError(error.message);
       } else {
-        setUpdateError('An error occurred while updating membership');
+        setUpdateError('An error occurred while downgrading membership');
       }
+    } finally {
+      setIsUpdatingMembership(false);
+    }
+  };
+
+  const handleEarlyAdopterUpgrade = async () => {
+    if (!currentOffering || !revenueCatInitialized) {
+      setUpdateError('Subscription options are not available. Please try again later.');
+      return;
+    }
+
+    // Find the early adopter package
+    const earlyAdopterPackage = currentOffering.availablePackages.find(pkg => 
+      pkg.identifier.toLowerCase().includes('early_adopter') ||
+      pkg.identifier.toLowerCase().includes('monthly')
+    );
+
+    if (!earlyAdopterPackage) {
+      setUpdateError('Early adopter subscription is not available. Please contact support.');
+      return;
+    }
+
+    setSelectedPackage(earlyAdopterPackage);
+    setShowPurchaseModal(true);
+  };
+
+  const handlePurchaseSuccess = async () => {
+    setShowPurchaseModal(false);
+    setSelectedPackage(null);
+    
+    // Refresh user profile to get updated membership status
+    await refreshUserProfile();
+    
+    setUpdateSuccess('Successfully upgraded to Early Adopter! Welcome to the program!');
+  };
+
+  const handleRestorePurchases = async () => {
+    if (!revenueCatInitialized) return;
+    
+    setIsUpdatingMembership(true);
+    setUpdateError(null);
+    
+    try {
+      const result = await revenueCatService.restorePurchases();
+      
+      if (result.success) {
+        await refreshUserProfile();
+        setUpdateSuccess('Purchases restored successfully!');
+      } else {
+        setUpdateError(result.error || 'Failed to restore purchases');
+      }
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : 'Failed to restore purchases');
     } finally {
       setIsUpdatingMembership(false);
     }
@@ -336,87 +430,110 @@ export const Settings = () => {
                 </div>
               </div>
 
-              {/* Membership Options */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Available Plans</h3>
-                
-                {/* Free Plan */}
-                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'free' ? 'border-slate-400 bg-slate-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-slate-500" />
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white">Free</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">3 video generations</p>
-                      </div>
-                    </div>
-                    {userProfile?.membership_type !== 'free' && (
+              {/* RevenueCat Error */}
+              {revenueCatError && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-red-700 dark:text-red-300 font-medium">Subscription Error</p>
+                    <p className="text-red-600 dark:text-red-400 text-sm">{revenueCatError}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {loadingOfferings && (
+                <div className="mb-6 flex items-center justify-center py-8">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+                    <span className="text-slate-600 dark:text-slate-400">Loading subscription options...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Membership Cards */}
+              {!loadingOfferings && !revenueCatError && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white">Available Plans</h3>
+                  
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Free Plan */}
+                    <MembershipCard
+                      tier="free"
+                      title="Free"
+                      price="$0"
+                      duration="forever"
+                      features={[
+                        "3 video generations",
+                        "Basic AI features",
+                        "Community support",
+                        "Standard templates"
+                      ]}
+                      isCurrentPlan={userProfile?.membership_type === 'free'}
+                      onSelect={handleFreeMembershipDowngrade}
+                      loading={isUpdatingMembership}
+                      disabled={userProfile?.membership_type === 'free'}
+                    />
+
+                    {/* Early Adopter Plan */}
+                    <MembershipCard
+                      tier="early_adopter"
+                      title="Early Adopter"
+                      price={currentOffering?.availablePackages[0] ? revenueCatService.formatPrice(currentOffering.availablePackages[0]) : "$50"}
+                      duration={currentOffering?.availablePackages[0] ? revenueCatService.getPackageDuration(currentOffering.availablePackages[0]) : "month"}
+                      features={[
+                        "Unlimited video generations",
+                        "Priority support",
+                        "Early access to new features",
+                        "Direct feedback channel",
+                        "Advanced AI features",
+                        "Premium templates"
+                      ]}
+                      isCurrentPlan={userProfile?.membership_type === 'early_adopter'}
+                      isPopular={true}
+                      onSelect={handleEarlyAdopterUpgrade}
+                      loading={processingPurchase}
+                      disabled={userProfile?.membership_type === 'early_adopter' || !currentOffering}
+                    />
+                  </div>
+
+                  {/* Restore Purchases Button */}
+                  {revenueCatInitialized && (
+                    <div className="flex justify-center pt-4">
                       <Button
-                        size="sm"
                         variant="outline"
-                        onClick={() => handleMembershipChange('free')}
+                        onClick={handleRestorePurchases}
                         disabled={isUpdatingMembership}
-                        className="border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700"
+                        isLoading={isUpdatingMembership}
+                        loadingText="Restoring..."
+                        className="text-sm"
                       >
-                        Downgrade
+                        Restore Purchases
                       </Button>
-                    )}
-                    {userProfile?.membership_type === 'free' && (
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Early Adopter Plan */}
-                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'early_adopter' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Star className="h-5 w-5 text-yellow-500" />
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white">Early Adopter</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">$50/month - Unlimited videos + feedback channel</p>
-                      </div>
                     </div>
-                    {userProfile?.membership_type !== 'early_adopter' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleMembershipChange('early_adopter')}
-                        disabled={isUpdatingMembership}
-                        className="bg-yellow-500 text-white hover:bg-yellow-600"
-                      >
-                        {userProfile?.membership_type === 'free' ? 'Upgrade' : 'Switch'}
-                      </Button>
-                    )}
-                    {userProfile?.membership_type === 'early_adopter' && (
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
-                    )}
-                  </div>
+                  )}
                 </div>
+              )}
 
-                {/* Paid Plan */}
-                <div className={`rounded-lg border p-4 ${userProfile?.membership_type === 'paid' ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-slate-200 dark:border-slate-700'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Crown className="h-5 w-5 text-purple-500" />
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white">Paid</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">$100/month - Unlimited videos + premium features</p>
-                      </div>
-                    </div>
-                    {userProfile?.membership_type !== 'paid' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleMembershipChange('paid')}
-                        disabled={isUpdatingMembership}
-                        className="bg-purple-500 text-white hover:bg-purple-600"
-                      >
-                        {userProfile?.membership_type === 'free' ? 'Upgrade' : 'Switch'}
-                      </Button>
-                    )}
-                    {userProfile?.membership_type === 'paid' && (
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Current Plan</span>
-                    )}
-                  </div>
+              {/* Purchase Modal */}
+              <PurchaseModal
+                isOpen={showPurchaseModal}
+                onClose={() => {
+                  setShowPurchaseModal(false);
+                  setSelectedPackage(null);
+                }}
+                packageToPurchase={selectedPackage}
+                onSuccess={handlePurchaseSuccess}
+              />
+
+              {/* Development Note */}
+              <div className="mt-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4">
+                <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">RevenueCat Integration</h4>
+                <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                  <p><strong>Platform:</strong> Web (Stripe integration)</p>
+                  <p><strong>Product IDs needed:</strong> early_adopter_monthly, early_adopter_yearly</p>
+                  <p><strong>Offering ID:</strong> default (or early_adopter)</p>
+                  <p><strong>Environment:</strong> {import.meta.env.VITE_REVENUECAT_PUBLIC_API_KEY ? 'Configured' : 'Missing API key'}</p>
                 </div>
               </div>
 
@@ -456,11 +573,6 @@ export const Settings = () => {
                     isLoading={isUpdating}
                     loadingText="Saving..."
                     leftIcon={!isUpdating ? <Save className="h-5 w-5" /> : undefined}
-                  >
-                    Save Preferences
-                  </Button>
-                </div>
-              </form>
             </>
           )}
         </div>

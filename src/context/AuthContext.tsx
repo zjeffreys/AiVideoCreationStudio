@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
+import { initializeRevenueCat } from '../lib/revenuecat';
 
 type AuthContextType = {
   session: Session | null;
@@ -119,8 +120,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         console.log('🔍 Fetching profile for auth change...');
         // Fetch profile in background, don't block the UI
-        fetchUserProfile(session.user.id).catch(error => {
-          console.error('Background profile fetch failed:', error);
+        Promise.all([
+          fetchUserProfile(session.user.id),
+          initializeRevenueCat(session.user.id)
+        ]).catch(error => {
+          console.error('Background initialization failed:', error);
         });
       } else {
         console.log('🧹 Clearing user profile');
