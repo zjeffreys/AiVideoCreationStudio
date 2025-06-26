@@ -30,6 +30,12 @@ export const Dashboard = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
 
+  // Utility function to validate UUID format
+  const isValidUUID = (str: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
@@ -76,8 +82,13 @@ export const Dashboard = () => {
         video.sections?.forEach(section => {
           section.scenes?.forEach(scene => {
             if (scene.clipId) {
-              clipIds.add(scene.clipId);
-              console.log('Found clipId in scene:', scene.clipId, 'for video:', video.title);
+              // Only add valid UUIDs to avoid database errors
+              if (isValidUUID(scene.clipId)) {
+                clipIds.add(scene.clipId);
+                console.log('Found valid clipId in scene:', scene.clipId, 'for video:', video.title);
+              } else {
+                console.warn('Invalid UUID format for clipId:', scene.clipId, 'in video:', video.title);
+              }
             }
           });
         });
@@ -137,6 +148,12 @@ export const Dashboard = () => {
   };
 
   const fetchSingleClip = async (clipId: string) => {
+    // Validate UUID format before making the query
+    if (!isValidUUID(clipId)) {
+      console.warn('Invalid UUID format for clipId:', clipId);
+      return;
+    }
+
     try {
       console.log('Fetching single clip:', clipId);
       

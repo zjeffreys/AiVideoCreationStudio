@@ -119,10 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         console.log('🔍 Fetching profile for auth change...');
         // Fetch profile in background, don't block the UI
-        Promise.all([
-          fetchUserProfile(session.user.id),
-          initializeRevenueCat(session.user.id)
-        ]).catch(error => {
+        fetchUserProfile(session.user.id).catch(error => {
           console.error('Background initialization failed:', error);
         });
       } else {
