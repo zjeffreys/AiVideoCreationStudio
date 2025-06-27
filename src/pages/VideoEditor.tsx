@@ -5,14 +5,14 @@ import { createPortal } from 'react-dom';
 import { VideoPanel } from '../components/videos/VideoPanel';
 import { MusicPanel } from '../components/music/MusicPanel';
 import { VoicesPanel } from '../components/voices/VoicesPanel';
-import { Video as VideoType, Voice, Character } from '../types';
+import { Video as VideoType, Voice, Character } from '../types/index';
 import { getVideos, createVideo, updateVideo, deleteVideo, uploadVideoThumbnail, uploadVideo } from '../lib/videos';
 import { Toast } from '../components/ui/Toast';
 import { getUserClips, uploadClip, deleteClip, UserClip } from '../lib/clips';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { AddMediaModal } from '../components/videos/AddMediaModal';
-import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw, PlusCircle, Search, Users, Trash, Sparkles } from 'lucide-react';
+import { Video as VideoIcon, Mic, Music, Pencil, RefreshCw, PlusCircle, Search, Users, Trash, Sparkles, Play, Download } from 'lucide-react';
 import { getVoice, generateSpeech } from '../lib/elevenlabs';
 import { getUserMusic, uploadMusic, UserMusic } from '../lib/music';
 import { CharacterCard } from '../components/characters/CharacterCard';
@@ -37,6 +37,7 @@ interface Scene {
   voiceId?: string;
   musicId?: string;
   subtitles?: string;
+  voiceoverUrl?: string; // Add this line for voiceover caching
 }
 
 export interface Section {
@@ -50,11 +51,24 @@ interface Message {
   text: string;
 }
 
-interface SceneVideo extends VideoType {
+// Use the SceneVideo type from VideoPanel to avoid conflicts
+interface VideoPanelSceneVideo extends VideoType {
+  file: File;
+  localUrl: string;
+  id: string;
+  title: string;
+  thumbnail_url?: string;
+}
+
+interface SceneVideo extends Omit<VideoType, 'created_at'> {
   file: File;
   localUrl: string;
   file_path?: string;
   thumbnail_url?: string;
+  title: string;
+  description?: string;
+  status: 'draft' | 'processing' | 'complete';
+  created_at?: string;
 }
 
 interface MusicTrack {
@@ -191,6 +205,9 @@ export default function VideoEditor() {
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const musicAudioRef = useRef<HTMLAudioElement>(null);
+  // Voice preview system disabled - commented out unused state
+  // const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({}); // sceneId -> audioUrl
+  // const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({}); // sceneId -> audioUrl
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [userMusic, setUserMusic] = useState<UserMusic[]>([]);
@@ -206,6 +223,13 @@ export default function VideoEditor() {
   const [isCharacterFormOpen, setIsCharacterFormOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | undefined>(undefined);
   const [isGeneratingAIScenes, setIsGeneratingAIScenes] = useState(false);
+  // Add state for video generation
+  const [isGeneratingFinalVideo, setIsGeneratingFinalVideo] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState('');
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  // Add state for voiceover caching
+  const [voiceoverUrls, setVoiceoverUrls] = useState<Record<string, string>>({}); // sceneId -> voiceoverUrl
+  const [isGeneratingVoiceover, setIsGeneratingVoiceover] = useState(false);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -777,8 +801,12 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
       musicTracks.forEach(track => {
         URL.revokeObjectURL(track.localUrl);
       });
+      // Clean up generated video URL
+      if (generatedVideoUrl) {
+        URL.revokeObjectURL(generatedVideoUrl);
+      }
     };
-  }, [sceneVideos, musicTracks]);
+  }, [sceneVideos, musicTracks, generatedVideoUrl]);
 
   const handleAddClipToScene = (clip: SceneVideo) => {
     // Update the scene with the selected clip
@@ -906,46 +934,111 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
   }, [previewIndex, isPreviewPlaying]);
 
   // Generate or fetch voice preview for the current preview scene
+  // DISABLED: Voice preview system causing infinite loops and not required
+  // useEffect(() => {
+  //   const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
+  //   if (!scene || !scene.script) return;
+  //   
+  //   // Only generate voice preview if we have a saved voiceover URL
+  //   if (voicePreviews[scene.id]) return; // Already cached
+  //   
+  //   setIsVoiceLoading(true);
+  //   (async () => {
+  //     try {
+  //       // Only check for cached voiceover URL - don't generate new ones for preview
+  //       const cachedVoiceoverUrl = await getVoiceoverUrl(scene.id);
+  //       
+  //       if (cachedVoiceoverUrl) {
+  //         // Use cached voiceover
+  //         console.log(`🎵 Using cached voiceover for preview scene ${scene.id}`);
+  //         setVoicePreviews(prev => ({ ...prev, [scene.id]: cachedVoiceoverUrl }));
+  //       } else {
+  //         // No cached voiceover - don't generate one for preview
+  //         console.log(`🔇 No cached voiceover for scene ${scene.id} - skipping preview generation`);
+  //         setVoicePreviews(prev => ({ ...prev, [scene.id]: '' }));
+  //       }
+  //     } catch (err) {
+  //       console.error('Voice preview error:', err);
+  //       setVoicePreviews(prev => ({ ...prev, [scene.id]: '' }));
+  //     } finally {
+  //       setIsVoiceLoading(false);
+  //     }
+  //   })();
+  // }, [previewIndex, previewClips, scenes]); // Removed voicePreviews from dependencies
+
+  // Fetch cached voiceover for preview (only fetch, don't generate)
   useEffect(() => {
     const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
     if (!scene || !scene.script) return;
     
-    // Validate voiceId - use default if not set or invalid
-    const validVoiceId = scene.voiceId && typeof scene.voiceId === 'string' && scene.voiceId.trim() 
-      ? scene.voiceId 
-      : 'flHkNRp1BlvT73UL6gyz'; // Default voice ID
+    // Skip if already loaded
+    if (voicePreviews[scene.id]) return;
     
-    if (voicePreviews[scene.id]) return; // Already cached
     setIsVoiceLoading(true);
     (async () => {
       try {
-        // Validate that we have a valid voice ID before calling the API
-        if (validVoiceId && validVoiceId.trim()) {
-          const audioUrl = await generateSpeech(scene.script, validVoiceId);
-          setVoicePreviews(prev => ({ ...prev, [scene.id]: audioUrl }));
+        // Only fetch cached voiceover URL from Supabase
+        const cachedVoiceoverUrl = await getVoiceoverUrl(scene.id);
+        
+        if (cachedVoiceoverUrl) {
+          console.log(`🎵 Loading cached voiceover for preview scene ${scene.id}`);
+          setVoicePreviews(prev => ({ ...prev, [scene.id]: cachedVoiceoverUrl }));
+        } else {
+          console.log(`🔇 No cached voiceover for scene ${scene.id} - using silent audio`);
+          // Use a silent audio file as fallback to prevent audio errors
+          const silentAudioUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
+          setVoicePreviews(prev => ({ ...prev, [scene.id]: silentAudioUrl }));
         }
       } catch (err) {
-        console.error('Voice generation error:', err);
-        setVoicePreviews(prev => ({ ...prev, [scene.id]: '' }));
+        console.error('Error loading cached voiceover:', err);
+        // Use silent audio as fallback
+        const silentAudioUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT';
+        setVoicePreviews(prev => ({ ...prev, [scene.id]: silentAudioUrl }));
       } finally {
         setIsVoiceLoading(false);
       }
     })();
-  }, [previewIndex, previewClips, scenes, voicePreviews]);
+  }, [previewIndex, previewClips]); // Removed 'scenes' from dependencies to prevent infinite loop
 
   // Play audio in sync with video
+  // DISABLED: Voice preview system disabled
+  // useEffect(() => {
+  //   const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
+  //   if (!scene || !scene.voiceId || !scene.script) return;
+  //   const audioUrl = voicePreviews[scene.id];
+  //   if (!audioUrl) return;
+  //   const audio = new Audio(audioUrl);
+  //   if (isPreviewPlaying) {
+  //     audio.play();
+  //   }
+  //   // Pause audio when video is paused
+  //   const handlePause = () => audio.pause();
+  //   previewVideoRef.current?.addEventListener('pause', handlePause);
+  //   // Clean up
+  //   return () => {
+  //     audio.pause();
+  //     previewVideoRef.current?.removeEventListener('pause', handlePause);
+  //   };
+  // }, [previewIndex, isPreviewPlaying, previewClips, scenes, voicePreviews]);
+
+  // Play cached voiceover audio in sync with video
   useEffect(() => {
     const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
-    if (!scene || !scene.voiceId || !scene.script) return;
+    if (!scene || !scene.script) return;
+    
     const audioUrl = voicePreviews[scene.id];
     if (!audioUrl) return;
+    
     const audio = new Audio(audioUrl);
+    
     if (isPreviewPlaying) {
-      audio.play();
+      audio.play().catch(err => console.log('Audio play failed:', err));
     }
+    
     // Pause audio when video is paused
     const handlePause = () => audio.pause();
     previewVideoRef.current?.addEventListener('pause', handlePause);
+    
     // Clean up
     return () => {
       audio.pause();
@@ -1227,6 +1320,398 @@ Return ONLY the JSON array, nothing else.`;
     }
   }, [user, activePanel, loadUserClips]);
 
+  // Voiceover caching functions
+  const generateAndSaveVoiceover = async (sceneId: string, script: string, voiceId: string) => {
+    if (!user) {
+      setToast({ message: 'User must be logged in', type: 'error' });
+      return;
+    }
+
+    setIsGeneratingVoiceover(true);
+    try {
+      console.log(`🎤 Generating voiceover for scene ${sceneId}...`);
+      
+      // Generate voiceover using ElevenLabs
+      const audioUrl = await generateSpeech(script, voiceId);
+      
+      // Download the audio blob
+      const response = await fetch(audioUrl);
+      if (!response.ok) throw new Error(`Failed to fetch voiceover: ${response.statusText}`);
+      const audioBlob = await response.blob();
+      
+      // Create a file from the blob
+      const audioFile = new File([audioBlob], `voiceover-${sceneId}.mp3`, { type: 'audio/mpeg' });
+      
+      // Upload to Supabase voiceovers bucket
+      const fileName = `${user.id}/voiceover-${sceneId}-${Date.now()}.mp3`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('voiceovers')
+        .upload(fileName, audioFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('voiceovers')
+        .getPublicUrl(fileName);
+      
+      const voiceoverUrl = urlData.publicUrl;
+      
+      // Update the scene with the voiceover URL
+      const newSections = sections.map(section => ({
+        ...section,
+        scenes: section.scenes.map(scene =>
+          scene.id === sceneId
+            ? { ...scene, voiceoverUrl }
+            : scene
+        )
+      }));
+      
+      setSections(newSections);
+      setVoiceoverUrls(prev => ({ ...prev, [sceneId]: voiceoverUrl }));
+      
+      // Save to database
+      if (videos[0]) {
+        await updateVideo(videos[0].id, { sections: newSections });
+      }
+      
+      console.log(`✅ Voiceover saved for scene ${sceneId}:`, voiceoverUrl);
+      setToast({ message: 'Voiceover generated and saved successfully!', type: 'success' });
+      
+    } catch (error) {
+      console.error(`❌ Error generating voiceover for scene ${sceneId}:`, error);
+      setToast({ 
+        message: error instanceof Error ? error.message : 'Failed to generate voiceover', 
+        type: 'error' 
+      });
+    } finally {
+      setIsGeneratingVoiceover(false);
+    }
+  };
+
+  // Version that accepts updated sections to avoid closure issues
+  const generateAndSaveVoiceoverWithSections = async (sceneId: string, script: string, voiceId: string, updatedSections: Section[]) => {
+    if (!user) {
+      setToast({ message: 'User must be logged in', type: 'error' });
+      return;
+    }
+
+    setIsGeneratingVoiceover(true);
+    try {
+      console.log(`🎤 Generating voiceover for scene ${sceneId} with updated script...`);
+      
+      // Generate voiceover using ElevenLabs
+      const audioUrl = await generateSpeech(script, voiceId);
+      
+      // Download the audio blob
+      const response = await fetch(audioUrl);
+      if (!response.ok) throw new Error(`Failed to fetch voiceover: ${response.statusText}`);
+      const audioBlob = await response.blob();
+      
+      // Create a file from the blob
+      const audioFile = new File([audioBlob], `voiceover-${sceneId}.mp3`, { type: 'audio/mpeg' });
+      
+      // Upload to Supabase voiceovers bucket
+      const fileName = `${user.id}/voiceover-${sceneId}-${Date.now()}.mp3`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('voiceovers')
+        .upload(fileName, audioFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('voiceovers')
+        .getPublicUrl(fileName);
+      
+      const voiceoverUrl = urlData.publicUrl;
+      
+      // Update the scene with the voiceover URL using the provided sections
+      const newSections = updatedSections.map(section => ({
+        ...section,
+        scenes: section.scenes.map(scene =>
+          scene.id === sceneId
+            ? { ...scene, voiceoverUrl }
+            : scene
+        )
+      }));
+      
+      setSections(newSections);
+      setVoiceoverUrls(prev => ({ ...prev, [sceneId]: voiceoverUrl }));
+      
+      // Save to database
+      if (videos[0]) {
+        await updateVideo(videos[0].id, { sections: newSections });
+      }
+      
+      console.log(`✅ Voiceover saved for scene ${sceneId}:`, voiceoverUrl);
+      setToast({ message: 'Voiceover generated and saved successfully!', type: 'success' });
+      
+    } catch (error) {
+      console.error(`❌ Error generating voiceover for scene ${sceneId}:`, error);
+      setToast({ 
+        message: error instanceof Error ? error.message : 'Failed to generate voiceover', 
+        type: 'error' 
+      });
+    } finally {
+      setIsGeneratingVoiceover(false);
+    }
+  };
+
+  const getVoiceoverUrl = async (sceneId: string): Promise<string | null> => {
+    // Check if we have a cached URL
+    if (voiceoverUrls[sceneId]) {
+      return voiceoverUrls[sceneId];
+    }
+    
+    // Check if scene has a voiceoverUrl in the database
+    const scene = scenes.find(s => s.id === sceneId);
+    if (scene?.voiceoverUrl) {
+      try {
+        // Extract the file path from the public URL
+        const publicUrl = scene.voiceoverUrl;
+        console.log(`🔍 Processing voiceover URL for scene ${sceneId}:`, publicUrl);
+        
+        const urlParts = publicUrl.split('/storage/v1/object/public/voiceovers/');
+        console.log(`🔍 URL parts:`, urlParts);
+        
+        if (urlParts.length === 2) {
+          const filePath = urlParts[1];
+          console.log(`🔍 Extracted file path:`, filePath);
+          
+          // Create a signed URL for audio playback
+          const { data, error } = await supabase.storage
+            .from('voiceovers')
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+          
+          if (error) {
+            console.error('Error creating signed URL for voiceover:', error);
+            return null;
+          }
+          
+          if (data?.signedUrl) {
+            const signedUrl = data.signedUrl;
+            console.log(`🔍 Created signed URL:`, signedUrl);
+            setVoiceoverUrls(prev => ({ ...prev, [sceneId]: signedUrl }));
+            return signedUrl;
+          } else {
+            console.log(`🔍 No signed URL created, trying public URL as fallback`);
+            // Fallback to public URL
+            setVoiceoverUrls(prev => ({ ...prev, [sceneId]: publicUrl }));
+            return publicUrl;
+          }
+        } else {
+          console.log(`🔍 Could not parse voiceover URL:`, publicUrl);
+        }
+      } catch (error) {
+        console.error('Error processing voiceover URL:', error);
+      }
+    }
+    
+    return null;
+  };
+
+  const regenerateVoiceover = async (sceneId: string) => {
+    const scene = scenes.find(s => s.id === sceneId);
+    if (!scene || !scene.script || !scene.voiceId) {
+      setToast({ message: 'Scene needs script and voice ID to regenerate voiceover', type: 'error' });
+      return;
+    }
+    
+    await generateAndSaveVoiceover(sceneId, scene.script, scene.voiceId);
+  };
+
+  // Generate final video function
+  const generateFinalVideo = async () => {
+    if (!videos[0]) {
+      setToast({ message: 'No video loaded', type: 'error' });
+      return;
+    }
+
+    console.log('🚀 Starting video generation process...');
+    console.log('📊 Scenes data:', scenes);
+    console.log('🎬 Clips data:', clipUrls);
+    
+    setIsGeneratingFinalVideo(true);
+    setGenerationProgress('Preparing video data...');
+
+    try {
+      // Step 1: Collect video clips
+      const videoClips: File[] = [];
+      const scenesWithClips = scenes.filter(scene => scene.clipId && clipUrls[scene.clipId]?.localUrl);
+      
+      if (scenesWithClips.length === 0) {
+        setToast({ message: 'No video clips found in scenes', type: 'error' });
+        return;
+      }
+
+      setGenerationProgress('Downloading video clips...');
+      
+      // Download video clips from URLs
+      for (const scene of scenesWithClips) {
+        if (scene.clipId && clipUrls[scene.clipId]?.localUrl) {
+          try {
+            const response = await fetch(clipUrls[scene.clipId].localUrl);
+            if (!response.ok) throw new Error(`Failed to fetch clip: ${response.statusText}`);
+            const blob = await response.blob();
+            const file = new File([blob], `clip-${scene.id}.mp4`, { type: 'video/mp4' });
+            videoClips.push(file);
+          } catch (error) {
+            console.error(`Error downloading clip for scene ${scene.id}:`, error);
+            setToast({ message: `Failed to download clip for scene ${scene.id}`, type: 'error' });
+            return;
+          }
+        }
+      }
+
+      // Step 2: Generate voiceovers
+      setGenerationProgress('Generating voiceovers...');
+      const voiceovers: File[] = [];
+      const scenesWithScripts = scenes.filter(scene => scene.script && scene.voiceId);
+
+      for (const scene of scenesWithScripts) {
+        if (scene.script && scene.voiceId) {
+          try {
+            // Check if we have a cached voiceover
+            let voiceoverUrl = await getVoiceoverUrl(scene.id);
+            
+            if (!voiceoverUrl) {
+              console.log(`🎤 No cached voiceover found for scene ${scene.id}, generating new one...`);
+              // Generate and save new voiceover
+              await generateAndSaveVoiceover(scene.id, scene.script, scene.voiceId);
+              voiceoverUrl = await getVoiceoverUrl(scene.id);
+              
+              if (!voiceoverUrl) {
+                throw new Error(`Failed to generate voiceover for scene ${scene.id}`);
+              }
+            } else {
+              console.log(`✅ Using cached voiceover for scene ${scene.id}:`, voiceoverUrl);
+            }
+            
+            // Download the voiceover file
+            const response = await fetch(voiceoverUrl);
+            if (!response.ok) throw new Error(`Failed to fetch voiceover: ${response.statusText}`);
+            const blob = await response.blob();
+            const file = new File([blob], `voiceover-${scene.id}.mp3`, { type: 'audio/mpeg' });
+            voiceovers.push(file);
+          } catch (error) {
+            console.error(`Error processing voiceover for scene ${scene.id}:`, error);
+            setToast({ message: `Failed to process voiceover for scene ${scene.id}`, type: 'error' });
+            return;
+          }
+        }
+      }
+
+      // Step 3: Get background music
+      let backgroundMusic: File | null = null;
+      if (selectedMusicId && musicUrl) {
+        setGenerationProgress('Downloading background music...');
+        try {
+          const response = await fetch(musicUrl);
+          if (!response.ok) throw new Error(`Failed to fetch music: ${response.statusText}`);
+          const blob = await response.blob();
+          backgroundMusic = new File([blob], 'background-music.mp3', { type: 'audio/mpeg' });
+        } catch (error) {
+          console.error('Error downloading background music:', error);
+          setToast({ message: 'Failed to download background music', type: 'error' });
+          return;
+        }
+      }
+
+      // Step 4: Prepare metadata
+      setGenerationProgress('Preparing metadata...');
+      const metadata = {
+        scenes: scenes.map((scene, index) => ({
+          clip_order: scenesWithClips.findIndex(s => s.id === scene.id),
+          clip_duration: 10, // Default duration in seconds
+          script: scene.script || '',
+          voiceover_order: scenesWithScripts.findIndex(s => s.id === scene.id),
+        })),
+        output_resolution: "1280x720",
+        background_music_volume: 0.2,
+        video_title: videos[0].title || 'Untitled Video',
+        video_description: videos[0].description || '',
+      };
+
+      // Step 5: Create FormData and send to backend
+      setGenerationProgress('Sending to video processor...');
+      const formData = new FormData();
+      
+      // Add video clips
+      videoClips.forEach((clip, index) => {
+        formData.append('clips', clip);
+      });
+
+      // Add voiceovers
+      voiceovers.forEach((voiceover, index) => {
+        formData.append('voiceovers', voiceover);
+      });
+
+      // Add background music if available
+      if (backgroundMusic) {
+        formData.append('music', backgroundMusic);
+      }
+
+      // Add metadata
+      formData.append('metadata', JSON.stringify(metadata));
+
+      // Step 6: Send to backend API
+      console.log('📤 Sending to backend API...');
+      console.log('📋 FormData contents:');
+      console.log('- Video clips:', videoClips.length);
+      console.log('- Voiceovers:', voiceovers.length);
+      console.log('- Background music:', backgroundMusic ? 'Yes' : 'No');
+      console.log('- Metadata:', metadata);
+      
+      const response = await fetch('http://localhost:8000/api/combine-clips', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log('📥 Backend response status:', response.status);
+      console.log('📥 Backend response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Backend error response:', errorText);
+        throw new Error(`Backend error: ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.blob();
+      const videoUrl = URL.createObjectURL(result);
+      setGeneratedVideoUrl(videoUrl);
+
+      // Step 7: Update video status in database
+      setGenerationProgress('Saving to database...');
+      try {
+        await updateVideo(videos[0].id, { 
+          status: 'complete',
+          video_url: videoUrl
+        });
+        setToast({ message: 'Final video generated successfully!', type: 'success' });
+      } catch (error) {
+        console.error('Error updating video status:', error);
+        setToast({ message: 'Video generated but failed to save status', type: 'error' });
+      }
+
+    } catch (error) {
+      console.error('Error generating final video:', error);
+      setToast({ 
+        message: error instanceof Error ? error.message : 'Failed to generate final video', 
+        type: 'error' 
+      });
+    } finally {
+      setIsGeneratingFinalVideo(false);
+      setGenerationProgress('');
+    }
+  };
+
+  // Check if video generation is ready
+  const isVideoGenerationReady = () => {
+    return scenes.some(scene => scene.clipId && clipUrls[scene.clipId]?.localUrl) &&
+           scenes.some(scene => scene.script && scene.voiceId);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
       {/* Breadcrumb/Cookie Crumb */}
@@ -1330,7 +1815,7 @@ Return ONLY the JSON array, nothing else.`;
               id: clip.id,
               title: clip.title,
               description: clip.description || '',
-              status: 'complete',
+              status: 'complete' as const,
               file: new File([], clip.file_path || ''),
               localUrl: clipUrls[clip.id]?.localUrl || '',
               thumbnail_url: clipUrls[clip.id]?.thumbnail_url,
@@ -1339,16 +1824,20 @@ Return ONLY the JSON array, nothing else.`;
             onAddVideo={handleAddSceneVideo}
             onRemoveVideo={handleRemoveSceneVideo}
             onReload={loadUserClips}
-            onVideoSelect={(clip) => {
-              setSelectedVideo({
-                id: clip.id,
-                title: clip.title,
-                description: clip.description || '',
-                status: 'complete',
-                file: new File([], clip.file_path || ''),
-                localUrl: clipUrls[clip.id]?.localUrl || '',
-                created_at: clip.created_at,
-              });
+            onVideoSelect={(video: VideoPanelSceneVideo) => {
+              // Find the corresponding UserClip
+              const clip = userClips.find(c => c.id === video.id);
+              if (clip) {
+                setSelectedVideo({
+                  id: clip.id,
+                  title: clip.title,
+                  description: clip.description || '',
+                  status: 'complete',
+                  file: new File([], clip.file_path || ''),
+                  localUrl: clipUrls[clip.id]?.localUrl || '',
+                  created_at: clip.created_at,
+                });
+              }
             }}
           />
         )}
@@ -1494,6 +1983,40 @@ Return ONLY the JSON array, nothing else.`;
                 {videos[0]?.description?.trim() ? videos[0].description : 'No description provided.'}
               </p>
             </div>
+            
+            {/* Generate Final Video Button */}
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={generateFinalVideo}
+                disabled={isGeneratingFinalVideo || !isVideoGenerationReady()}
+                className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 flex items-center gap-2 ${
+                  isGeneratingFinalVideo 
+                    ? 'bg-slate-400 cursor-not-allowed' 
+                    : isVideoGenerationReady()
+                    ? 'bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 shadow-lg hover:shadow-xl'
+                    : 'bg-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {isGeneratingFinalVideo ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5" />
+                    Generate Final Video
+                  </>
+                )}
+              </button>
+            </div>
+            
+            {/* Generation Progress */}
+            {isGeneratingFinalVideo && generationProgress && (
+              <div className="mt-3 text-center">
+                <p className="text-sm text-slate-600 dark:text-slate-400">{generationProgress}</p>
+              </div>
+            )}
           </div>
           {/* Playlist Video Player */}
           <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center shadow mb-4 relative">
@@ -1529,7 +2052,7 @@ Return ONLY the JSON array, nothing else.`;
                   ) : null;
                 })()}
                 {isVoiceLoading && (
-                  <div className="mt-2 text-xs text-slate-500">Generating voice preview...</div>
+                  <div className="mt-2 text-xs text-slate-500">Loading voiceover...</div>
                 )}
                 <div className="flex gap-2 mt-2 items-center">
                   <button
@@ -1573,24 +2096,6 @@ Return ONLY the JSON array, nothing else.`;
                   <span className="ml-2 text-xs text-slate-500 dark:text-slate-300">
                     {previewClips[previewIndex].title}
                   </span>
-                  {/* Reload/Regenerate voice preview icon */}
-                  <button
-                    className="ml-2 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
-                    title="Regenerate voice preview for this scene"
-                    onClick={() => {
-                      const sceneId = previewClips[previewIndex]?.sceneId;
-                      if (sceneId) {
-                        setVoicePreviews(prev => {
-                          const newPreviews = { ...prev };
-                          delete newPreviews[sceneId];
-                          return newPreviews;
-                        });
-                      }
-                    }}
-                    aria-label="Regenerate voice preview"
-                  >
-                    <RefreshCw className="w-4 h-4 text-slate-500" />
-                  </button>
                 </div>
               </>
             ) : (
@@ -1599,6 +2104,48 @@ Return ONLY the JSON array, nothing else.`;
               </div>
             )}
           </div>
+          
+          {/* Generated Final Video Display */}
+          {generatedVideoUrl && (
+            <div className="w-full max-w-2xl mt-6">
+              <div className="rounded-lg border p-4 bg-white dark:bg-slate-800 shadow">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Download className="w-5 h-5 text-green-600" />
+                  Final Generated Video
+                </h2>
+                <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3">
+                  <video
+                    src={generatedVideoUrl}
+                    controls
+                    className="w-full h-full"
+                    preload="metadata"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = generatedVideoUrl;
+                      link.download = `${videos[0]?.title || 'video'}-final.mp4`;
+                      link.click();
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Video
+                  </button>
+                  <button
+                    onClick={() => setGeneratedVideoUrl(null)}
+                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
         {/* Chatbot Panel - Only show when scenes tab is active */}
         {activePanel === 'scenes' && (
@@ -1659,6 +2206,84 @@ Return ONLY the JSON array, nothing else.`;
         <Droppable droppableId="timeline-scenes" direction="horizontal">
           {(provided: DroppableProvided) => (
             <div className="w-full max-w-7xl mx-auto mt-2 mb-8 bg-white dark:bg-slate-900 rounded-xl shadow p-4 flex flex-col gap-2" ref={provided.innerRef} {...provided.droppableProps}>
+              {/* Video Generation Readiness Summary */}
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Download className="w-5 h-5 text-purple-600" />
+                  Video Generation Status
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.clipId && clipUrls[s.clipId]?.localUrl) ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      Video Clips: {scenes.filter(s => s.clipId && clipUrls[s.clipId]?.localUrl).length}/{scenes.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.script && s.voiceId) ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      Voiceovers: {scenes.filter(s => s.script && s.voiceId).length}/{scenes.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${selectedMusicId ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                      Background Music: {selectedMusicId ? 'Selected' : 'Optional'}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {isVideoGenerationReady() 
+                      ? '✅ Ready to generate final video! All required components are available.'
+                      : '⚠️ Add video clips and voiceovers to scenes to enable video generation.'
+                    }
+                  </p>
+                  {/* Regenerate Voiceovers Button */}
+                  {scenes.some(s => s.script && s.voiceId) && (
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        onClick={async () => {
+                          const scenesWithScripts = scenes.filter(s => s.script && s.voiceId);
+                          if (scenesWithScripts.length === 0) {
+                            setToast({ message: 'No scenes with scripts found', type: 'error' });
+                            return;
+                          }
+                          
+                          setToast({ message: 'Regenerating all voiceovers...', type: 'success' });
+                          
+                          for (const scene of scenesWithScripts) {
+                            try {
+                              if (scene.script && scene.voiceId) {
+                                await generateAndSaveVoiceover(scene.id, scene.script, scene.voiceId);
+                              }
+                            } catch (error) {
+                              console.error(`Failed to regenerate voiceover for scene ${scene.id}:`, error);
+                            }
+                          }
+                          
+                          setToast({ message: 'All voiceovers regenerated successfully!', type: 'success' });
+                        }}
+                        disabled={isGeneratingVoiceover}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                      >
+                        {isGeneratingVoiceover ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4" />
+                            Regenerate All Voiceovers
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               {/* Time Ruler */}
               <div className="flex items-end gap-2 mb-1 pl-[100px]"> {/* offset for track labels */}
                 {scenes.map((scene: Scene, idx: number) => (
@@ -1733,13 +2358,13 @@ Return ONLY the JSON array, nothing else.`;
                       key={scene.id}
                       className="w-24 h-8 flex items-center justify-center gap-2"
                     >
-                      {scene.type === 'video' && (
-                        <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                      {scene.type === 'video' && scene.clipId && clipUrls[scene.clipId]?.localUrl && (
+                        <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                           <VideoIcon className="w-3 h-3" />
                           <span>Video</span>
                         </div>
                       )}
-                      {scene.audio && (
+                      {scene.script && scene.voiceId && (
                         <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
                           <Mic className="w-3 h-3" />
                           <span>Voice</span>
@@ -1749,6 +2374,13 @@ Return ONLY the JSON array, nothing else.`;
                         <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                           <Music className="w-3 h-3" />
                           <span>Music</span>
+                        </div>
+                      )}
+                      {/* Ready indicator */}
+                      {scene.clipId && clipUrls[scene.clipId]?.localUrl && scene.script && scene.voiceId && (
+                        <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 font-semibold">
+                          <div className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full"></div>
+                          <span>Ready</span>
                         </div>
                       )}
                     </div>
@@ -1876,45 +2508,54 @@ Return ONLY the JSON array, nothing else.`;
             <div className="flex gap-2 mt-4 justify-end">
               <button
                 onClick={async () => {
-                  setSections(prevSections =>
-                    prevSections.map(section => ({
-                      ...section,
-                      scenes: section.scenes.map(scene =>
-                        scene.id === editingScriptSceneId
-                          ? { 
-                              ...scene, 
-                              script: editingScriptText, 
-                              voiceId: editingScriptVoiceId || 'flHkNRp1BlvT73UL6gyz' // Use default if none selected
-                            }
-                          : scene
-                      )
-                    }))
-                  );
+                  const finalVoiceId = editingScriptVoiceId || 'flHkNRp1BlvT73UL6gyz';
+                  
+                  // Update sections with new script and voice
+                  const newSections = sections.map(section => ({
+                    ...section,
+                    scenes: section.scenes.map(scene =>
+                      scene.id === editingScriptSceneId
+                        ? { 
+                            ...scene, 
+                            script: editingScriptText, 
+                            voiceId: finalVoiceId
+                          }
+                        : scene
+                    )
+                  }));
+                  
+                  setSections(newSections);
                   setEditingScriptSceneId(null);
+                  
                   // Save to DB if a video is loaded
                   if (videos[0]) {
                     try {
-                      await updateVideo(videos[0].id, { sections: sections.map(section => ({
-                        ...section,
-                        scenes: section.scenes.map(scene =>
-                          scene.id === editingScriptSceneId
-                            ? { 
-                                ...scene, 
-                                script: editingScriptText, 
-                                voiceId: editingScriptVoiceId || 'flHkNRp1BlvT73UL6gyz' // Use default if none selected
-                              }
-                            : scene
-                        )
-                      })) });
-                      setToast({ message: 'Script updated and saved successfully', type: 'success' });
+                      await updateVideo(videos[0].id, { sections: newSections });
+                      
+                      // Generate voiceover if script is provided
+                      if (editingScriptText.trim() && finalVoiceId) {
+                        setToast({ message: 'Script saved! Generating voiceover...', type: 'success' });
+                        // Pass the updated sections to ensure we use the new script
+                        await generateAndSaveVoiceoverWithSections(editingScriptSceneId, editingScriptText, finalVoiceId, newSections);
+                      } else {
+                        setToast({ message: 'Script updated and saved successfully', type: 'success' });
+                      }
                     } catch (err) {
                       setToast({ message: 'Failed to save script', type: 'error' });
                     }
                   }
                 }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700"
+                disabled={isGeneratingVoiceover}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Save
+                {isGeneratingVoiceover ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </>
+                ) : (
+                  'Save'
+                )}
               </button>
               <button
                 onClick={() => setEditingScriptSceneId(null)}
