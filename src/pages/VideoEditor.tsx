@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvided, DraggableStateSnapshot, DroppableProvided } from 'react-beautiful-dnd';
 import { createPortal } from 'react-dom';
@@ -78,7 +78,8 @@ const initialSections: Section[] = [
         audio: 'Audio 1', 
         script: 'Script for scene 1',
         title: 'Opening Hook',
-        description: 'Grab attention with key message'
+        description: 'Grab attention with key message',
+        voiceId: 'flHkNRp1BlvT73UL6gyz'
       },
     ],
   },
@@ -93,7 +94,8 @@ const initialSections: Section[] = [
         audio: 'Audio 2', 
         script: 'Script for scene 2',
         title: 'Main Concept',
-        description: 'Introduce core topic'
+        description: 'Introduce core topic',
+        voiceId: 'flHkNRp1BlvT73UL6gyz'
       },
     ],
   },
@@ -108,7 +110,8 @@ const initialSections: Section[] = [
         audio: 'Audio 3', 
         script: 'Script for scene 3',
         title: 'Key Moment',
-        description: 'Build to main point'
+        description: 'Build to main point',
+        voiceId: 'flHkNRp1BlvT73UL6gyz'
       },
     ],
   },
@@ -345,7 +348,7 @@ export default function VideoEditor() {
     }
   };
 
-  const loadUserClips = async () => {
+  const loadUserClips = useCallback(async () => {
     try {
       setIsLoadingClips(true);
       console.log('Fetching user clips...');
@@ -358,7 +361,7 @@ export default function VideoEditor() {
     } finally {
       setIsLoadingClips(false);
     }
-  };
+  }, []);
 
   const handleAddVideo = async () => {
     try {
@@ -585,13 +588,14 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
         
         // Automatically save the updated sections to the database
         if (videos[0]) {
-          updateVideo(videos[0].id, { sections: newSections })
-            .then(() => {
-              setToast({ message: 'Scenes updated and saved successfully', type: 'success' });
-            })
-            .catch((err) => {
-              setToast({ message: 'Failed to save scene updates', type: 'error' });
-            });
+          try {
+            await updateVideo(videos[0].id, { sections: newSections });
+            // Reload user clips to ensure clipUrls are updated with any new clips
+            await loadUserClips();
+            setToast({ message: 'Scenes updated and saved successfully', type: 'success' });
+          } catch (err) {
+            setToast({ message: 'Failed to save scene updates', type: 'error' });
+          }
         }
         
         // Provide more specific feedback based on what was changed
@@ -848,25 +852,26 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
 
   // Add media to scene by id in nested sections
   const handleAddMediaToScene = async (sceneId: string, media: { clipId?: string; voiceId?: string; musicId?: string; type?: 'video' | 'text' | 'image' }) => {
-    setSections(prevSections => {
-      const newSections = prevSections.map(section => ({
-        ...section,
-        scenes: section.scenes.map(scene =>
-          scene.id === sceneId ? { ...scene, ...media } : scene
-        )
-      }));
-      // Save to DB if a video is loaded
-      if (videos[0]) {
-        updateVideo(videos[0].id, { sections: newSections })
-          .then(() => {
-            // Optionally show a toast or notification
-          })
-          .catch((err) => {
-            setToast({ message: 'Failed to save scene media', type: 'error' });
-          });
+    const newSections = sections.map(section => ({
+      ...section,
+      scenes: section.scenes.map(scene =>
+        scene.id === sceneId ? { ...scene, ...media } : scene
+      )
+    }));
+    
+    setSections(newSections);
+    
+    // Save to DB if a video is loaded
+    if (videos[0]) {
+      try {
+        await updateVideo(videos[0].id, { sections: newSections });
+        // Reload user clips to ensure clipUrls are updated with any new clips
+        await loadUserClips();
+      } catch (err) {
+        setToast({ message: 'Failed to save scene media', type: 'error' });
       }
-      return newSections;
-    });
+    }
+    
     setIsAddMediaModalOpen(false);
   };
 
@@ -903,17 +908,24 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
   // Generate or fetch voice preview for the current preview scene
   useEffect(() => {
     const scene = scenes.find(s => s.id === previewClips[previewIndex]?.sceneId);
-    if (!scene || !scene.voiceId || !scene.script) return;
+    if (!scene || !scene.script) return;
+    
+    // Validate voiceId - use default if not set or invalid
+    const validVoiceId = scene.voiceId && typeof scene.voiceId === 'string' && scene.voiceId.trim() 
+      ? scene.voiceId 
+      : 'flHkNRp1BlvT73UL6gyz'; // Default voice ID
+    
     if (voicePreviews[scene.id]) return; // Already cached
     setIsVoiceLoading(true);
     (async () => {
       try {
-        // generateSpeech returns a URL to the generated audio
-        if (typeof scene.voiceId === 'string' && scene.voiceId) {
-          const audioUrl = await generateSpeech(scene.script, scene.voiceId);
+        // Validate that we have a valid voice ID before calling the API
+        if (validVoiceId && validVoiceId.trim()) {
+          const audioUrl = await generateSpeech(scene.script, validVoiceId);
           setVoicePreviews(prev => ({ ...prev, [scene.id]: audioUrl }));
         }
       } catch (err) {
+        console.error('Voice generation error:', err);
         setVoicePreviews(prev => ({ ...prev, [scene.id]: '' }));
       } finally {
         setIsVoiceLoading(false);
@@ -1072,9 +1084,11 @@ Return as a JSON array of sections. Each section must have:
   - description (string): A short description of the scene's purpose
   - music (string): Optional music ID
   - clipId (string): Optional video clip ID
-  - voiceId (string): Optional voice ID
+  - voiceId (string): Set to "flHkNRp1BlvT73UL6gyz" for all scenes (valid ElevenLabs voice ID)
   - musicId (string): Optional music ID
   - subtitles (string): Optional subtitle text
+
+IMPORTANT: Always set voiceId to "flHkNRp1BlvT73UL6gyz" for all scenes to ensure valid voice generation.
 
 Example structure:
 [
@@ -1092,7 +1106,7 @@ Example structure:
         "description": "Grab attention with key message",
         "music": "",
         "clipId": "",
-        "voiceId": "",
+        "voiceId": "flHkNRp1BlvT73UL6gyz",
         "musicId": "",
         "subtitles": ""
       }
@@ -1189,6 +1203,8 @@ Return ONLY the JSON array, nothing else.`;
         setSections(validatedSections);
         if (videos[0]) {
           await updateVideo(videos[0].id, { sections: validatedSections });
+          // Reload user clips to ensure clipUrls are updated with any new clips
+          await loadUserClips();
           setToast({ message: 'AI scenes generated and saved!', type: 'success' });
         }
       } catch (error) {
@@ -1203,6 +1219,13 @@ Return ONLY the JSON array, nothing else.`;
       setIsGeneratingAIScenes(false);
     }
   };
+
+  // Load user clips when clips panel becomes active
+  useEffect(() => {
+    if (user && activePanel === 'clips') {
+      loadUserClips();
+    }
+  }, [user, activePanel, loadUserClips]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-600 dark:to-orange-500 flex flex-col">
@@ -1315,6 +1338,7 @@ Return ONLY the JSON array, nothing else.`;
             }))}
             onAddVideo={handleAddSceneVideo}
             onRemoveVideo={handleRemoveSceneVideo}
+            onReload={loadUserClips}
             onVideoSelect={(clip) => {
               setSelectedVideo({
                 id: clip.id,
@@ -1857,7 +1881,11 @@ Return ONLY the JSON array, nothing else.`;
                       ...section,
                       scenes: section.scenes.map(scene =>
                         scene.id === editingScriptSceneId
-                          ? { ...scene, script: editingScriptText, voiceId: editingScriptVoiceId }
+                          ? { 
+                              ...scene, 
+                              script: editingScriptText, 
+                              voiceId: editingScriptVoiceId || 'flHkNRp1BlvT73UL6gyz' // Use default if none selected
+                            }
                           : scene
                       )
                     }))
@@ -1870,7 +1898,11 @@ Return ONLY the JSON array, nothing else.`;
                         ...section,
                         scenes: section.scenes.map(scene =>
                           scene.id === editingScriptSceneId
-                            ? { ...scene, script: editingScriptText, voiceId: editingScriptVoiceId }
+                            ? { 
+                                ...scene, 
+                                script: editingScriptText, 
+                                voiceId: editingScriptVoiceId || 'flHkNRp1BlvT73UL6gyz' // Use default if none selected
+                              }
                             : scene
                         )
                       })) });

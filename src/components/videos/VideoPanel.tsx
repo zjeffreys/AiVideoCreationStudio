@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Upload, X, Sparkles, Video as VideoIcon, Trash2, Loader2, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Plus, Upload, X, Sparkles, Video as VideoIcon, Trash2, Loader2, Image as ImageIcon, Wand2, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Video } from '../../types';
 import { generateRunwayVideo, imageToOptimizedDataUri } from '../../lib/runway';
@@ -17,6 +17,7 @@ interface SceneVideo extends Video {
 type VideoPanelProps = {
   onAddVideo: (video: File) => void;
   onRemoveVideo: (id: string) => void;
+  onReload?: () => void;
   videos: SceneVideo[];
   onVideoSelect: (video: SceneVideo) => void;
 };
@@ -26,6 +27,7 @@ type TabType = 'upload' | 'ai' | 'stock';
 export const VideoPanel: React.FC<VideoPanelProps> = ({
   onAddVideo,
   onRemoveVideo,
+  onReload,
   videos,
   onVideoSelect,
 }) => {
@@ -97,10 +99,10 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         throw new Error('User not authenticated');
       }
 
-      // Generate unique filename
+      // Generate unique filename with user ID as folder
       const timestamp = Date.now();
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${timestamp}.${fileExt}`;
+      const fileName = `${user.id}/${timestamp}.${fileExt}`;
       
       // Upload to temp-images-for-video-generation bucket
       const { error: uploadError } = await supabase.storage
@@ -533,15 +535,28 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
     <div className="w-64 bg-slate-50 dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col relative">
       <div className="p-4 flex justify-between items-center">
         <h2 className="font-bold text-slate-700 dark:text-white">Scene Videos</h2>
-        <Button
-          size="sm"
-          variant={isDeleteMode ? "ghost" : "outline"}
-          className={isDeleteMode ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50" : ""}
-          onClick={() => setIsDeleteMode(!isDeleteMode)}
-          leftIcon={<Trash2 className="h-4 w-4" />}
-        >
-          {isDeleteMode ? 'Exit Delete' : 'Delete'}
-        </Button>
+        <div className="flex gap-2">
+          {onReload && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onReload}
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+              title="Reload clips"
+            >
+              Reload
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant={isDeleteMode ? "ghost" : "outline"}
+            className={isDeleteMode ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50" : ""}
+            onClick={() => setIsDeleteMode(!isDeleteMode)}
+            leftIcon={<Trash2 className="h-4 w-4" />}
+          >
+            {isDeleteMode ? 'Exit Delete' : 'Delete'}
+          </Button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-4 p-4">
