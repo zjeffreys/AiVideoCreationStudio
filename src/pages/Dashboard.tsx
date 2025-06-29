@@ -292,7 +292,6 @@ export const Dashboard = () => {
           <h2 className="text-xl sm:text-2xl font-medium text-slate-700 flex items-center gap-2">
             Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, welcome to our beta launch!
           </h2>
-         
         </div>
         {/*
         <div className="mt-6 flex justify-start">
