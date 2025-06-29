@@ -123,7 +123,6 @@ const initialSections: Section[] = [
 const assetPanels = [
   { key: 'scenes', label: 'Scenes', icon: '🎬' },
   { key: 'clips', label: 'Clips', icon: '📹' },
-  { key: 'characters', label: 'Characters', icon: '🧑‍🎤' },
   { key: 'voices', label: 'Voices', icon: '🎤' },
   { key: 'music', label: 'Music', icon: '🎵' },
 ];
