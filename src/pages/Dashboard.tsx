@@ -341,7 +341,9 @@ export const Dashboard = () => {
         */}
         <div className="mt-6 bg-slate-50 dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-2 w-full">
           <div className="mb-3">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">Create Your Next Educational Video</h3>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">Describe your educational video idea, and I'll help you plan it!</h3>
+
+
             <p className="text-sm text-slate-600 dark:text-slate-300">Transform your ideas into engaging educational content with AI-powered video creation</p>
           </div>
           <div className="relative">
