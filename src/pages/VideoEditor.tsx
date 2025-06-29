@@ -226,6 +226,13 @@ export default function VideoEditor() {
   // Add state for voiceover caching
   const [voiceoverUrls, setVoiceoverUrls] = useState<Record<string, string>>({}); // sceneId -> voiceoverUrl
   const [isGeneratingVoiceover, setIsGeneratingVoiceover] = useState(false);
+  
+  // Add new state for job-based video generation
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<'idle' | 'queued' | 'processing' | 'completed' | 'failed'>('idle');
+  const [jobProgress, setJobProgress] = useState(0);
+  const [jobError, setJobError] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Flattened scenes for timeline
   const scenes: Scene[] = flattenSections(sections);
@@ -354,6 +361,102 @@ export default function VideoEditor() {
       setSelectedMusicId(videos[0].musicid);
     }
   }, [videos]);
+
+  // Add polling function for job status
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/job-status/${jobId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to check job status: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('📊 Job status response:', result);
+      
+      setJobStatus(result.status);
+      setJobProgress(result.progress || 0);
+      
+      if (result.status === 'completed' && result.video_url) {
+        // Job completed successfully
+        setGeneratedVideoUrl(result.video_url);
+        setJobStatus('completed');
+        
+        // Update video status in database
+        if (videos[0]) {
+          try {
+            const updateData = {
+              status: 'complete' as const,
+              final_video_url: result.video_url,
+              last_generated_at: new Date().toISOString(),
+            };
+            
+            await updateVideo(videos[0].id, updateData);
+            
+            // Update local state
+            setVideos(prev => prev.map(video => 
+              video.id === videos[0].id 
+                ? { ...video, ...updateData }
+                : video
+            ));
+            
+            setToast({ message: 'Final video generated and saved successfully!', type: 'success' });
+          } catch (error) {
+            console.error('Error updating video status:', error);
+            setToast({ message: 'Video generated but failed to save status', type: 'error' });
+          }
+        }
+        
+        // Stop polling
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        
+        setIsGeneratingFinalVideo(false);
+        setGenerationProgress('');
+        setCurrentJobId(null);
+        
+      } else if (result.status === 'failed') {
+        // Job failed
+        setJobError(result.error || 'Unknown error occurred');
+        setJobStatus('failed');
+        
+        // Stop polling
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        
+        setIsGeneratingFinalVideo(false);
+        setGenerationProgress('');
+        setCurrentJobId(null);
+        
+        setToast({ 
+          message: result.error || 'Video generation failed', 
+          type: 'error' 
+        });
+        
+      } else if (result.status === 'queued') {
+        setGenerationProgress('Job queued, starting processing...');
+      } else if (result.status === 'processing') {
+        setGenerationProgress(`Processing video... ${result.progress || 0}%`);
+      }
+      
+    } catch (error) {
+      console.error('Error polling job status:', error);
+      setJobError(error instanceof Error ? error.message : 'Failed to check job status');
+    }
+  }, [videos, pollingInterval]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const loadVideos = async () => {
     try {
@@ -1517,7 +1620,7 @@ Return ONLY the JSON array, nothing else.`;
     await generateAndSaveVoiceover(sceneId, scene.script, scene.voiceId);
   };
 
-  // Generate final video function
+  // Generate final video function - updated for task-based API
   const generateFinalVideo = async () => {
     if (!videos[0]) {
       setToast({ message: 'No video loaded', type: 'error' });
@@ -1530,6 +1633,9 @@ Return ONLY the JSON array, nothing else.`;
     
     setIsGeneratingFinalVideo(true);
     setGenerationProgress('Preparing video data...');
+    setJobStatus('idle');
+    setJobError(null);
+    setJobProgress(0);
 
     try {
       // Step 1: Collect video clips
@@ -1651,7 +1757,7 @@ Return ONLY the JSON array, nothing else.`;
       // Add metadata
       formData.append('metadata', JSON.stringify(metadata));
 
-      // Step 6: Send to backend API
+      // Step 6: Send to backend API and get job ID
       console.log('📤 Sending to backend API...');
       console.log('📋 FormData contents:');
       console.log('- Video clips:', videoClips.length);
@@ -1673,41 +1779,43 @@ Return ONLY the JSON array, nothing else.`;
         throw new Error(`Backend error: ${response.statusText} - ${errorText}`);
       }
 
-      // Step 7: Handle JSON response with public URL
+      // Step 7: Handle JSON response with job ID
       const result = await response.json();
       console.log('📥 Backend JSON response:', result);
       
-      if (!result.success || !result.video_url) {
-        throw new Error('Backend did not return a valid video URL');
+      if (!result.success || !result.job_id) {
+        throw new Error('Backend did not return a valid job ID');
       }
 
-      const finalVideoUrl = result.video_url;
-      setGeneratedVideoUrl(finalVideoUrl);
+      const jobId = result.job_id;
+      setCurrentJobId(jobId);
+      setJobStatus('queued');
+      setGenerationProgress('Job queued, starting processing...');
+      
+      console.log('🎯 Job created with ID:', jobId);
 
-      // Step 8: Update video status in database with new schema
-      setGenerationProgress('Saving to database...');
-      try {
-        const updateData = {
-          status: 'complete' as const,
-          final_video_url: finalVideoUrl,
-          last_generated_at: new Date().toISOString(),
-        };
-        
-        console.log('💾 Updating video with data:', updateData);
-        await updateVideo(videos[0].id, updateData);
-        
-        // Update local state to reflect the changes
-        setVideos(prev => prev.map(video => 
-          video.id === videos[0].id 
-            ? { ...video, ...updateData }
-            : video
-        ));
-        
-        setToast({ message: 'Final video generated and saved successfully!', type: 'success' });
-      } catch (error) {
-        console.error('Error updating video status:', error);
-        setToast({ message: 'Video generated but failed to save status', type: 'error' });
-      }
+      // Step 8: Start polling for job status
+      const interval = setInterval(() => {
+        pollJobStatus(jobId);
+      }, 5000); // Poll every 5 seconds
+      
+      setPollingInterval(interval);
+      
+      // Set timeout to stop polling after 60 seconds
+      setTimeout(() => {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        if (jobStatus !== 'completed' && jobStatus !== 'failed') {
+          setJobError('Processing timeout - please try again');
+          setJobStatus('failed');
+          setIsGeneratingFinalVideo(false);
+          setGenerationProgress('');
+          setCurrentJobId(null);
+          setToast({ message: 'Processing timeout - please try again', type: 'error' });
+        }
+      }, 60000); // 60 seconds timeout
 
     } catch (error) {
       console.error('Error generating final video:', error);
@@ -1715,9 +1823,10 @@ Return ONLY the JSON array, nothing else.`;
         message: error instanceof Error ? error.message : 'Failed to generate final video', 
         type: 'error' 
       });
-    } finally {
       setIsGeneratingFinalVideo(false);
       setGenerationProgress('');
+      setJobStatus('idle');
+      setCurrentJobId(null);
     }
   };
 
@@ -2115,7 +2224,9 @@ Return ONLY the JSON array, nothing else.`;
               {isGeneratingFinalVideo ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Generating...
+                  {jobStatus === 'queued' ? 'Queued...' : 
+                   jobStatus === 'processing' ? 'Processing...' : 
+                   'Generating...'}
                 </>
               ) : (
                 <>
@@ -2125,10 +2236,58 @@ Return ONLY the JSON array, nothing else.`;
               )}
             </button>
           </div>
-          {/* Generation Progress */}
-          {isGeneratingFinalVideo && generationProgress && (
-            <div className="mt-3 text-center">
-              <p className="text-sm text-slate-600 dark:text-slate-400">{generationProgress}</p>
+          
+          {/* Generation Progress - Updated */}
+          {isGeneratingFinalVideo && (
+            <div className="w-full max-w-2xl mb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg border p-4 shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-white">
+                    {generationProgress}
+                  </span>
+                  {jobStatus === 'processing' && (
+                    <span className="text-sm text-purple-600 dark:text-purple-400 font-semibold">
+                      {jobProgress}%
+                    </span>
+                  )}
+                </div>
+                
+                {/* Progress Bar */}
+                {jobStatus === 'processing' && (
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-orange-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${jobProgress}%` }}
+                    ></div>
+                  </div>
+                )}
+                
+                {/* Job Status */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-2 h-2 rounded-full ${
+                    jobStatus === 'queued' ? 'bg-yellow-500' :
+                    jobStatus === 'processing' ? 'bg-blue-500' :
+                    jobStatus === 'completed' ? 'bg-green-500' :
+                    jobStatus === 'failed' ? 'bg-red-500' :
+                    'bg-slate-400'
+                  }`}></div>
+                  <span className="text-slate-600 dark:text-slate-400 capitalize">
+                    {jobStatus === 'idle' ? 'Ready' : jobStatus}
+                  </span>
+                  {currentJobId && (
+                    <span className="text-slate-500 dark:text-slate-500 font-mono">
+                      ID: {currentJobId.slice(0, 8)}...
+                    </span>
+                  )}
+                </div>
+                
+                {/* Error Message */}
+                {jobError && (
+                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
+                    {jobError}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {/* Final Generated Video Section */}
