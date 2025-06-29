@@ -293,7 +293,8 @@ export const Dashboard = () => {
             Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, welcome to our beta launch!
           </h2>
         </div>
-         <p className="text-md">For our beta via bolt hackathon free access is granted but if you'd like to support this products continuous improvement please go to settings, membership, and subscribe to premium to lock in your early subscriber membership!</p>
+         <p className="text-md mt-4 p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-700 shadow-sm">For our beta via bolt hackathon free access is granted but if you'd like to support this products continuous improvement please go to settings, membership, and subscribe to premium to lock in your early subscriber membership!</p>
+
         {/*
         <div className="mt-6 flex justify-start">
           <div
