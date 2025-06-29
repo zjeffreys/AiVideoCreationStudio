@@ -290,7 +290,7 @@ export const Dashboard = () => {
       <div className="rounded-2xl p-6 mb-4" style={{background: 'linear-gradient(90deg, #c7d2fe 0%, #fbc2a4 100%)'}}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-medium text-slate-700 flex items-center gap-2">
-            Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, create your video from
+            Hello {user?.email?.split('@')[0] || 'User'} <span role="img" aria-label="wave">👋</span>, For our beta via bolt hackathon free access is granted but if you'd like to support this products continuous improvement please go to settings, membership, and subscribe to premium to lock in your early subscriber membership!
           </h2>
         </div>
         {/*
