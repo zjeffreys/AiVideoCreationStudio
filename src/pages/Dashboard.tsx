@@ -344,8 +344,7 @@ export const Dashboard = () => {
             <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">Describe your educational video idea, and I'll help you plan it!</h3>
 
 
-           <p className="text-sm text-slate-600 dark:text-slate-300">We'll first understand your idea, then help you   
-
+            <p className="text-sm text-slate-600 dark:text-slate-300">We'll first understand your idea, then help you create scenes, generate AI clips and voiceovers, reducing video creation time from months to days, and increasing retention!</p>
           </div>
           <div className="relative">
             <textarea
