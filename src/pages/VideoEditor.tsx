@@ -1261,7 +1261,7 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
     try {
       const prompt = `Based on this video description: "${videos[0].description}"
 
-Generate a structured video outline with 3-5 sections (like Hook, Exposition, Climax, etc.) and 2-3 scenes per section. 
+Generate a structured video outline with 3 sections (like Hook, Exposition, Climax, etc.) and 1-2 scenes per section. 
 
 Return as a JSON array of sections. Each section must have:
 - label (string): The section name (e.g., 'Hook', 'Exposition', 'Climax')
@@ -1271,7 +1271,7 @@ Return as a JSON array of sections. Each section must have:
   - type (string): Either 'text', 'image', or 'video'
   - content (string): The main content (text content, image URL, or video URL)
   - audio (string): Audio description or voice ID
-  - script (string): The script for this scene
+  - script (string): The script for this scene one brief sentence
   - title (string): A brief, descriptive title for the scene (3-4 words)
   - description (string): A short description of the scene's purpose
   - music (string): Optional music ID
