@@ -46,6 +46,8 @@ export type Video = {
   status: 'draft' | 'processing' | 'complete';
   thumbnail_url?: string;
   video_url?: string;
+  final_video_url?: string;
+  last_generated_at?: string;
   file_path?: string;
   created_at: string;
   sections?: Section[];

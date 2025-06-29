@@ -60,17 +60,6 @@ interface VideoPanelSceneVideo extends VideoType {
   thumbnail_url?: string;
 }
 
-interface SceneVideo extends Omit<VideoType, 'created_at'> {
-  file: File;
-  localUrl: string;
-  file_path?: string;
-  thumbnail_url?: string;
-  title: string;
-  description?: string;
-  status: 'draft' | 'processing' | 'complete';
-  created_at?: string;
-}
-
 interface MusicTrack {
   id: string;
   title: string;
@@ -167,6 +156,13 @@ function TooltipPortal({ children, position }: { children: React.ReactNode, posi
   );
 }
 
+// Get backend URL from environment variable
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  console.warn('Missing backend URL - video generation will be disabled');
+}
+
 export default function VideoEditor() {
   const { user } = useAuth();
   const { videoId } = useParams();
@@ -183,8 +179,8 @@ export default function VideoEditor() {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ text: string, position: { top: number, left: number } | null }>({ text: '', position: null });
-  const [sceneVideos, setSceneVideos] = useState<SceneVideo[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<SceneVideo | null>(null);
+  const [sceneVideos, setSceneVideos] = useState<VideoPanelSceneVideo[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<VideoPanelSceneVideo | null>(null);
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null);
@@ -756,7 +752,7 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
     setClipToDelete(null);
   };
 
-  const handleVideoSelect = (video: SceneVideo) => {
+  const handleVideoSelect = (video: VideoPanelSceneVideo) => {
     setSelectedVideo(video);
   };
 
@@ -808,7 +804,7 @@ Return ONLY the JSON array. No markdown, no explanations, no code blocks.`;
     };
   }, [sceneVideos, musicTracks, generatedVideoUrl]);
 
-  const handleAddClipToScene = (clip: SceneVideo) => {
+  const handleAddClipToScene = (clip: VideoPanelSceneVideo) => {
     // Update the scene with the selected clip
     const newSections = sections.map(section => ({
       ...section,
@@ -1663,7 +1659,7 @@ Return ONLY the JSON array, nothing else.`;
       console.log('- Background music:', backgroundMusic ? 'Yes' : 'No');
       console.log('- Metadata:', metadata);
       
-      const response = await fetch('http://localhost:8000/api/combine-clips', {
+      const response = await fetch(`${BACKEND_URL}/api/combine-clips`, {
         method: 'POST',
         body: formData,
       });
@@ -1677,18 +1673,37 @@ Return ONLY the JSON array, nothing else.`;
         throw new Error(`Backend error: ${response.statusText} - ${errorText}`);
       }
 
-      const result = await response.blob();
-      const videoUrl = URL.createObjectURL(result);
-      setGeneratedVideoUrl(videoUrl);
+      // Step 7: Handle JSON response with public URL
+      const result = await response.json();
+      console.log('📥 Backend JSON response:', result);
+      
+      if (!result.success || !result.video_url) {
+        throw new Error('Backend did not return a valid video URL');
+      }
 
-      // Step 7: Update video status in database
+      const finalVideoUrl = result.video_url;
+      setGeneratedVideoUrl(finalVideoUrl);
+
+      // Step 8: Update video status in database with new schema
       setGenerationProgress('Saving to database...');
       try {
-        await updateVideo(videos[0].id, { 
-          status: 'complete',
-          video_url: videoUrl
-        });
-        setToast({ message: 'Final video generated successfully!', type: 'success' });
+        const updateData = {
+          status: 'complete' as const,
+          final_video_url: finalVideoUrl,
+          last_generated_at: new Date().toISOString(),
+        };
+        
+        console.log('💾 Updating video with data:', updateData);
+        await updateVideo(videos[0].id, updateData);
+        
+        // Update local state to reflect the changes
+        setVideos(prev => prev.map(video => 
+          video.id === videos[0].id 
+            ? { ...video, ...updateData }
+            : video
+        ));
+        
+        setToast({ message: 'Final video generated and saved successfully!', type: 'success' });
       } catch (error) {
         console.error('Error updating video status:', error);
         setToast({ message: 'Video generated but failed to save status', type: 'error' });
@@ -1725,7 +1740,7 @@ Return ONLY the JSON array, nothing else.`;
         <span className="mx-1">/</span>
         <span className="text-slate-700 dark:text-white">Video Editor</span>
       </nav>
-      <div className="flex w-full max-w-7xl mx-auto mt-2 rounded-2xl shadow-lg overflow-hidden bg-white dark:bg-slate-900" style={{ height: '600px' }}>
+      <div className="flex w-full max-w-7xl mx-auto mt-2 rounded-2xl shadow-lg overflow-hidden bg-white dark:bg-slate-900" style={{ height: '70vh', minHeight: '400px' }}>
         {/* Asset Navigation Side Panel */}
         <nav className="w-16 bg-gradient-to-b from-[#d1cfff] via-[#fbe2d2] to-[#e0e7ff] dark:from-purple-700 dark:to-orange-900 flex flex-col items-center py-4 gap-2 border-r border-slate-200 dark:border-slate-700">
           {assetPanels.map(panel => (
@@ -1824,7 +1839,7 @@ Return ONLY the JSON array, nothing else.`;
             onAddVideo={handleAddSceneVideo}
             onRemoveVideo={handleRemoveSceneVideo}
             onReload={loadUserClips}
-            onVideoSelect={(video: VideoPanelSceneVideo) => {
+            onVideoSelect={(video) => {
               // Find the corresponding UserClip
               const clip = userClips.find(c => c.id === video.id);
               if (clip) {
@@ -1960,9 +1975,9 @@ Return ONLY the JSON array, nothing else.`;
             selectedVoice={selectedVoice}
           />
         )}
-        {/* Main Video Preview */}
-        <main className="flex-1 flex flex-col items-center justify-center p-8">
-          {/* Playlist Preview Player */}
+        {/* Main Video Preview and Actions */}
+        <main className="flex-1 flex flex-col items-center justify-start p-8 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 32px)' }}>
+          {/* Video Info */}
           <div className="w-full max-w-2xl mb-4 relative">
             <div className="rounded-lg border p-4 bg-white dark:bg-slate-800 shadow relative">
               <button
@@ -1983,42 +1998,8 @@ Return ONLY the JSON array, nothing else.`;
                 {videos[0]?.description?.trim() ? videos[0].description : 'No description provided.'}
               </p>
             </div>
-            
-            {/* Generate Final Video Button */}
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={generateFinalVideo}
-                disabled={isGeneratingFinalVideo || !isVideoGenerationReady()}
-                className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 flex items-center gap-2 ${
-                  isGeneratingFinalVideo 
-                    ? 'bg-slate-400 cursor-not-allowed' 
-                    : isVideoGenerationReady()
-                    ? 'bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 shadow-lg hover:shadow-xl'
-                    : 'bg-slate-400 cursor-not-allowed'
-                }`}
-              >
-                {isGeneratingFinalVideo ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-5 h-5" />
-                    Generate Final Video
-                  </>
-                )}
-              </button>
-            </div>
-            
-            {/* Generation Progress */}
-            {isGeneratingFinalVideo && generationProgress && (
-              <div className="mt-3 text-center">
-                <p className="text-sm text-slate-600 dark:text-slate-400">{generationProgress}</p>
-              </div>
-            )}
           </div>
-          {/* Playlist Video Player */}
+          {/* Playlist Preview Player */}
           <div className="w-full max-w-2xl aspect-video bg-slate-200 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center shadow mb-4 relative">
             {previewClips.length > 0 ? (
               <>
@@ -2104,45 +2085,88 @@ Return ONLY the JSON array, nothing else.`;
               </div>
             )}
           </div>
-          
-          {/* Generated Final Video Display */}
-          {generatedVideoUrl && (
+          {/* Video Generation Status Bar */}
+          <div className="w-full max-w-2xl mb-2">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-sm">
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.clipId && clipUrls[s.clipId]?.localUrl) ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span>Video Clips: {scenes.filter(s => s.clipId && clipUrls[s.clipId]?.localUrl).length}/{scenes.length}</span>
+                <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.script && s.voiceId) ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span>Voiceovers: {scenes.filter(s => s.script && s.voiceId).length}/{scenes.length}</span>
+                <div className={`w-3 h-3 rounded-full ${selectedMusicId ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                <span>Background Music: {selectedMusicId ? 'Selected' : 'Optional'}</span>
+              </div>
+              <span className="text-green-600 font-semibold">{isVideoGenerationReady() ? 'Ready to generate final video!' : 'Add clips and voiceovers'}</span>
+            </div>
+          </div>
+          {/* Generate Final Video Button */}
+          <div className="w-full max-w-2xl flex justify-center mb-4">
+            <button
+              onClick={generateFinalVideo}
+              disabled={isGeneratingFinalVideo || !isVideoGenerationReady()}
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 flex items-center gap-2 text-lg shadow-lg ${
+                isGeneratingFinalVideo 
+                  ? 'bg-slate-400 cursor-not-allowed' 
+                  : isVideoGenerationReady()
+                  ? 'bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600'
+                  : 'bg-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {isGeneratingFinalVideo ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" />
+                  Generate Final Video
+                </>
+              )}
+            </button>
+          </div>
+          {/* Generation Progress */}
+          {isGeneratingFinalVideo && generationProgress && (
+            <div className="mt-3 text-center">
+              <p className="text-sm text-slate-600 dark:text-slate-400">{generationProgress}</p>
+            </div>
+          )}
+          {/* Final Generated Video Section */}
+          {(generatedVideoUrl || videos[0]?.final_video_url) && (
             <div className="w-full max-w-2xl mt-6">
               <div className="rounded-lg border p-4 bg-white dark:bg-slate-800 shadow">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                   <Download className="w-5 h-5 text-green-600" />
                   Final Generated Video
                 </h2>
-                <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3">
+                <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3 relative">
                   <video
-                    src={generatedVideoUrl}
+                    src={generatedVideoUrl || videos[0]?.final_video_url}
                     controls
                     className="w-full h-full"
                     preload="metadata"
                   >
                     Your browser does not support the video tag.
                   </video>
-                </div>
-                <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = generatedVideoUrl;
-                      link.download = `${videos[0]?.title || 'video'}-final.mp4`;
-                      link.click();
+                      const videoUrl = generatedVideoUrl || videos[0]?.final_video_url;
+                      if (videoUrl) {
+                        const link = document.createElement('a');
+                        link.href = videoUrl;
+                        link.download = `${videos[0]?.title || 'video'}-final.mp4`;
+                        link.click();
+                      }
                     }}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    className="absolute bottom-4 right-4 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors flex items-center gap-2"
                   >
                     <Download className="w-4 h-4" />
-                    Download Video
-                  </button>
-                  <button
-                    onClick={() => setGeneratedVideoUrl(null)}
-                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                  >
-                    Clear
+                    Download Final Video
                   </button>
                 </div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Generated on: {videos[0].last_generated_at ? new Date(videos[0].last_generated_at).toLocaleString() : 'Unknown'}
+                </p>
               </div>
             </div>
           )}
@@ -2206,84 +2230,6 @@ Return ONLY the JSON array, nothing else.`;
         <Droppable droppableId="timeline-scenes" direction="horizontal">
           {(provided: DroppableProvided) => (
             <div className="w-full max-w-7xl mx-auto mt-2 mb-8 bg-white dark:bg-slate-900 rounded-xl shadow p-4 flex flex-col gap-2" ref={provided.innerRef} {...provided.droppableProps}>
-              {/* Video Generation Readiness Summary */}
-              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                  <Download className="w-5 h-5 text-purple-600" />
-                  Video Generation Status
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.clipId && clipUrls[s.clipId]?.localUrl) ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      Video Clips: {scenes.filter(s => s.clipId && clipUrls[s.clipId]?.localUrl).length}/{scenes.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${scenes.some(s => s.script && s.voiceId) ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      Voiceovers: {scenes.filter(s => s.script && s.voiceId).length}/{scenes.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${selectedMusicId ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      Background Music: {selectedMusicId ? 'Selected' : 'Optional'}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {isVideoGenerationReady() 
-                      ? '✅ Ready to generate final video! All required components are available.'
-                      : '⚠️ Add video clips and voiceovers to scenes to enable video generation.'
-                    }
-                  </p>
-                  {/* Regenerate Voiceovers Button */}
-                  {scenes.some(s => s.script && s.voiceId) && (
-                    <div className="mt-3 flex justify-center">
-                      <button
-                        onClick={async () => {
-                          const scenesWithScripts = scenes.filter(s => s.script && s.voiceId);
-                          if (scenesWithScripts.length === 0) {
-                            setToast({ message: 'No scenes with scripts found', type: 'error' });
-                            return;
-                          }
-                          
-                          setToast({ message: 'Regenerating all voiceovers...', type: 'success' });
-                          
-                          for (const scene of scenesWithScripts) {
-                            try {
-                              if (scene.script && scene.voiceId) {
-                                await generateAndSaveVoiceover(scene.id, scene.script, scene.voiceId);
-                              }
-                            } catch (error) {
-                              console.error(`Failed to regenerate voiceover for scene ${scene.id}:`, error);
-                            }
-                          }
-                          
-                          setToast({ message: 'All voiceovers regenerated successfully!', type: 'success' });
-                        }}
-                        disabled={isGeneratingVoiceover}
-                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
-                      >
-                        {isGeneratingVoiceover ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Regenerating...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="w-4 h-4" />
-                            Regenerate All Voiceovers
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
               {/* Time Ruler */}
               <div className="flex items-end gap-2 mb-1 pl-[100px]"> {/* offset for track labels */}
                 {scenes.map((scene: Scene, idx: number) => (
