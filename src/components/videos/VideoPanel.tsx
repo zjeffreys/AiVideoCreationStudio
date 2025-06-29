@@ -278,6 +278,9 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           const clip = await uploadClip(file, `AI Generated: ${aiPrompt.substring(0, 50)}...`);
           
           setGenerationStatus('Video saved to your clips!');
+          if (onReload) {
+            await onReload();
+          }
           setAiPrompt('');
           setSelectedImage(null);
           setGeneratedImageUrl(null);
