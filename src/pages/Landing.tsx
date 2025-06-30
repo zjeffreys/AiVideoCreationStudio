@@ -36,7 +36,7 @@ export const LandingPage = () => {
           className="block transition-transform hover:scale-110"
         >
           <img 
-            src="https://tpeqefpratvytsqnmsst.supabase.co/storage/v1/object/public/assets//black_circle_360x360.png" 
+            src="https://tpeqefpratvytsqnmsst.supabase.co/storage/v1/object/public/assets//white_circle_360x360.png" 
             alt="Built with Bolt.new" 
             className="h-12 w-12 sm:h-16 sm:w-16 rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 animate-spin hover:animate-pulse"
             style={{
