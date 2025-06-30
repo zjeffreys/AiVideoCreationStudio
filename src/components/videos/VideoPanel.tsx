@@ -601,7 +601,8 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         </div>
       </div>
       <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-        <div className="flex gap-1 mb-4 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+        {/* Temporarily hidden - keeping upload and stock tabs for future use */}
+        <div className="hidden flex gap-1 mb-4 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
           <button
             className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'upload'
@@ -635,6 +636,16 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             <VideoIcon className="h-4 w-4" />
             Stock
           </button>
+        </div>
+        
+        {/* Simplified AI-only interface */}
+        <div className="mb-4">
+          <div className="text-center mb-2">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-100 to-orange-100 text-purple-700 text-sm font-medium">
+              <Sparkles className="h-4 w-4" />
+              AI Video Generation
+            </span>
+          </div>
         </div>
         {renderTabContent()}
       </div>
