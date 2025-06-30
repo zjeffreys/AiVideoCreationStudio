@@ -505,10 +505,6 @@ export const LandingPage = () => {
                       Become an Early Adopter
                     </Button>
                   </Link>
-                  
-                  <p className="mt-4 text-sm text-slate-400">
-                    Regular price will be $100/month. Your rate stays $50/month forever!
-                  </p>
                 </div>
               </div>
             </div>
