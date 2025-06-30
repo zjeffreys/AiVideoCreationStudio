@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, toggleMobileSide
               className="h-8 w-auto"
             />
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-slate-700 dark:text-white">EduMotion</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-white">EduAnimated</span>
               <span className="text-xs text-slate-400 dark:text-slate-400">v0.1.0</span>
             </div>
           </div>
