@@ -448,14 +448,13 @@ export const Settings = () => {
                     price="$50"
                     duration="month for life"
                     features={[
-                      "Unlimited video generations",
                       "🔥 LIFETIME pricing - locked in forever",
                       "Limited to first 100 customers only",
+                      "Limited voice and clip generations eventually", 
                       "Priority support",
                       "Early access to new features",
                       "Direct feedback channel",
-                      "Advanced AI features",
-                      "Premium templates",
+                      "Discounted generation credits",
                       "Help shape the product roadmap"
                     ]}
                     isCurrentPlan={userProfile?.membership_type === 'early_adopter'}
