@@ -473,7 +473,7 @@ export const LandingPage = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
-                      <span className="text-slate-300">60 AI generate voice minutes/month </span>
+                      <span className="text-slate-300">🗣 60 AI generate voice minutes/month </span>
                     </div>
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
