@@ -613,7 +613,8 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
             <Sparkles className="h-4 w-4" />
             AI
           </button>
-          <button
+          {/* Temporarily hidden - Upload tab */}
+          {/* <button
             className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'upload'
                 ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow'
@@ -623,8 +624,9 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           >
             <Upload className="h-4 w-4" />
             Upload
-          </button>
-          <button
+          </button> */}
+          {/* Temporarily hidden - Stock tab */}
+          {/* <button
             className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'stock'
                 ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow'
@@ -634,7 +636,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
           >
             <VideoIcon className="h-4 w-4" />
             Stock
-          </button>
+          </button> */}
         </div>
         {renderTabContent()}
       </div>
