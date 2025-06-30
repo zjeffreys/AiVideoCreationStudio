@@ -534,7 +534,9 @@ export const LandingPage = () => {
                 </Button>
               </Link>
               <a 
-                href="#watch-demo" 
+                href="https://youtu.be/9-I3XtHrMKA"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-purple-100 hover:text-white"
               >
                 <Play className="h-5 w-5" />
