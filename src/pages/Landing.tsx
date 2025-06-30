@@ -117,11 +117,11 @@ export const LandingPage = () => {
               <div className="mt-2 text-sm text-slate-300">Improved Information Retention</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-400">2x</div>
+              <div className="text-4xl font-bold text-purple-400">10x</div>
               <div className="mt-2 text-sm text-slate-300">Faster Learning Progress</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-400">40%</div>
+              <div className="text-4xl font-bold text-purple-400">60%</div>
               <div className="mt-2 text-sm text-slate-300">Higher Student Engagement</div>
             </div>
             <div className="text-center">
