@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, toggleMobileSide
               alt="EduMotion Logo" 
               className="h-8 w-auto"
             />
-            <span className="ml-2 text-xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">EduMotion</span>
+            <span className="ml-2 text-xl font-bold bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">EduAnimated</span>
           </div>
           <button 
             className="lg:hidden"
