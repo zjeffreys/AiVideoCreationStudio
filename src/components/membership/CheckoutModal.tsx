@@ -99,7 +99,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
             <p>🔥 <strong>LIFETIME DEAL</strong> - Price locked in forever!</p>
-            <p>📈 Regular price will be $100/month after early adopter period</p>
             <p>✅ Priority support</p>
             <p>✅ Early access to new features</p>
             <p>✅ Direct feedback channel</p>
