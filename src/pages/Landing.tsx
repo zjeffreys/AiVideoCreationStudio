@@ -125,7 +125,7 @@ export const LandingPage = () => {
               <div className="mt-2 text-sm text-slate-300">Higher Student Engagement</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-400">75%</div>
+              <div className="text-4xl font-bold text-purple-400">95%</div>
               <div className="mt-2 text-sm text-slate-300">Time Saved Creating Content</div>
             </div>
           </div>
