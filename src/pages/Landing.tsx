@@ -88,7 +88,7 @@ export const LandingPage = () => {
               </h3>
               <p className="text-slate-300 text-sm">
                 Lock in this special pricing forever! Help us shape the future of AI education tools. 
-                <span className="text-purple-300 font-medium"> Regular price will be $100/month after early adopter period.</span>
+                
               </p>
             </div>
 
