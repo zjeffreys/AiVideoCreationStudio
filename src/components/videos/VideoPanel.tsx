@@ -351,7 +351,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
         return (
           <div className="space-y-4">
             <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-lg">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Generate Video with Runway ML</h3>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Generate Video From An Image</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                 {getCurrentImage() ? 'Step 2: Describe your video' : 'Step 1: Provide an image'}
               </p>
