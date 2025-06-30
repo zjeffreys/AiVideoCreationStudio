@@ -32,7 +32,7 @@ export const VideoPanel: React.FC<VideoPanelProps> = ({
   onVideoSelect,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('upload');
+  const [activeTab, setActiveTab] = useState<TabType>('ai');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [imagePrompt, setImagePrompt] = useState('');
