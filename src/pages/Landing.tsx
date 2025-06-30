@@ -161,10 +161,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Transform your scripts into professional videos with our advanced AI technology. Add animations, transitions, and visual effects automatically.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium bg-gradient-to-r from-purple-400 to-orange-400 bg-clip-text text-transparent">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
 
             {/* Smart Script Writing */}
@@ -178,10 +174,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Get AI assistance in writing and optimizing your educational scripts. Ensure clear, engaging, and effective content delivery.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
 
             {/* ElevenLabs Voices */}
@@ -195,10 +187,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Premium AI-generated voices powered by ElevenLabs technology. Create natural-sounding narration for your educational content.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
 
             {/* AI Storyboarding */}
@@ -212,10 +200,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Automatically generate visual storyboards from your content. Plan your video structure with AI-powered scene suggestions.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
 
             {/* AI Generated Clips */}
@@ -229,10 +213,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Generate custom video clips and animations using AI. Create unique visual content tailored to your educational material.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
 
             {/* Royalty Free Music */}
@@ -246,10 +226,6 @@ export const LandingPage = () => {
               <p className="text-slate-300">
                 Access a library of high-quality, royalty-free music tracks. Perfect background music for any educational video style.
               </p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-purple-400">
-                Learn more
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
             </div>
           </div>
         </div>
