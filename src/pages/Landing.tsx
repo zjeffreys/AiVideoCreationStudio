@@ -639,7 +639,7 @@ export const LandingPage = () => {
             </div>
           </div>
           <div className="mt-12 border-t border-slate-800 pt-8 text-center">
-            <p>&copy; {new Date().getFullYear()} EduMotion. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} EduAnimated. All rights reserved.</p>
           </div>
         </div>
       </footer>
